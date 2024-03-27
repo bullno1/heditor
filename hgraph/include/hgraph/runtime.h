@@ -42,6 +42,7 @@ typedef struct hgraph_config_s {
 typedef struct hgraph_pipeline_config_s {
 	const hgraph_t* graph;
 	size_t max_scratch_memory;
+	size_t max_persistent_memory;
 } hgraph_pipeline_config_t;
 
 typedef enum hgraph_pipeline_event_type_e {
@@ -61,6 +62,12 @@ typedef struct hgraph_pipeline_event_s {
 	hgraph_pipeline_event_type_t type;
 	hgraph_index_t node;
 } hgraph_pipeline_event_t;
+
+typedef struct hgraph_pipeline_stats_s {
+	size_t peak_step_memory;
+	size_t peak_execution_memory;
+	size_t peak_persistent_memory;
+} hgraph_pipeline_stats_t;
 
 typedef bool (*hgraph_registry_iterator_t)(
 	const hgraph_node_type_t* node_type,
@@ -208,6 +215,9 @@ hgraph_pipeline_get_node_status(
 	hgraph_pipeline_t* pipeline,
 	hgraph_index_t node
 );
+
+HGRAPH_API hgraph_pipeline_stats_t
+hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
 hgraph_render(
