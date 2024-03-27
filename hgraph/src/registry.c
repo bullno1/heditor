@@ -298,3 +298,16 @@ hgraph_registry_init(
 
 	return size;
 }
+
+void
+hgraph_registry_iterate(
+	const hgraph_registry_t* registry,
+	hgraph_registry_iterator_t iterator,
+	void* userdata
+) {
+	for (hgraph_index_t i = 0; i < registry->num_data_types; ++i) {
+		if (!iterator(registry->node_types[i].definition, userdata)) {
+			break;
+		}
+	}
+}

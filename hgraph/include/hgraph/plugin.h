@@ -44,7 +44,6 @@ typedef struct hgraph_data_type_s {
 	size_t alignment;
 
 	hgraph_lifecycle_callback_t init;
-	hgraph_lifecycle_callback_t cleanup;
 
 	void (*serialize)(
 		const hgraph_node_api_t* api,
