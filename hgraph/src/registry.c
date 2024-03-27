@@ -1,5 +1,4 @@
 #include "internal.h"
-#include "registry.h"
 #include "mem_layout.h"
 #include "hash.h"
 #include <string.h>
