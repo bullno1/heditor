@@ -33,7 +33,7 @@ hgraph_ptr_table_put(
 
 void*
 hgraph_ptr_table_lookup(
-	hgraph_ptr_table_t* table,
+	const hgraph_ptr_table_t* table,
 	const void* key
 );
 

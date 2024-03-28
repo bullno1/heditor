@@ -1,6 +1,8 @@
 #include "hgraph/runtime.h"
 #include "internal.h"
 #include "mem_layout.h"
+#include "ptr_table.h"
+#include <string.h>
 
 size_t
 hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
@@ -11,15 +13,15 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 		_Alignof(hgraph_t)
 	);
 
-	ptrdiff_t node_slot_map_offset = hgraph_slot_map_reserve(&layout, config->max_nodes);
 	size_t node_size = config->registry->max_node_size + config->max_name_length;
 	node_size = mem_layout_align_ptr((intptr_t)node_size, _Alignof(hgraph_node_t));
-
 	ptrdiff_t nodes_offset = mem_layout_reserve(
 		&layout,
 		node_size * config->max_nodes,
-		_Alignof(hgraph_node_t)
+		_Alignof(max_align_t)
 	);
+
+	ptrdiff_t node_slot_map_offset = hgraph_slot_map_reserve(&layout, config->max_nodes);
 
 	size_t max_edges = config->max_nodes * config->registry->max_edges_per_node;
 	ptrdiff_t edge_slot_map_offset = hgraph_slot_map_reserve(&layout, max_edges);
@@ -60,7 +62,48 @@ hgraph_migrate(
 );
 
 hgraph_index_t
-hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type);
+hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
+	const hgraph_registry_t* registry = graph->config.registry;
+	const hgraph_node_type_info_t* type_info = hgraph_ptr_table_lookup(&registry->node_type_by_definition, type);
+	if (type_info == NULL) { return -1; }
+
+	hgraph_index_t node_id, node_slot;
+	hgraph_slot_map_allocate(
+		&graph->node_slot_map,
+		&node_id,
+		&node_slot
+	);
+	if (node_id < 0) { return node_id; }
+
+	hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
+	node->name_len = 0;
+	node->type = type_info - registry->node_types;
+
+	for (hgraph_index_t i = 0; i < type_info->num_attributes; ++i) {
+		void* value = (char*)node + type_info->attributes[i].offset;
+
+		if (type->attributes[i]->init != NULL) {
+			type->attributes[i]->init(value);
+		} else if (type->attributes[i]->data_type->init != NULL) {
+			type->attributes[i]->data_type->init(value);
+		} else {
+			memset(value, 0, type->attributes[i]->data_type->size);
+		}
+	}
+
+	for (hgraph_index_t i = 0; i < type_info->num_input_pins; ++i) {
+		hgraph_index_t* pin = (hgraph_index_t*)((char*)node + type_info->input_pins[i].offset);
+		*pin = -1;
+	}
+
+	for (hgraph_index_t i = 0; i < type_info->num_output_pins; ++i) {
+		hgraph_edge_link_t* pin = (hgraph_edge_link_t*)((char*)node + type_info->output_pins[i].offset);
+		pin->next = pin;
+		pin->prev = pin;
+	}
+
+	return node_id;
+}
 
 void
 hgraph_destroy_node(hgraph_t* graph, hgraph_index_t node);

@@ -30,10 +30,12 @@ typedef enum hgraph_flow_type_e {
 	HGRAPH_FLOW_SWITCH,
 } hgraph_flow_type_t;
 
-typedef void (*hgraph_lifecycle_callback_t)(
+typedef void (*hgraph_node_lifecycle_callback_t)(
 	const hgraph_node_api_t* api,
 	void* value
 );
+
+typedef void (*hgraph_data_initializer_t)(void* value);
 
 typedef struct hgraph_data_type_s {
 	hgraph_str_t name;
@@ -43,7 +45,7 @@ typedef struct hgraph_data_type_s {
 	size_t size;
 	size_t alignment;
 
-	hgraph_lifecycle_callback_t init;
+	hgraph_data_initializer_t init;
 
 	void (*serialize)(
 		const hgraph_node_api_t* api,
@@ -84,7 +86,7 @@ typedef struct hgraph_attribute_description_s {
 
 	const hgraph_data_type_t* data_type;
 
-	hgraph_lifecycle_callback_t init;
+	hgraph_data_initializer_t init;
 
 	void (*render)(
 		const hgraph_node_api_t* api,
@@ -101,8 +103,8 @@ typedef struct hgraph_node_type_s {
 
 	size_t size;
 	size_t alignment;
-	hgraph_lifecycle_callback_t init;
-	hgraph_lifecycle_callback_t cleanup;
+	hgraph_node_lifecycle_callback_t init;
+	hgraph_node_lifecycle_callback_t cleanup;
 
 	const hgraph_pin_description_t** input_pins;
 	const hgraph_pin_description_t** output_pins;
