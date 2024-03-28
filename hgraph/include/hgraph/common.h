@@ -5,6 +5,8 @@
 #include <stddef.h>
 
 #define HGRAPH_STR(STR) (hgraph_str_t){ .size = sizeof(STR) - 1, .data = STR }
+#define HGRAPH_INVALID_INDEX ((hgraph_index_t)-1)
+#define HGRAPH_IS_VALID_INDEX(X) ((X) >= 0)
 
 typedef int32_t hgraph_index_t;
 

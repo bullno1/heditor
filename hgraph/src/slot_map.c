@@ -33,8 +33,8 @@ hgraph_slot_map_allocate(
 	hgraph_index_t* slot_index_out
 ) {
 	if (slot_map->num_items == slot_map->max_items) {
-		*id_out = -1;
-		*slot_index_out = -1;
+		*id_out = HGRAPH_INVALID_INDEX;
+		*slot_index_out = HGRAPH_INVALID_INDEX;
 		return;
 	}
 
@@ -51,9 +51,9 @@ hgraph_slot_map_free(
 	hgraph_index_t* src_slot_index_out
 ) {
 	hgraph_index_t deleted_slot = hgraph_slot_map_slot_for_id(slot_map, id);
-	if (deleted_slot < 0) {
-		*dst_slot_index_out = -1;
-		*src_slot_index_out = -1;
+	if (!HGRAPH_IS_VALID_INDEX(deleted_slot)) {
+		*dst_slot_index_out = HGRAPH_INVALID_INDEX;
+		*src_slot_index_out = HGRAPH_INVALID_INDEX;
 		return;
 	}
 
@@ -71,15 +71,15 @@ hgraph_slot_map_free(
 
 hgraph_index_t
 hgraph_slot_map_slot_for_id(const hgraph_slot_map_t* slot_map, hgraph_index_t id) {
-	if (!((0 <= id) && (id < slot_map->max_items))) { return -1; }
+	if (!((0 <= id) && (id < slot_map->max_items))) { return HGRAPH_INVALID_INDEX; }
 
 	hgraph_index_t slot = slot_map->slots_for_id[id];
-	return ((0 <= slot) && (slot < slot_map->num_items)) ? slot : -1;
+	return ((0 <= slot) && (slot < slot_map->num_items)) ? slot : HGRAPH_INVALID_INDEX;
 }
 
 hgraph_index_t
 hgraph_slot_map_id_for_slot(const hgraph_slot_map_t* slot_map, hgraph_index_t slot) {
 	return ((0 <= slot) && (slot < slot_map->num_items))
 		? slot_map->ids_for_slot[slot]
-		: -1;
+		: HGRAPH_INVALID_INDEX;
 }
