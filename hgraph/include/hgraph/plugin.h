@@ -83,6 +83,9 @@ typedef struct hgraph_attribute_description_s {
 	hgraph_str_t description;
 
 	const hgraph_data_type_t* data_type;
+
+	hgraph_lifecycle_callback_t init;
+
 	void (*render)(
 		const hgraph_node_api_t* api,
 		const void* value,
