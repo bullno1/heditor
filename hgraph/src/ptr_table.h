@@ -21,7 +21,7 @@ void
 hgraph_ptr_table_init(
 	hgraph_ptr_table_t* table,
 	hgraph_index_t num_entries,
-	void* entries
+	void* memory
 );
 
 void
