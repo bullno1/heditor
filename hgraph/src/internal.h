@@ -69,7 +69,7 @@ typedef struct hgraph_edge_link_s {
 } hgraph_edge_link_t;
 
 struct hgraph_edge_s {
-	hgraph_edge_link_t node_out_edges_link;
+	hgraph_edge_link_t out_edge_link;
 
 	hgraph_index_t from_pin;
 	hgraph_index_t to_pin;
