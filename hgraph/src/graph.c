@@ -122,9 +122,31 @@ hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
 hgraph_index_t
 hgraph_get_pin_id(
 	hgraph_t* graph,
-	hgraph_index_t node,
+	hgraph_index_t node_id,
 	const hgraph_pin_description_t* pin
-);
+) {
+	hgraph_index_t node_slot = hgraph_slot_map_slot_for_id(&graph->node_slot_map, node_id);
+	if (node_slot < 0) { return node_slot; }
+
+	hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
+	const hgraph_registry_t* registry = graph->config.registry;
+	const hgraph_node_type_info_t* type_info = &registry->node_types[node->type];
+	const hgraph_node_type_t* type_def = type_info->definition;
+
+	for (hgraph_index_t i = 0; i < type_info->num_input_pins; ++i) {
+		if (type_def->input_pins[i] == pin) {
+			return (node_id << 8) | (i << 1);
+		}
+	}
+
+	for (hgraph_index_t i = 0; i < type_info->num_output_pins; ++i) {
+		if (type_def->output_pins[i] == pin) {
+			return (node_id << 8) | (i << 1) | 0x01;
+		}
+	}
+
+	return -1;
+}
 
 hgraph_index_t
 hgraph_connect(
