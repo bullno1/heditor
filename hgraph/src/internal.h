@@ -64,8 +64,8 @@ struct hgraph_registry_s {
 typedef struct hgraph_edge_s hgraph_edge_t;
 
 typedef struct hgraph_edge_link_s {
-	struct hgraph_edge_link_s* prev;
-	struct hgraph_edge_link_s* next;
+	hgraph_index_t prev;
+	hgraph_index_t next;
 } hgraph_edge_link_t;
 
 struct hgraph_edge_s {

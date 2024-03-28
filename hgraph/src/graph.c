@@ -98,15 +98,26 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 
 	for (hgraph_index_t i = 0; i < type_info->num_output_pins; ++i) {
 		hgraph_edge_link_t* pin = (hgraph_edge_link_t*)((char*)node + type_info->output_pins[i].offset);
-		pin->next = pin;
-		pin->prev = pin;
+		pin->next = -1;
+		pin->prev = -1;
 	}
 
 	return node_id;
 }
 
 void
-hgraph_destroy_node(hgraph_t* graph, hgraph_index_t node);
+hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
+	if (id < 0) { return; }
+
+	hgraph_index_t src_slot, dst_slot;
+	hgraph_slot_map_free(&graph->node_slot_map, id, &dst_slot, &src_slot);
+	if (src_slot < 0) { return; }
+
+	size_t node_size = graph->node_size;
+	char* src_node = graph->nodes + node_size * src_slot;
+	char* dst_node = graph->nodes + node_size  * dst_slot;
+	memcpy(dst_node, src_node, node_size);
+}
 
 hgraph_index_t
 hgraph_get_pin_id(
