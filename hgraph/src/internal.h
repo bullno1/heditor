@@ -2,6 +2,8 @@
 #define HGRAPH_INTERNAL_H
 
 #define HGRAPH_PRIVATE static inline
+#define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 #include <hgraph/runtime.h>
 #include "ptr_table.h"
@@ -45,6 +47,9 @@ typedef struct hgraph_node_type_info_s {
 
 struct hgraph_registry_s {
 	hgraph_registry_config_t config;
+
+	size_t max_node_size;
+	hgraph_index_t max_edges_per_node;
 
 	hgraph_index_t num_data_types;
 	hgraph_data_type_info_t* data_types;

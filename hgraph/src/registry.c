@@ -224,6 +224,8 @@ hgraph_registry_init(
 		);
 	}
 
+	size_t max_node_size = 0;
+	hgraph_index_t max_edges_per_node = 0;
 	for (hgraph_index_t i = 0; i < num_node_types; ++i) {
 		const hgraph_node_type_t* node_type_def = node_types[i];
 		hgraph_node_type_info_t* node_type_info = &registry->node_types[i];
@@ -288,6 +290,7 @@ hgraph_registry_init(
 		}
 		node_type_info->num_input_pins = num_input_pins;
 		node_type_info->input_pins = input_pins;
+		max_edges_per_node = HGRAPH_MAX(max_edges_per_node, num_input_pins);
 
 		hgraph_index_t num_output_pins = 0;
 		for (hgraph_index_t j = 0; node_type_def->output_pins[j] != NULL; ++j) {
@@ -315,6 +318,7 @@ hgraph_registry_init(
 		node_type_info->output_pins = output_pins;
 
 		node_type_info->size = mem_layout_size(&node_layout);
+		max_node_size = HGRAPH_MAX(max_node_size, node_type_info->size);
 
 		hgraph_ptr_table_put(
 			&registry->node_type_by_definition,
@@ -322,6 +326,9 @@ hgraph_registry_init(
 			node_type_info
 		);
 	}
+
+	registry->max_node_size = max_node_size;
+	registry->max_edges_per_node = max_edges_per_node;
 
 	return size;
 }
