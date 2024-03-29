@@ -372,12 +372,58 @@ connect(const MunitParameter params[], void* fixture_p) {
 	return MUNIT_OK;
 }
 
+static MunitResult
+name(const MunitParameter params[], void* fixture) {
+	(void)params;
+
+	hgraph_t* graph = ((fixture_t*)fixture)->graph;
+
+	hgraph_index_t a = hgraph_create_node(
+		graph, &plugin1_start
+	);
+	hgraph_index_t b = hgraph_create_node(
+		graph, &plugin1_start
+	);
+
+	hgraph_set_node_name(graph, a, HGRAPH_STR("a"));
+	hgraph_set_node_name(graph, b, HGRAPH_STR("b"));
+
+	hgraph_str_t name_a = hgraph_get_node_name(graph, a);
+	hgraph_str_t name_b = hgraph_get_node_name(graph, b);
+	munit_assert_memory_equal(name_a.length, name_a.data, "a");
+	munit_assert_memory_equal(name_b.length, name_b.data, "b");
+
+	munit_assert_int32(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("a")),
+		==,
+		a
+	);
+	munit_assert_int32(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("b")),
+		==,
+		b
+	);
+	munit_assert_false(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_get_node_by_name(graph, HGRAPH_STR("c"))
+		)
+	);
+
+	return MUNIT_OK;
+}
+
 MunitSuite test_graph = {
 	.prefix = "/graph",
 	.tests = (MunitTest[]){
 		{
 			.name = "/connect",
 			.test = connect,
+			.setup = setup,
+			.tear_down = tear_down,
+		},
+		{
+			.name = "/name",
+			.test = name,
 			.setup = setup,
 			.tear_down = tear_down,
 		},
