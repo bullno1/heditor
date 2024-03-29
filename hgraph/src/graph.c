@@ -193,6 +193,39 @@ hgraph_get_pin_id(
 	return HGRAPH_INVALID_INDEX;
 }
 
+void
+hgraph_resolve_pin(
+	hgraph_t* graph,
+	hgraph_index_t pin_id,
+	hgraph_index_t* node_id_out,
+	const hgraph_pin_description_t** pin_desc_out
+) {
+	hgraph_index_t node_id, pin_index;
+	bool is_output;
+	hgraph_decode_pin_id(pin_id, &node_id, &pin_index, &is_output);
+
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) {
+		*node_id_out = HGRAPH_INVALID_INDEX;
+		*pin_desc_out = NULL;
+		return;
+	}
+
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	*node_id_out = node_id;
+
+	if (is_output && pin_index < type_info->num_output_pins) {
+		*pin_desc_out = type_def->output_pins[pin_index];
+	} else if (!is_output && pin_index < type_info->num_input_pins) {
+		*pin_desc_out = type_def->input_pins[pin_index];
+	} else {
+		*pin_desc_out = NULL;
+	}
+}
+
 HGRAPH_PRIVATE hgraph_edge_link_t*
 hgraph_resolve_edge(
 	hgraph_t* graph,

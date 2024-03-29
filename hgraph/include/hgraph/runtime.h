@@ -143,6 +143,14 @@ hgraph_get_pin_id(
 	const hgraph_pin_description_t* pin
 );
 
+HGRAPH_API void
+hgraph_resolve_pin(
+	hgraph_t* graph,
+	hgraph_index_t pin_id,
+	hgraph_index_t* node_id_out,
+	const hgraph_pin_description_t** pin_desc_out
+);
+
 HGRAPH_API hgraph_index_t
 hgraph_connect(
 	hgraph_t* graph,
