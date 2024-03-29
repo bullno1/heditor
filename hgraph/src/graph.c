@@ -363,7 +363,7 @@ hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name)
 hgraph_index_t
 hgraph_get_node_by_name(hgraph_t* graph, hgraph_str_t name) {
 	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
-		hgraph_node_t* node = (hgraph_node_t*)graph->nodes + graph->node_size * i;
+		hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
 		hgraph_str_t node_name = hgraph_get_node_name_internal(graph, node);
 
 		if (node_name.length != name.length) { continue; }
@@ -431,11 +431,32 @@ hgraph_iterate_node(
 	hgraph_t* graph,
 	hgraph_node_iterator_t iterator,
 	void* userdata
-);
+) {
+	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
+		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		hgraph_index_t id = hgraph_slot_map_id_for_slot(&graph->node_slot_map, i);
+
+		// May happen if removal occurs during iteration
+		if (!HGRAPH_IS_VALID_INDEX(id)) { continue; }
+
+		const hgraph_node_type_t* type = graph->config.registry->node_types[node->type].definition;
+		if (!iterator(id, type, userdata)) { break; }
+	}
+}
 
 void
 hgraph_iterate_edge(
 	hgraph_t* graph,
 	hgraph_edge_iterator_t iterator,
 	void* userdata
-);
+) {
+	for (hgraph_index_t i = 0; i < graph->edge_slot_map.num_items; ++i) {
+		const hgraph_edge_t* edge = &graph->edges[i];
+		hgraph_index_t id = hgraph_slot_map_id_for_slot(&graph->edge_slot_map, i);
+
+		// May happen if removal occurs during iteration
+		if (!HGRAPH_IS_VALID_INDEX(id)) { continue; }
+
+		if (!iterator(id, edge->from_pin, edge->to_pin, userdata)) { break; }
+	}
+}
