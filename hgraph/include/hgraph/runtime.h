@@ -42,7 +42,6 @@ typedef struct hgraph_config_s {
 typedef struct hgraph_pipeline_config_s {
 	const hgraph_t* graph;
 	size_t max_scratch_memory;
-	size_t max_persistent_memory;
 } hgraph_pipeline_config_t;
 
 typedef enum hgraph_pipeline_event_type_e {
@@ -95,10 +94,11 @@ typedef bool (*hgraph_pipeline_watcher_t)(
 extern "C" {
 #endif
 
-HGRAPH_API size_t
+HGRAPH_API hgraph_registry_builder_t*
 hgraph_registry_builder_init(
-	hgraph_registry_builder_t* builder,
-	const hgraph_registry_config_t* config
+	const hgraph_registry_config_t* config,
+	void* mem,
+	size_t* mem_size_inout
 );
 
 HGRAPH_API void
@@ -110,10 +110,11 @@ hgraph_registry_builder_add(
 HGRAPH_API hgraph_plugin_api_t*
 hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder);
 
-HGRAPH_API size_t
+HGRAPH_API hgraph_registry_t*
 hgraph_registry_init(
-	hgraph_registry_t* registry,
-	const hgraph_registry_builder_t* builder
+	const hgraph_registry_builder_t* builder,
+	void* mem,
+	size_t* mem_size_inout
 );
 
 HGRAPH_API void
@@ -123,14 +124,20 @@ hgraph_registry_iterate(
 	void* userdata
 );
 
-HGRAPH_API size_t
-hgraph_init(hgraph_t* graph, const hgraph_config_t* config);
+HGRAPH_API hgraph_t*
+hgraph_init(
+	const hgraph_registry_t* registry,
+	const hgraph_config_t* config,
+	void* mem,
+	size_t* mem_size_inout
+);
 
-HGRAPH_API size_t
+HGRAPH_API hgraph_t*
 hgraph_migrate(
-	hgraph_t* dest,
-	const hgraph_t* src,
-	hgraph_registry_t* new_registry
+	const hgraph_t* graph,
+	const hgraph_registry_t* new_registry,
+	void* mem,
+	size_t* mem_size_inout
 );
 
 HGRAPH_API hgraph_index_t

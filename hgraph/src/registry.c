@@ -12,46 +12,19 @@ hgraph_registry_builder_plugin_register_node_type(
 	hgraph_registry_builder_add(builder, node_type);
 }
 
-size_t
-hgraph_registry_builder_init(
-	hgraph_registry_builder_t* builder,
-	const hgraph_registry_config_t* config
-) {
-	mem_layout_t layout = { 0 };
-	mem_layout_reserve(
-		&layout,
-		sizeof(hgraph_registry_builder_t),
-		_Alignof(hgraph_registry_builder_t)
-	);
-	ptrdiff_t node_types = mem_layout_reserve(
-		&layout,
-		sizeof(hgraph_node_type_t*) * config->max_node_types,
-		_Alignof(hgraph_node_type_t*)
-	);
+HGRAPH_PRIVATE hgraph_str_t
+hgraph_alloc_string(char** pool, hgraph_str_t str) {
+	char* storage = *pool;
+	pool += str.length;
+	memcpy(storage, str.data, str.length);
+	return (hgraph_str_t){ .data = storage, .length = str.length };
+}
 
-	hgraph_index_t hash_data_type_exp = hash_exp(config->max_data_types);
-	hgraph_index_t hash_data_type_size = hash_size(hash_data_type_exp);
-	ptrdiff_t data_types = mem_layout_reserve(
-		&layout,
-		sizeof(hgraph_data_type_t*) * hash_data_type_size,
-		_Alignof(hgraph_data_type_t*)
-	);
-
-	size_t size = mem_layout_size(&layout);
-	if (builder == NULL) { return size; }
-
-	memset(builder, 0, size);
-	*builder = (hgraph_registry_builder_t){
-		.config = *config,
-		.plugin_api = {
-			.register_node_type = &hgraph_registry_builder_plugin_register_node_type,
-		},
-		.data_type_exp = hash_data_type_exp,
-		.node_types = mem_layout_locate(builder, node_types),
-		.data_types = mem_layout_locate(builder, data_types),
-	};
-
-	return size;
+HGRAPH_PRIVATE hgraph_var_t*
+hgraph_alloc_vars(hgraph_var_t** pool, hgraph_index_t num_vars) {
+	hgraph_var_t* result = *pool;
+	pool += num_vars;
+	return result;
 }
 
 HGRAPH_PRIVATE void
@@ -75,19 +48,52 @@ hgraph_registry_add_type(
 	}
 }
 
-HGRAPH_PRIVATE hgraph_str_t
-hgraph_alloc_string(char** pool, hgraph_str_t str) {
-	char* storage = *pool;
-	pool += str.length;
-	memcpy(storage, str.data, str.length);
-	return (hgraph_str_t){ .data = storage, .length = str.length };
-}
+hgraph_registry_builder_t*
+hgraph_registry_builder_init(
+	const hgraph_registry_config_t* config,
+	void* mem,
+	size_t* mem_size_inout
+) {
+	mem_layout_t layout = { 0 };
+	mem_layout_reserve(
+		&layout,
+		sizeof(hgraph_registry_builder_t),
+		_Alignof(hgraph_registry_builder_t)
+	);
+	ptrdiff_t node_types = mem_layout_reserve(
+		&layout,
+		sizeof(hgraph_node_type_t*) * config->max_node_types,
+		_Alignof(hgraph_node_type_t*)
+	);
 
-HGRAPH_PRIVATE hgraph_var_t*
-hgraph_alloc_vars(hgraph_var_t** pool, hgraph_index_t num_vars) {
-	hgraph_var_t* result = *pool;
-	pool += num_vars;
-	return result;
+	hgraph_index_t hash_data_type_exp = hash_exp(config->max_data_types);
+	hgraph_index_t hash_data_type_size = hash_size(hash_data_type_exp);
+	ptrdiff_t data_types = mem_layout_reserve(
+		&layout,
+		sizeof(hgraph_data_type_t*) * hash_data_type_size,
+		_Alignof(hgraph_data_type_t*)
+	);
+
+	size_t required_size = mem_layout_size(&layout);
+	if (mem == NULL || required_size > *mem_size_inout) {
+		*mem_size_inout = required_size;
+		return NULL;
+	}
+
+	memset(mem, 0, required_size);
+	hgraph_registry_builder_t* builder = mem;
+	*builder = (hgraph_registry_builder_t){
+		.config = *config,
+		.plugin_api = {
+			.register_node_type = &hgraph_registry_builder_plugin_register_node_type,
+		},
+		.data_type_exp = hash_data_type_exp,
+		.node_types = mem_layout_locate(builder, node_types),
+		.data_types = mem_layout_locate(builder, data_types),
+	};
+
+	*mem_size_inout = required_size;
+	return builder;
 }
 
 void
@@ -130,10 +136,11 @@ hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder) {
 	return &builder->plugin_api;
 }
 
-size_t
+hgraph_registry_t*
 hgraph_registry_init(
-	hgraph_registry_t* registry,
-	const hgraph_registry_builder_t* builder
+	const hgraph_registry_builder_t* builder,
+	void* mem,
+	size_t* mem_size_inout
 ) {
 	size_t string_table_size = 0;
 	hgraph_index_t num_vars = 0;
@@ -201,9 +208,13 @@ hgraph_registry_init(
 		&layout, builder->num_node_types
 	);
 
-	size_t size = mem_layout_size(&layout);
-	if (registry == NULL) { return size; }
+	size_t required_size = mem_layout_size(&layout);
+	if (mem == NULL || required_size > *mem_size_inout) {
+		*mem_size_inout = required_size;
+		return NULL;
+	}
 
+	hgraph_registry_t* registry = mem;
 	*registry = (hgraph_registry_t){
 		.config = builder->config,
 		.num_data_types = builder->num_data_types,
@@ -347,7 +358,8 @@ hgraph_registry_init(
 	registry->max_node_size = max_node_size;
 	registry->max_edges_per_node = max_edges_per_node;
 
-	return size;
+	*mem_size_inout = required_size;
+	return registry;
 }
 
 void

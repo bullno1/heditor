@@ -10,7 +10,7 @@ hgraph_find_node_type(
 	const hgraph_node_type_info_t** info,
 	const hgraph_node_type_t** def
 ) {
-	const hgraph_registry_t* registry = graph->config.registry;
+	const hgraph_registry_t* registry = graph->registry;
 	const hgraph_node_type_info_t* type_info = &registry->node_types[node->type];
 	const hgraph_node_type_t* type_def = type_info->definition;
 
@@ -77,8 +77,13 @@ hgraph_resolve_edge(
 	return HGRAPH_IS_VALID_INDEX(slot) ? &graph->edges[slot].output_pin_link : pin;
 }
 
-size_t
-hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
+hgraph_t*
+hgraph_init(
+	const hgraph_registry_t* registry,
+	const hgraph_config_t* config,
+	void* mem,
+	size_t* mem_size_inout
+) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
 		&layout,
@@ -86,8 +91,8 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 		_Alignof(hgraph_t)
 	);
 
-	size_t node_size = config->registry->max_node_size + config->max_name_length;
-	node_size = mem_layout_align_ptr((intptr_t)node_size, _Alignof(hgraph_node_t));
+	size_t node_size = registry->max_node_size + config->max_name_length;
+	node_size = mem_layout_align_ptr((intptr_t)node_size, _Alignof(max_align_t));
 	ptrdiff_t nodes_offset = mem_layout_reserve(
 		&layout,
 		node_size * config->max_nodes,
@@ -104,11 +109,16 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 		_Alignof(hgraph_edge_t)
 	);
 
-	size_t size = mem_layout_size(&layout);
-	if (graph == NULL) { return size; }
+	size_t required_size = mem_layout_size(&layout);
+	if (mem == NULL || required_size > *mem_size_inout) {
+		*mem_size_inout = required_size;
+		return NULL;
+	}
 
+	hgraph_t* graph = mem;
 	*graph = (hgraph_t){
-		.config = *config,
+		.registry = registry,
+		.max_name_length = config->max_name_length,
 		.node_size = node_size,
 		.nodes = mem_layout_locate(graph, nodes_offset),
 		.edges = mem_layout_locate(graph, edges_offset),
@@ -124,19 +134,13 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 		mem_layout_locate(graph, edge_slot_map_offset)
 	);
 
-	return size;
+	*mem_size_inout = required_size;
+	return graph;
 }
-
-size_t
-hgraph_migrate(
-	hgraph_t* dest,
-	const hgraph_t* src,
-	hgraph_registry_t* new_registry
-);
 
 hgraph_index_t
 hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
-	const hgraph_registry_t* registry = graph->config.registry;
+	const hgraph_registry_t* registry = graph->registry;
 	const hgraph_node_type_info_t* type_info = hgraph_ptr_table_lookup(&registry->node_type_by_definition, type);
 	if (type_info == NULL) { return HGRAPH_INVALID_INDEX; }
 
@@ -412,7 +416,7 @@ hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node_id) {
 
 void
 hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name) {
-	if (name.length > graph->config.max_name_length) { return; }
+	if (name.length > graph->max_name_length) { return; }
 
 	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 	if (node == NULL) { return; }
@@ -505,7 +509,7 @@ hgraph_iterate_node(
 		// May happen if removal occurs during iteration
 		if (!HGRAPH_IS_VALID_INDEX(id)) { continue; }
 
-		const hgraph_node_type_t* type = graph->config.registry->node_types[node->type].definition;
+		const hgraph_node_type_t* type = graph->registry->node_types[node->type].definition;
 		if (!iterator(id, type, userdata)) { break; }
 	}
 }

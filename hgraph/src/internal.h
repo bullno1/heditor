@@ -87,7 +87,8 @@ typedef struct hgraph_node_s {
 } hgraph_node_t;
 
 struct hgraph_s {
-	hgraph_config_t config;
+	const hgraph_registry_t* registry;
+	hgraph_index_t max_name_length;
 
 	hgraph_slot_map_t node_slot_map;
 	size_t node_size;
