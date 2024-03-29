@@ -60,6 +60,12 @@ iterate_edges(
 	iterator_state* i = userdata;
 	++i->num_edges;
 
+	if (edge == i->start_mid_id) {
+		i->seen_start_mid = true;
+	} else if (edge == i->mid_end_id) {
+		i->seen_mid_end = true;
+	}
+
 	return true;
 }
 
@@ -143,17 +149,27 @@ manipulation(const MunitParameter params[], void* fixture) {
 	hgraph_index_t mid_in = hgraph_get_pin_id(
 		graph, i.mid_id, &plugin2_mid_in_f32
 	);
-	/*hgraph_index_t mid_out = hgraph_get_pin_id(*/
-		/*graph, i.mid_id, &plugin2_mid_out_i32*/
-	/*);*/
+	hgraph_index_t mid_out = hgraph_get_pin_id(
+		graph, i.mid_id, &plugin2_mid_out_i32
+	);
 
 	// |start|->|mid|  |end|
 	i.start_mid_id = hgraph_connect(graph, start_out, mid_in);
 	munit_assert(HGRAPH_IS_VALID_INDEX(i.start_mid_id));
-
 	i.num_edges = 0;
 	hgraph_iterate_edges(graph, iterate_edges, &i);
 	munit_assert_int32(i.num_edges, ==, 1);
+	munit_assert(i.seen_start_mid);
+	munit_assert_false(i.seen_mid_end);
+
+	// |start|->|mid|->|end|
+	i.mid_end_id = hgraph_connect(graph, mid_out, end_in);
+	munit_assert(HGRAPH_IS_VALID_INDEX(i.mid_end_id));
+	i.num_edges = 0;
+	i.seen_start_mid = false;
+	i.seen_mid_end = false;
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 2);
 
 	free(graph_mem);
 	free(registry_mem);

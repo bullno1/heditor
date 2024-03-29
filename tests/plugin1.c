@@ -16,7 +16,7 @@ const hgraph_pin_description_t plugin1_start_out_f32 = {
 
 const hgraph_node_type_t plugin1_end = {
 	.name = HGRAPH_STR("end"),
-	.output_pins = HGRAPH_NODE_PINS(
+	.input_pins = HGRAPH_NODE_PINS(
 		&plugin1_end_in_i32
 	),
 };
