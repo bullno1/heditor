@@ -103,4 +103,6 @@ struct hgraph_pipeline_s {
 	hgraph_node_api_t node_api;
 };
 
+extern const hgraph_node_type_t* hgraph_dummy_node;
+
 #endif

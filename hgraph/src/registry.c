@@ -3,6 +3,17 @@
 #include "hash.h"
 #include <string.h>
 
+const hgraph_node_type_t* hgraph_dummy_node = &(hgraph_node_type_t){
+	.name = HGRAPH_STR("dummy"),
+	.group = HGRAPH_STR("hidden"),
+	.description = HGRAPH_STR("For internal use"),
+	.size = 0,
+	.alignment = 1,
+	.attributes = (const hgraph_attribute_description_t*[]){ NULL },
+	.input_pins = (const hgraph_pin_description_t*[]){ NULL },
+	.output_pins = (const hgraph_pin_description_t*[]){ NULL },
+};
+
 HGRAPH_PRIVATE void
 hgraph_registry_builder_plugin_register_node_type(
 	const hgraph_plugin_api_t* api,
@@ -91,6 +102,8 @@ hgraph_registry_builder_init(
 		.node_types = mem_layout_locate(builder, node_types),
 		.data_types = mem_layout_locate(builder, data_types),
 	};
+
+	hgraph_registry_builder_add(builder, hgraph_dummy_node);
 
 	*mem_size_inout = required_size;
 	return builder;
