@@ -63,7 +63,7 @@ typedef struct hgraph_data_type_s {
 	void (*render)(
 		const hgraph_node_api_t* api,
 		const void* value,
-		void* gui_ctx
+		void* render_ctx
 	);
 } hgraph_data_type_t;
 
@@ -87,7 +87,7 @@ typedef struct hgraph_attribute_description_s {
 	void (*render)(
 		const hgraph_node_api_t* api,
 		const void* value,
-		void* gui_ctx
+		void* render_ctx
 	);
 } hgraph_attribute_description_t;
 
@@ -112,7 +112,7 @@ typedef struct hgraph_node_type_s {
 		const hgraph_node_api_t* api,
 		hgraph_node_part_t part,
 		const void* last_status,
-		void* gui_ctx
+		void* render_ctx
 	);
 } hgraph_node_type_t;
 

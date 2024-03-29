@@ -82,6 +82,7 @@ struct hgraph_edge_s {
 
 typedef struct hgraph_node_s {
 	size_t name_len;
+	hgraph_index_t version;
 	hgraph_index_t type;
 } hgraph_node_t;
 
@@ -94,6 +95,11 @@ struct hgraph_s {
 
 	hgraph_slot_map_t edge_slot_map;
 	hgraph_edge_t* edges;
+};
+
+struct hgraph_pipeline_s {
+	hgraph_pipeline_config_t config;
+	hgraph_node_api_t node_api;
 };
 
 #endif

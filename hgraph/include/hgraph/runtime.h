@@ -228,11 +228,7 @@ HGRAPH_API hgraph_pipeline_stats_t
 hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
-hgraph_render(
-	hgraph_t* graph,
-	hgraph_pipeline_t* pipeline,
-	void* gui_ctx
-);
+hgraph_pipeline_render(hgraph_pipeline_t* pipeline, void* render_ctx);
 
 #ifdef __cplusplus
 }

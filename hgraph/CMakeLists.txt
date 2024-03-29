@@ -1,8 +1,8 @@
 set(SOURCES
 	"src/registry.c"
+	"src/graph.c"
 	"src/ptr_table.c"
 	"src/slot_map.c"
-	"src/graph.c"
 )
 setup_library(hgraph_runtime FALSE "${SOURCES}")
 target_include_directories(hgraph_runtime PUBLIC "include")

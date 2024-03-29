@@ -3,6 +3,80 @@
 #include "ptr_table.h"
 #include <string.h>
 
+HGRAPH_PRIVATE void
+hgraph_find_node_type(
+	const hgraph_t* graph,
+	const hgraph_node_t* node,
+	const hgraph_node_type_info_t** info,
+	const hgraph_node_type_t** def
+) {
+	const hgraph_registry_t* registry = graph->config.registry;
+	const hgraph_node_type_info_t* type_info = &registry->node_types[node->type];
+	const hgraph_node_type_t* type_def = type_info->definition;
+
+	*info = type_info;
+	*def = type_def;
+}
+
+HGRAPH_PRIVATE hgraph_node_t*
+hgraph_find_node_by_id(
+	const hgraph_t* graph,
+	hgraph_index_t node_id
+) {
+	hgraph_index_t node_slot = hgraph_slot_map_slot_for_id(&graph->node_slot_map, node_id);
+	if (!HGRAPH_IS_VALID_INDEX(node_slot)) { return NULL; }
+
+	return (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
+}
+
+HGRAPH_PRIVATE hgraph_str_t
+hgraph_get_node_name_internal(hgraph_t* graph, hgraph_node_t* node) {
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	char* name_storage = (char*)node + type_info->size;
+	return (hgraph_str_t){
+		.data = name_storage,
+		.length = node->name_len,
+	};
+}
+
+HGRAPH_PRIVATE hgraph_index_t
+hgraph_encode_pin_id(
+	hgraph_index_t node_id,
+	hgraph_index_t pin_index,
+	bool is_output
+) {
+	return (node_id << 8) | (pin_index << 1) | (is_output & 0x01);
+}
+
+HGRAPH_PRIVATE void
+hgraph_decode_pin_id(
+	hgraph_index_t pin_id,
+	hgraph_index_t* node_id,
+	hgraph_index_t* pin_index,
+	bool* is_output
+) {
+	*node_id = pin_id >> 8;
+	*pin_index = (pin_id & 0xff) >> 1;
+	*is_output = pin_id & 0x01;
+}
+
+HGRAPH_PRIVATE hgraph_edge_link_t*
+hgraph_resolve_edge(
+	hgraph_t* graph,
+	hgraph_edge_link_t* pin,
+	hgraph_index_t edge_id
+) {
+	hgraph_index_t slot = hgraph_slot_map_slot_for_id(
+		&graph->edge_slot_map,
+		edge_id
+	);
+
+	return HGRAPH_IS_VALID_INDEX(slot) ? &graph->edges[slot].output_pin_link : pin;
+}
+
 size_t
 hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 	mem_layout_t layout = { 0 };
@@ -75,6 +149,10 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 	if (!HGRAPH_IS_VALID_INDEX(node_id)) { return HGRAPH_INVALID_INDEX; }
 
 	hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
+	// It doesn't matter whether this is initialized.
+	// Whenever we allocate a node, incrementing the version will invalidate all
+	// previously cached data, if any.
+	++node->version;
 	node->name_len = 0;
 	node->type = type_info - registry->node_types;
 
@@ -106,63 +184,45 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 
 void
 hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
-	if (!HGRAPH_IS_VALID_INDEX(id)) { return; }
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, id);
+	if (node == NULL) { return; }
 
+	// Destroy edges
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	for (hgraph_index_t i = 0; i < type_info->num_input_pins; ++i) {
+		hgraph_index_t* input_pin = (hgraph_index_t*)((char*)node + type_info->input_pins[i].offset);
+		hgraph_disconnect(graph, *input_pin);
+	}
+
+	for (hgraph_index_t i = 0; i < type_info->num_output_pins; ++i) {
+		hgraph_edge_link_t* output_pin = (hgraph_edge_link_t*)((char*)node + type_info->output_pins[i].offset);
+
+		while (true) {
+			hgraph_edge_link_t* link = hgraph_resolve_edge(graph, output_pin, output_pin->next);
+			if (link == output_pin) { break; }
+
+			hgraph_edge_t* edge = HGRAPH_CONTAINER_OF(link, hgraph_edge_t, output_pin_link);
+			hgraph_index_t edge_slot = edge - graph->edges;
+			hgraph_index_t edge_id = hgraph_slot_map_id_for_slot(
+				&graph->edge_slot_map,
+				edge_slot
+			);
+			hgraph_disconnect(graph, edge_id);
+		}
+	}
+
+	// Destroy node
 	hgraph_index_t src_slot, dst_slot;
 	hgraph_slot_map_free(&graph->node_slot_map, id, &dst_slot, &src_slot);
-	if (!HGRAPH_IS_VALID_INDEX(src_slot)) { return; }
+	HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(src_slot));
 
 	size_t node_size = graph->node_size;
 	char* src_node = graph->nodes + node_size * src_slot;
 	char* dst_node = graph->nodes + node_size * dst_slot;
 	memcpy(dst_node, src_node, node_size);
-}
-
-HGRAPH_PRIVATE hgraph_index_t
-hgraph_encode_pin_id(
-	hgraph_index_t node_id,
-	hgraph_index_t pin_index,
-	bool is_output
-) {
-	return (node_id << 8) | (pin_index << 1) | (is_output & 0x01);
-}
-
-HGRAPH_PRIVATE void
-hgraph_decode_pin_id(
-	hgraph_index_t pin_id,
-	hgraph_index_t* node_id,
-	hgraph_index_t* pin_index,
-	bool* is_output
-) {
-	*node_id = pin_id >> 8;
-	*pin_index = (pin_id & 0xff) >> 1;
-	*is_output = pin_id & 0x01;
-}
-
-HGRAPH_PRIVATE hgraph_node_t*
-hgraph_find_node_by_id(
-	const hgraph_t* graph,
-	hgraph_index_t node_id
-) {
-	hgraph_index_t node_slot = hgraph_slot_map_slot_for_id(&graph->node_slot_map, node_id);
-	if (!HGRAPH_IS_VALID_INDEX(node_slot)) { return NULL; }
-
-	return (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
-}
-
-HGRAPH_PRIVATE void
-hgraph_find_node_type(
-	const hgraph_t* graph,
-	const hgraph_node_t* node,
-	const hgraph_node_type_info_t** info,
-	const hgraph_node_type_t** def
-) {
-	const hgraph_registry_t* registry = graph->config.registry;
-	const hgraph_node_type_info_t* type_info = &registry->node_types[node->type];
-	const hgraph_node_type_t* type_def = type_info->definition;
-
-	*info = type_info;
-	*def = type_def;
 }
 
 hgraph_index_t
@@ -224,20 +284,6 @@ hgraph_resolve_pin(
 	} else {
 		*pin_desc_out = NULL;
 	}
-}
-
-HGRAPH_PRIVATE hgraph_edge_link_t*
-hgraph_resolve_edge(
-	hgraph_t* graph,
-	hgraph_edge_link_t* pin,
-	hgraph_index_t edge_id
-) {
-	hgraph_index_t slot = hgraph_slot_map_slot_for_id(
-		&graph->edge_slot_map,
-		edge_id
-	);
-
-	return HGRAPH_IS_VALID_INDEX(slot) ? &graph->edges[slot].output_pin_link : pin;
 }
 
 hgraph_index_t
@@ -354,19 +400,6 @@ hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge_id) {
 		HGRAPH_IS_VALID_INDEX(dst_slot) && HGRAPH_IS_VALID_INDEX(src_slot)
 	);
 	graph->edges[dst_slot] = graph->edges[src_slot];
-}
-
-HGRAPH_PRIVATE hgraph_str_t
-hgraph_get_node_name_internal(hgraph_t* graph, hgraph_node_t* node) {
-	const hgraph_node_type_info_t* type_info;
-	const hgraph_node_type_t* type_def;
-	hgraph_find_node_type(graph, node, &type_info, &type_def);
-
-	char* name_storage = (char*)node + type_info->size;
-	return (hgraph_str_t){
-		.data = name_storage,
-		.length = node->name_len,
-	};
 }
 
 hgraph_str_t
