@@ -23,6 +23,11 @@ typedef struct {
 	bool seen_mid_end;
 } iterator_state;
 
+typedef struct {
+	hgraph_t* graph;
+	hgraph_registry_t* registry;
+} fixture_t;
+
 static bool
 iterate_nodes(
 	hgraph_index_t node,
@@ -69,10 +74,10 @@ iterate_edges(
 	return true;
 }
 
-static MunitResult
-manipulation(const MunitParameter params[], void* fixture) {
+static void*
+setup(const MunitParameter params[], void* user_data) {
 	(void)params;
-	(void)fixture;
+	(void)user_data;
 
 	hgraph_registry_config_t reg_config = {
 		.max_data_types = 32,
@@ -95,6 +100,7 @@ manipulation(const MunitParameter params[], void* fixture) {
 	hgraph_registry_init(builder, NULL, &mem_required);
 	void* registry_mem = malloc(mem_required);
 	hgraph_registry_t* registry = hgraph_registry_init(builder, registry_mem, &mem_required);
+	free(builder_mem);
 
 	mem_required = 0;
 	hgraph_config_t graph_config = {
@@ -105,6 +111,30 @@ manipulation(const MunitParameter params[], void* fixture) {
 	void* graph_mem = malloc(mem_required);
 	hgraph_t* graph = hgraph_init(registry, &graph_config, graph_mem, &mem_required);
 	munit_assert_not_null(graph);
+
+	fixture_t* fixture = malloc(sizeof(fixture_t));
+	*fixture = (fixture_t){
+		.graph = graph,
+		.registry = registry,
+	};
+
+	return fixture;
+}
+
+static void
+tear_down(void* fixture_p) {
+	fixture_t* fixture = fixture_p;
+	free(fixture->graph);
+	free(fixture->registry);
+	free(fixture);
+}
+
+static MunitResult
+connect(const MunitParameter params[], void* fixture_p) {
+	(void)params;
+
+	fixture_t* fixture = fixture_p;
+	hgraph_t* graph = fixture->graph;
 
 	iterator_state i = { 0 };
 
@@ -339,9 +369,6 @@ manipulation(const MunitParameter params[], void* fixture) {
 	// |start|           ┌-->end|
 	//    └---->|mid2|---┘
 
-	free(graph_mem);
-	free(registry_mem);
-	free(builder_mem);
 	return MUNIT_OK;
 }
 
@@ -349,8 +376,10 @@ MunitSuite test_graph = {
 	.prefix = "/graph",
 	.tests = (MunitTest[]){
 		{
-			.name = "/manipulation",
-			.test = manipulation,
+			.name = "/connect",
+			.test = connect,
+			.setup = setup,
+			.tear_down = tear_down,
 		},
 		{ 0 },
 	},
