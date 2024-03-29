@@ -1,6 +1,9 @@
 set(SOURCES
 	"./main.c"
+
 	"./registry.c"
+	"./graph.c"
+
 	"./plugin1.c"
 	"./plugin2.c"
 	"./data.c"

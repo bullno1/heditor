@@ -54,7 +54,6 @@ reg(const MunitParameter params[], void* fixture) {
 	munit_assert_not_null(builder);
 
 	hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(builder);
-
 	plugin1_entry(plugin_api);
 	plugin2_entry(plugin_api);
 
