@@ -34,13 +34,11 @@ typedef struct hgraph_registry_config_s {
 } hgraph_registry_config_t;
 
 typedef struct hgraph_config_s {
-	const hgraph_registry_t* registry;
 	hgraph_index_t max_nodes;
 	hgraph_index_t max_name_length;
 } hgraph_config_t;
 
 typedef struct hgraph_pipeline_config_s {
-	const hgraph_t* graph;
 	size_t max_scratch_memory;
 } hgraph_pipeline_config_t;
 

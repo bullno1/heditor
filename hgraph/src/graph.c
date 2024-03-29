@@ -101,7 +101,7 @@ hgraph_init(
 
 	ptrdiff_t node_slot_map_offset = hgraph_slot_map_reserve(&layout, config->max_nodes);
 
-	size_t max_edges = config->max_nodes * config->registry->max_edges_per_node;
+	size_t max_edges = config->max_nodes * registry->max_edges_per_node;
 	ptrdiff_t edge_slot_map_offset = hgraph_slot_map_reserve(&layout, max_edges);
 	ptrdiff_t edges_offset = mem_layout_reserve(
 		&layout,
@@ -118,7 +118,7 @@ hgraph_init(
 	hgraph_t* graph = mem;
 	*graph = (hgraph_t){
 		.registry = registry,
-		.max_name_length = config->max_name_length,
+		.config = *config,
 		.node_size = node_size,
 		.nodes = mem_layout_locate(graph, nodes_offset),
 		.edges = mem_layout_locate(graph, edges_offset),
@@ -416,7 +416,7 @@ hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node_id) {
 
 void
 hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name) {
-	if (name.length > graph->max_name_length) { return; }
+	if (name.length > graph->config.max_name_length) { return; }
 
 	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 	if (node == NULL) { return; }
