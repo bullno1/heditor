@@ -43,6 +43,7 @@ hgraph_ptr_table_put(
 		i = hash_msi(hash, exp, i);
 		hgraph_ptr_pair_t* entry = &entries[i];
 		if (entry->key == NULL || entry->key == key) {
+			entry->key = key;
 			entry->value = value;
 			return;
 		}

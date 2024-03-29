@@ -18,7 +18,10 @@ HGRAPH_PRIVATE hgraph_str_t
 hgraph_alloc_string(char** pool, hgraph_str_t str) {
 	char* storage = *pool;
 	pool += str.length;
-	memcpy(storage, str.data, str.length);
+
+	if (str.length > 0) {
+		memcpy(storage, str.data, str.length);
+	}
 	return (hgraph_str_t){ .data = storage, .length = str.length };
 }
 
@@ -286,7 +289,11 @@ hgraph_registry_init(
 		);
 
 		hgraph_index_t num_attributes = 0;
-		for (hgraph_index_t j = 0; node_type_def->attributes[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type_def->attributes != NULL && node_type_def->attributes[j] != NULL;
+			++j
+		) {
 			++num_attributes;
 		}
 		hgraph_var_t* attributes = hgraph_alloc_vars(&vars, num_attributes);
@@ -296,6 +303,7 @@ hgraph_registry_init(
 				&registry->data_type_by_definition,
 				attribute_def
 			);
+			HGRAPH_ASSERT(data_type_info != NULL);
 			attributes[j] = (hgraph_var_t){
 				.type = data_type_info->name,
 				.name = hgraph_alloc_string(&str_table, attribute_def->name),
@@ -311,7 +319,11 @@ hgraph_registry_init(
 		node_type_info->attributes = attributes;
 
 		hgraph_index_t num_input_pins = 0;
-		for (hgraph_index_t j = 0; node_type_def->input_pins[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type_def->input_pins != NULL && node_type_def->input_pins[j] != NULL;
+			++j
+		) {
 			++num_input_pins;
 		}
 		hgraph_var_t* input_pins = hgraph_alloc_vars(&vars, num_input_pins);
@@ -319,8 +331,9 @@ hgraph_registry_init(
 			const hgraph_pin_description_t* pin_def = node_type_def->input_pins[j];
 			hgraph_data_type_info_t* data_type_info = hgraph_ptr_table_lookup(
 				&registry->data_type_by_definition,
-				pin_def
+				pin_def->data_type
 			);
+			HGRAPH_ASSERT(data_type_info != NULL);
 			input_pins[j] = (hgraph_var_t){
 				.type = data_type_info->name,
 				.name = hgraph_alloc_string(&str_table, pin_def->name),
@@ -337,7 +350,11 @@ hgraph_registry_init(
 		max_edges_per_node = HGRAPH_MAX(max_edges_per_node, num_input_pins);
 
 		hgraph_index_t num_output_pins = 0;
-		for (hgraph_index_t j = 0; node_type_def->output_pins[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type_def->output_pins != NULL && node_type_def->output_pins[j] != NULL;
+			++j
+		) {
 			++num_output_pins;
 		}
 		hgraph_var_t* output_pins = hgraph_alloc_vars(&vars, num_output_pins);
@@ -347,6 +364,7 @@ hgraph_registry_init(
 				&registry->data_type_by_definition,
 				pin_def->data_type
 			);
+			HGRAPH_ASSERT(data_type_info != NULL);
 			output_pins[j] = (hgraph_var_t){
 				.type = data_type_info->name,
 				.name = hgraph_alloc_string(&str_table, pin_def->name),

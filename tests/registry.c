@@ -24,10 +24,10 @@ reg(const MunitParameter params[], void* fixture) {
 	);
 	munit_assert_null(builder);
 
-	void* mem = malloc(mem_required);
+	void* builder_mem = malloc(mem_required);
 	builder = hgraph_registry_builder_init(
 		&config,
-		mem,
+		builder_mem,
 		&mem_required
 	);
 	munit_assert_not_null(builder);
@@ -37,7 +37,16 @@ reg(const MunitParameter params[], void* fixture) {
 	plugin1_entry(plugin_api);
 	plugin2_entry(plugin_api);
 
-	free(mem);
+	mem_required = 0;
+	hgraph_registry_t* registry = hgraph_registry_init(builder, NULL, &mem_required);
+	munit_assert_null(registry);
+
+	void* registry_mem = malloc(mem_required);
+	registry = hgraph_registry_init(builder, registry_mem, &mem_required);
+
+	free(registry_mem);
+	free(builder_mem);
+
 	return MUNIT_OK;
 }
 
