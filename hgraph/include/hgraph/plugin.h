@@ -148,7 +148,7 @@ struct hgraph_node_api_s {
 };
 
 struct hgraph_plugin_api_s {
-	void* (*register_node_type)(
+	void (*register_node_type)(
 		const hgraph_plugin_api_t* api,
 		const hgraph_node_type_t* node_type
 	);

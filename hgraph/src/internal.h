@@ -10,9 +10,12 @@
 #define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define HGRAPH_ASSERT assert
+#define HGRAPH_CONTAINER_OF(PTR, TYPE, MEMBER) \
+    (TYPE*)((char *)(PTR) - offsetof(TYPE, MEMBER))
 
 struct hgraph_registry_builder_s {
 	hgraph_registry_config_t config;
+	hgraph_plugin_api_t plugin_api;
 	hgraph_index_t num_node_types;
 	hgraph_index_t num_data_types;
 	hgraph_index_t data_type_exp;

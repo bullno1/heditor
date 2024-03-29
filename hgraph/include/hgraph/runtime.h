@@ -107,6 +107,9 @@ hgraph_registry_builder_add(
 	const hgraph_node_type_t* type
 );
 
+HGRAPH_API hgraph_plugin_api_t*
+hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder);
+
 HGRAPH_API size_t
 hgraph_registry_init(
 	hgraph_registry_t* registry,

@@ -1,7 +1,17 @@
+#include "hgraph/runtime.h"
 #include "internal.h"
 #include "mem_layout.h"
 #include "hash.h"
 #include <string.h>
+
+HGRAPH_PRIVATE void
+hgraph_registry_builder_plugin_register_node_type(
+	const hgraph_plugin_api_t* api,
+	const hgraph_node_type_t* node_type
+) {
+	hgraph_registry_builder_t* builder = HGRAPH_CONTAINER_OF(api, hgraph_registry_builder_t, plugin_api);
+	hgraph_registry_builder_add(builder, node_type);
+}
 
 size_t
 hgraph_registry_builder_init(
@@ -34,6 +44,9 @@ hgraph_registry_builder_init(
 	memset(builder, 0, size);
 	*builder = (hgraph_registry_builder_t){
 		.config = *config,
+		.plugin_api = {
+			.register_node_type = &hgraph_registry_builder_plugin_register_node_type,
+		},
 		.data_type_exp = hash_data_type_exp,
 		.node_types = mem_layout_locate(builder, node_types),
 		.data_types = mem_layout_locate(builder, data_types),
@@ -111,6 +124,11 @@ hgraph_registry_builder_add(
 	}
 
 	builder->node_types[builder->num_node_types++] = type;
+}
+
+hgraph_plugin_api_t*
+hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder) {
+	return &builder->plugin_api;
 }
 
 size_t
