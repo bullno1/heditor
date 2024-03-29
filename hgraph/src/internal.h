@@ -8,6 +8,7 @@
 #include <string.h>
 
 #define HGRAPH_PRIVATE static inline
+#define HGRAPH_INTERNAL
 #define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define HGRAPH_ASSERT assert
@@ -26,11 +27,12 @@ struct hgraph_registry_builder_s {
 
 typedef struct hgraph_data_type_info_s {
 	hgraph_str_t name;
+	size_t size;
 	const hgraph_data_type_t* definition;
 } hgraph_data_type_info_t;
 
 typedef struct hgraph_var_s {
-	hgraph_str_t type;
+	hgraph_index_t type;
 	hgraph_str_t name;
 	ptrdiff_t offset;
 } hgraph_var_t;
@@ -109,7 +111,7 @@ typedef struct hgraph_var_migration_plan_s {
 } hgraph_var_migration_plan_t;
 
 typedef struct hgraph_node_migration_plan_s {
-	const hgraph_node_type_t* new_type;
+	const hgraph_node_type_info_t* new_type;
 	hgraph_var_migration_plan_t* attribute_plans;
 	hgraph_var_migration_plan_t* input_plans;
 	hgraph_var_migration_plan_t* output_plans;
@@ -127,6 +129,5 @@ hgraph_str_equal(hgraph_str_t lhs, hgraph_str_t rhs) {
 
 	return memcmp(lhs.data, rhs.data, lhs.length) == 0;
 }
-
 
 #endif

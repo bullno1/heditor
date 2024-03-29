@@ -63,8 +63,6 @@ typedef struct hgraph_data_type_s {
 		hgraph_in_t* input
 	);
 
-	void (*assign)(void* lhs, const void* rhs);
-
 	void (*render)(
 		const hgraph_node_api_t* api,
 		const void* value,

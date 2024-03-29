@@ -262,6 +262,7 @@ hgraph_registry_init(
 		hgraph_data_type_info_t* data_type_info = &registry->data_types[data_type_index++];
 		*data_type_info = (hgraph_data_type_info_t){
 			.name = hgraph_alloc_string(&str_table, data_type_def->name),
+			.size = data_type_def->size,
 			.definition = data_type_def,
 		};
 		hgraph_ptr_table_put(
@@ -305,7 +306,7 @@ hgraph_registry_init(
 			);
 			HGRAPH_ASSERT(data_type_info != NULL);
 			attributes[j] = (hgraph_var_t){
-				.type = data_type_info->name,
+				.type = data_type_info - registry->data_types,
 				.name = hgraph_alloc_string(&str_table, attribute_def->name),
 				// attributes are organized into a block
 				.offset = mem_layout_reserve(
@@ -335,7 +336,7 @@ hgraph_registry_init(
 			);
 			HGRAPH_ASSERT(data_type_info != NULL);
 			input_pins[j] = (hgraph_var_t){
-				.type = data_type_info->name,
+				.type = data_type_info - registry->data_types,
 				.name = hgraph_alloc_string(&str_table, pin_def->name),
 				// Input pins are just a series of edge ids
 				.offset = mem_layout_reserve(
@@ -366,7 +367,7 @@ hgraph_registry_init(
 			);
 			HGRAPH_ASSERT(data_type_info != NULL);
 			output_pins[j] = (hgraph_var_t){
-				.type = data_type_info->name,
+				.type = data_type_info - registry->data_types,
 				.name = hgraph_alloc_string(&str_table, pin_def->name),
 				// Ouput pins are linked lists
 				.offset = mem_layout_reserve(

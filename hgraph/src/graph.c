@@ -3,7 +3,7 @@
 #include "ptr_table.h"
 #include <string.h>
 
-HGRAPH_PRIVATE void
+HGRAPH_INTERNAL void
 hgraph_find_node_type(
 	const hgraph_t* graph,
 	const hgraph_node_t* node,
@@ -18,7 +18,7 @@ hgraph_find_node_type(
 	*def = type_def;
 }
 
-HGRAPH_PRIVATE hgraph_node_t*
+HGRAPH_INTERNAL hgraph_node_t*
 hgraph_find_node_by_id(
 	const hgraph_t* graph,
 	hgraph_index_t node_id
@@ -29,8 +29,8 @@ hgraph_find_node_by_id(
 	return (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
 }
 
-HGRAPH_PRIVATE hgraph_str_t
-hgraph_get_node_name_internal(hgraph_t* graph, hgraph_node_t* node) {
+hgraph_str_t
+hgraph_get_node_name_internal(const hgraph_t* graph, const hgraph_node_t* node) {
 	const hgraph_node_type_info_t* type_info;
 	const hgraph_node_type_t* type_def;
 	hgraph_find_node_type(graph, node, &type_info, &type_def);
@@ -42,7 +42,7 @@ hgraph_get_node_name_internal(hgraph_t* graph, hgraph_node_t* node) {
 	};
 }
 
-HGRAPH_PRIVATE hgraph_index_t
+HGRAPH_INTERNAL hgraph_index_t
 hgraph_encode_pin_id(
 	hgraph_index_t node_id,
 	hgraph_index_t pin_index,
@@ -51,7 +51,7 @@ hgraph_encode_pin_id(
 	return (node_id << 8) | (pin_index << 1) | (is_output & 0x01);
 }
 
-HGRAPH_PRIVATE void
+HGRAPH_INTERNAL void
 hgraph_decode_pin_id(
 	hgraph_index_t pin_id,
 	hgraph_index_t* node_id,
@@ -408,7 +408,7 @@ hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge_id) {
 	graph->edges[dst_slot] = graph->edges[src_slot];
 }
 
-hgraph_str_t
+HGRAPH_INTERNAL hgraph_str_t
 hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node_id) {
 	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 	if (node == NULL) { return (hgraph_str_t){ 0 }; }
@@ -463,12 +463,7 @@ hgraph_set_node_attribute(
 	for (hgraph_index_t i = 0; i < type_info->num_attributes; ++i) {
 		if (type_def->attributes[i] == attribute) {
 			char* storage = (char*)node + type_info->attributes[i].offset;
-			if (attribute->data_type->assign != NULL) {
-				attribute->data_type->assign(storage, value);
-			} else {
-				memcpy(storage, value, attribute->data_type->size);
-			}
-
+			memcpy(storage, value, attribute->data_type->size);
 			break;
 		}
 	}
