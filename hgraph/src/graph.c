@@ -114,7 +114,7 @@ hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
 
 	size_t node_size = graph->node_size;
 	char* src_node = graph->nodes + node_size * src_slot;
-	char* dst_node = graph->nodes + node_size  * dst_slot;
+	char* dst_node = graph->nodes + node_size * dst_slot;
 	memcpy(dst_node, src_node, node_size);
 }
 
@@ -193,6 +193,20 @@ hgraph_get_pin_id(
 	return HGRAPH_INVALID_INDEX;
 }
 
+HGRAPH_PRIVATE hgraph_edge_link_t*
+hgraph_resolve_edge(
+	hgraph_t* graph,
+	hgraph_edge_link_t* pin,
+	hgraph_index_t edge_id
+) {
+	hgraph_index_t slot = hgraph_slot_map_slot_for_id(
+		&graph->edge_slot_map,
+		edge_id
+	);
+
+	return HGRAPH_IS_VALID_INDEX(slot) ? &graph->edges[slot].output_pin_link : pin;
+}
+
 hgraph_index_t
 hgraph_connect(
 	hgraph_t* graph,
@@ -228,11 +242,12 @@ hgraph_connect(
 
 	if (from_type_def != to_type_def) { return HGRAPH_INVALID_INDEX; }
 
-	hgraph_index_t* in_edge = (hgraph_index_t*)((char*)to_node + to_type_info->input_pins[to_pin_index].offset);
-	if (HGRAPH_IS_VALID_INDEX(*in_edge)) { return HGRAPH_INVALID_INDEX; }
+	hgraph_index_t* input_pin = (hgraph_index_t*)((char*)to_node + to_type_info->input_pins[to_pin_index].offset);
+	if (HGRAPH_IS_VALID_INDEX(*input_pin)) { return HGRAPH_INVALID_INDEX; }
 
-	hgraph_edge_link_t* out_edge = (hgraph_edge_link_t*)((char*)from_node + from_type_info->output_pins[from_pin_index].offset);
+	hgraph_edge_link_t* output_pin = (hgraph_edge_link_t*)((char*)from_node + from_type_info->output_pins[from_pin_index].offset);
 
+	// Create edge
 	hgraph_index_t edge_id, edge_slot;
 	hgraph_slot_map_allocate(
 		&graph->edge_slot_map,
@@ -244,17 +259,69 @@ hgraph_connect(
 	edge->from_pin = from_pin;
 	edge->to_pin = to_pin;
 
-	*in_edge = edge_id;
+	// Connect input pin
+	*input_pin = edge_id;
 
-	edge->out_edge_link.prev = out_edge->prev;
-	edge->out_edge_link.next = HGRAPH_INVALID_INDEX;
-	hgraph_edge_link_t* prev = hgraph_edge_prev(graph, out_edge);
+	// Connect output pin
+	edge->output_pin_link.prev = output_pin->prev;
+	edge->output_pin_link.next = HGRAPH_INVALID_INDEX;
+	hgraph_edge_link_t* prev = hgraph_resolve_edge(graph, output_pin, output_pin->prev);
 	prev->next = edge_id;
-	out_edge->prev = edge_id;
+	output_pin->prev = edge_id;
+
+	return edge_id;
 }
 
 void
-hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge);
+hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge_id) {
+	hgraph_index_t edge_slot = hgraph_slot_map_slot_for_id(
+		&graph->edge_slot_map,
+		edge_id
+	);
+	if (!HGRAPH_IS_VALID_INDEX(edge_id)) { return; }
+
+	hgraph_edge_t* edge = &graph->edges[edge_slot];
+	bool is_output;
+	hgraph_index_t from_node_id, from_pin_index, to_node_id, to_pin_index;
+	hgraph_decode_pin_id(edge->from_pin, &from_node_id, &from_pin_index, &is_output);
+	hgraph_decode_pin_id(edge->to_pin, &to_node_id, &to_pin_index, &is_output);
+
+	hgraph_node_t* from_node = hgraph_find_node_by_id(graph, from_node_id);
+	hgraph_node_t* to_node = hgraph_find_node_by_id(graph, to_node_id);
+	HGRAPH_ASSERT((from_node != NULL) && (to_node != NULL));
+
+	// Disconnect input pin
+	const hgraph_node_type_info_t* to_type_info;
+	const hgraph_node_type_t* to_type_def;
+	hgraph_find_node_type(graph, to_node, &to_type_info, &to_type_def);
+	hgraph_index_t* input_pin = (hgraph_index_t*)((char*)to_node + to_type_info->input_pins[to_pin_index].offset);
+	HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(*input_pin));
+	*input_pin = HGRAPH_INVALID_INDEX;
+
+	// Disconnect output pin
+	const hgraph_node_type_info_t* from_type_info;
+	const hgraph_node_type_t* from_type_def;
+	hgraph_find_node_type(graph, from_node, &from_type_info, &from_type_def);
+	hgraph_edge_link_t* output_pin = (hgraph_edge_link_t*)((char*)from_node + from_type_info->output_pins[from_pin_index].offset);
+
+	hgraph_edge_link_t* prev = hgraph_resolve_edge(graph, output_pin, edge->output_pin_link.prev);
+	hgraph_edge_link_t* next = hgraph_resolve_edge(graph, output_pin, edge->output_pin_link.next);
+	prev->next = edge->output_pin_link.next;
+	next->prev = edge->output_pin_link.prev;
+
+	// Destroy edge
+	hgraph_index_t dst_slot, src_slot;
+	hgraph_slot_map_free(
+		&graph->edge_slot_map,
+		edge_id,
+		&dst_slot,
+		&src_slot
+	);
+	HGRAPH_ASSERT(
+		HGRAPH_IS_VALID_INDEX(dst_slot) && HGRAPH_IS_VALID_INDEX(src_slot)
+	);
+	graph->edges[dst_slot] = graph->edges[src_slot];
+}
 
 hgraph_str_t
 hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node);

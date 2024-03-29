@@ -1,13 +1,15 @@
 #ifndef HGRAPH_INTERNAL_H
 #define HGRAPH_INTERNAL_H
 
-#define HGRAPH_PRIVATE static inline
-#define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-
 #include <hgraph/runtime.h>
 #include "ptr_table.h"
 #include "slot_map.h"
+#include "assert.h"
+
+#define HGRAPH_PRIVATE static inline
+#define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define HGRAPH_ASSERT assert
 
 struct hgraph_registry_builder_s {
 	hgraph_registry_config_t config;
@@ -69,7 +71,7 @@ typedef struct hgraph_edge_link_s {
 } hgraph_edge_link_t;
 
 struct hgraph_edge_s {
-	hgraph_edge_link_t out_edge_link;
+	hgraph_edge_link_t output_pin_link;
 
 	hgraph_index_t from_pin;
 	hgraph_index_t to_pin;
