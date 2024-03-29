@@ -1,3 +1,4 @@
+#include "hgraph/common.h"
 #include "plugin1.h"
 #include "plugin2.h"
 #include <munit.h>
@@ -28,10 +29,19 @@ iterate_nodes(
 	const hgraph_node_type_t* node_type,
 	void* userdata
 ) {
-	(void)node;
-	(void)node_type;
 	iterator_state* i = userdata;
 	++i->num_nodes;
+
+	if (node == i->start_id) {
+		i->seen_start = true;
+		munit_assert_ptr(node_type, ==, &plugin1_start);
+	} else if (node == i->end_id) {
+		i->seen_end = true;
+		munit_assert_ptr(node_type, ==, &plugin1_end);
+	} else if (node == i->mid_id) {
+		i->seen_mid = true;
+		munit_assert_ptr(node_type, ==, &plugin2_mid);
+	}
 
 	return true;
 }
@@ -102,6 +112,48 @@ manipulation(const MunitParameter params[], void* fixture) {
 	hgraph_iterate_edges(graph, iterate_edges, &i);
 	munit_assert_int32(i.num_nodes, ==, 1);
 	munit_assert_int32(i.num_edges, ==, 0);
+
+	i.end_id = hgraph_create_node(graph, &plugin1_end);
+	i.mid_id = hgraph_create_node(graph, &plugin2_mid);
+	i.num_nodes = 0;
+	hgraph_iterate_nodes(graph, iterate_nodes, &i);
+	munit_assert_int32(i.num_nodes, ==, 3);
+	munit_assert_true(i.seen_start);
+	munit_assert_true(i.seen_mid);
+	munit_assert_true(i.seen_end);
+
+	hgraph_index_t start_out = hgraph_get_pin_id(
+		graph, i.start_id, &plugin1_start_out_f32
+	);
+	hgraph_index_t end_in = hgraph_get_pin_id(
+		graph, i.end_id, &plugin1_end_in_i32
+	);
+	munit_assert_true(HGRAPH_IS_VALID_INDEX(start_out));
+	munit_assert_true(HGRAPH_IS_VALID_INDEX(end_in));
+
+	munit_assert_false(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(graph, start_out, end_in)
+		)
+	);
+
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 0);
+
+	hgraph_index_t mid_in = hgraph_get_pin_id(
+		graph, i.mid_id, &plugin2_mid_in_f32
+	);
+	/*hgraph_index_t mid_out = hgraph_get_pin_id(*/
+		/*graph, i.mid_id, &plugin2_mid_out_i32*/
+	/*);*/
+
+	// |start|->|mid|  |end|
+	i.start_mid_id = hgraph_connect(graph, start_out, mid_in);
+	munit_assert(HGRAPH_IS_VALID_INDEX(i.start_mid_id));
+
+	i.num_edges = 0;
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
 
 	free(graph_mem);
 	free(registry_mem);

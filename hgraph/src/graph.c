@@ -323,7 +323,9 @@ hgraph_connect(
 	hgraph_find_node_type(graph, to_node, &to_type_info, &to_type_def);
 	if (to_pin_index >= to_type_info->num_input_pins) { return HGRAPH_INVALID_INDEX; }
 
-	if (from_type_def != to_type_def) { return HGRAPH_INVALID_INDEX; }
+	const hgraph_data_type_t* from_data_type = from_type_def->output_pins[from_pin_index]->data_type;
+	const hgraph_data_type_t* to_data_type = to_type_def->input_pins[to_pin_index]->data_type;
+	if (from_data_type != to_data_type) { return HGRAPH_INVALID_INDEX; }
 
 	hgraph_index_t* input_pin = (hgraph_index_t*)((char*)to_node + to_type_info->input_pins[to_pin_index].offset);
 	if (HGRAPH_IS_VALID_INDEX(*input_pin)) { return HGRAPH_INVALID_INDEX; }
