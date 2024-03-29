@@ -323,14 +323,58 @@ hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge_id) {
 	graph->edges[dst_slot] = graph->edges[src_slot];
 }
 
+HGRAPH_PRIVATE hgraph_str_t
+hgraph_get_node_name_internal(hgraph_t* graph, hgraph_node_t* node) {
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	char* name_storage = (char*)node + type_info->size;
+	return (hgraph_str_t){
+		.data = name_storage,
+		.length = node->name_len,
+	};
+}
+
 hgraph_str_t
-hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node);
+hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node_id) {
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) { return (hgraph_str_t){ 0 }; }
+
+	return hgraph_get_node_name_internal(graph, node);
+}
 
 void
-hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node, hgraph_str_t name);
+hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name) {
+	if (name.length > graph->config.max_name_length) { return; }
+
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) { return; }
+
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	char* name_storage = (char*)node + type_info->size;
+	memcpy(name_storage, name.data, name.length);
+	node->name_len = name.length;
+}
 
 hgraph_index_t
-hgraph_get_node_by_name(hgraph_t* graph, hgraph_str_t name);
+hgraph_get_node_by_name(hgraph_t* graph, hgraph_str_t name) {
+	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
+		hgraph_node_t* node = (hgraph_node_t*)graph->nodes + graph->node_size * i;
+		hgraph_str_t node_name = hgraph_get_node_name_internal(graph, node);
+
+		if (node_name.length != name.length) { continue; }
+
+		if (memcmp(node_name.data, name.data, node_name.length) == 0) {
+			return hgraph_slot_map_id_for_slot(&graph->node_slot_map, i);
+		}
+	}
+
+	return HGRAPH_INVALID_INDEX;
+}
 
 void
 hgraph_set_node_attribute(
