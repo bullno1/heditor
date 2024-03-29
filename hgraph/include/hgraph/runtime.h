@@ -215,6 +215,22 @@ hgraph_iterate_edges(
 	void* userdata
 );
 
+HGRAPH_API void
+hgraph_iterate_edges_to(
+	hgraph_t* graph,
+	hgraph_index_t node_id,
+	hgraph_edge_iterator_t iterator,
+	void* userdata
+);
+
+HGRAPH_API void
+hgraph_iterate_edges_from(
+	hgraph_t* graph,
+	hgraph_index_t node_id,
+	hgraph_edge_iterator_t iterator,
+	void* userdata
+);
+
 HGRAPH_API size_t
 hgraph_pipeline_init(
 	hgraph_pipeline_t* pipeline,

@@ -532,3 +532,71 @@ hgraph_iterate_edges(
 		if (!iterator(id, edge->from_pin, edge->to_pin, userdata)) { break; }
 	}
 }
+
+void
+hgraph_iterate_edges_to(
+	hgraph_t* graph,
+	hgraph_index_t node_id,
+	hgraph_edge_iterator_t iterator,
+	void* userdata
+) {
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) { return; }
+
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	for (hgraph_index_t i = 0; i < type_info->num_input_pins; ++i) {
+		hgraph_index_t* input_pin = (hgraph_index_t*)((char*)node + type_info->input_pins[i].offset);
+		hgraph_index_t edge_id = *input_pin;
+		hgraph_index_t edge_slot = hgraph_slot_map_slot_for_id(
+			&graph->edge_slot_map,
+			edge_id
+		);
+		if (!HGRAPH_IS_VALID_INDEX(edge_slot)) { continue; }
+
+		hgraph_edge_t* edge = &graph->edges[edge_slot];
+
+		if (!iterator(edge_id, edge->from_pin, edge->to_pin, userdata)) {
+			break;
+		}
+	}
+}
+
+void
+hgraph_iterate_edges_from(
+	hgraph_t* graph,
+	hgraph_index_t node_id,
+	hgraph_edge_iterator_t iterator,
+	void* userdata
+) {
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) { return; }
+
+	const hgraph_node_type_info_t* type_info;
+	const hgraph_node_type_t* type_def;
+	hgraph_find_node_type(graph, node, &type_info, &type_def);
+
+	for (hgraph_index_t i = 0; i < type_info->num_output_pins; ++i) {
+		hgraph_edge_link_t* output_pin = (hgraph_edge_link_t*)((char*)node + type_info->output_pins[i].offset);
+
+		hgraph_index_t itr = output_pin->next;
+		while (true) {
+			hgraph_edge_link_t* link = hgraph_resolve_edge(graph, output_pin, itr);
+			if (link == output_pin) { break; }
+
+			hgraph_edge_t* edge = HGRAPH_CONTAINER_OF(link, hgraph_edge_t, output_pin_link);
+			hgraph_index_t edge_slot = edge - graph->edges;
+			hgraph_index_t edge_id = hgraph_slot_map_id_for_slot(
+				&graph->edge_slot_map,
+				edge_slot
+			);
+			itr = link->next;
+
+			if (!iterator(edge_id, edge->from_pin, edge->to_pin, userdata)) {
+				break;
+			}
+		}
+	}
+}

@@ -17,7 +17,7 @@ hgraph_registry_builder_plugin_register_node_type(
 HGRAPH_PRIVATE hgraph_str_t
 hgraph_alloc_string(char** pool, hgraph_str_t str) {
 	char* storage = *pool;
-	pool += str.length;
+	*pool = storage + str.length;
 
 	if (str.length > 0) {
 		memcpy(storage, str.data, str.length);
@@ -28,7 +28,7 @@ hgraph_alloc_string(char** pool, hgraph_str_t str) {
 HGRAPH_PRIVATE hgraph_var_t*
 hgraph_alloc_vars(hgraph_var_t** pool, hgraph_index_t num_vars) {
 	hgraph_var_t* result = *pool;
-	pool += num_vars;
+	*pool = result + num_vars;
 	return result;
 }
 
