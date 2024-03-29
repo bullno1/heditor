@@ -4,8 +4,16 @@
 #include <hgraph/runtime.h>
 
 typedef struct {
-	hgraph_registry_config_t config;
-} fixture_t;
+	hgraph_index_t num_items;
+} iterator_state;
+
+static bool
+iterate_registry(const hgraph_node_type_t* node, void* userdata) {
+	(void)node;
+	iterator_state* state = userdata;
+	++state->num_items;
+	return true;
+}
 
 static MunitResult
 reg(const MunitParameter params[], void* fixture) {
@@ -43,6 +51,14 @@ reg(const MunitParameter params[], void* fixture) {
 
 	void* registry_mem = malloc(mem_required);
 	registry = hgraph_registry_init(builder, registry_mem, &mem_required);
+
+	iterator_state i = { 0 };
+	hgraph_registry_iterate(
+		registry,
+		iterate_registry,
+		&i
+	);
+	munit_assert_int32(i.num_items, ==, 3);
 
 	free(registry_mem);
 	free(builder_mem);
