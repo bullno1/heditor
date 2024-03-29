@@ -104,6 +104,21 @@ struct hgraph_pipeline_s {
 	hgraph_node_api_t node_api;
 };
 
+typedef struct hgraph_var_migration_plan_s {
+	hgraph_index_t new_index;
+} hgraph_var_migration_plan_t;
+
+typedef struct hgraph_node_migration_plan_s {
+	const hgraph_node_type_t* new_type;
+	hgraph_var_migration_plan_t* attribute_plans;
+	hgraph_var_migration_plan_t* input_plans;
+	hgraph_var_migration_plan_t* output_plans;
+} hgraph_node_migration_plan_t;
+
+struct hgraph_migration_s {
+	hgraph_node_migration_plan_t* node_plans;
+};
+
 extern const hgraph_node_type_t hgraph_dummy_node;
 
 HGRAPH_PRIVATE bool

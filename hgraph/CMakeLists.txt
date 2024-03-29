@@ -1,6 +1,7 @@
 set(SOURCES
 	"src/registry.c"
 	"src/graph.c"
+	"src/migration.c"
 	"src/ptr_table.c"
 	"src/slot_map.c"
 )
