@@ -438,9 +438,7 @@ hgraph_get_node_by_name(hgraph_t* graph, hgraph_str_t name) {
 		hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
 		hgraph_str_t node_name = hgraph_get_node_name_internal(graph, node);
 
-		if (node_name.length != name.length) { continue; }
-
-		if (memcmp(node_name.data, name.data, node_name.length) == 0) {
+		if (hgraph_str_equal(name, node_name)) {
 			return hgraph_slot_map_id_for_slot(&graph->node_slot_map, i);
 		}
 	}

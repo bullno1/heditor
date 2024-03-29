@@ -5,6 +5,7 @@
 #include "ptr_table.h"
 #include "slot_map.h"
 #include "assert.h"
+#include <string.h>
 
 #define HGRAPH_PRIVATE static inline
 #define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -104,5 +105,13 @@ struct hgraph_pipeline_s {
 };
 
 extern const hgraph_node_type_t hgraph_dummy_node;
+
+HGRAPH_PRIVATE bool
+hgraph_str_equal(hgraph_str_t lhs, hgraph_str_t rhs) {
+	if (lhs.length != rhs.length) { return false; }
+
+	return memcmp(lhs.data, rhs.data, lhs.length) == 0;
+}
+
 
 #endif
