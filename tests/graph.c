@@ -3,6 +3,56 @@
 #include <munit.h>
 #include <hgraph/runtime.h>
 
+typedef struct {
+	hgraph_index_t num_nodes;
+	hgraph_index_t num_edges;
+
+	hgraph_index_t start_id;
+	hgraph_index_t mid_id;
+	hgraph_index_t end_id;
+
+	bool seen_start;
+	bool seen_mid;
+	bool seen_end;
+
+	hgraph_index_t start_mid_id;
+	hgraph_index_t mid_end_id;
+
+	bool seen_start_mid;
+	bool seen_mid_end;
+} iterator_state;
+
+static bool
+iterate_nodes(
+	hgraph_index_t node,
+	const hgraph_node_type_t* node_type,
+	void* userdata
+) {
+	(void)node;
+	(void)node_type;
+	iterator_state* i = userdata;
+	++i->num_nodes;
+
+	return true;
+}
+
+static bool
+iterate_edges(
+	hgraph_index_t edge,
+	hgraph_index_t from_pin,
+	hgraph_index_t to_pin,
+	void* userdata
+) {
+	(void)edge;
+	(void)from_pin;
+	(void)to_pin;
+
+	iterator_state* i = userdata;
+	++i->num_edges;
+
+	return true;
+}
+
 static MunitResult
 manipulation(const MunitParameter params[], void* fixture) {
 	(void)params;
@@ -39,6 +89,19 @@ manipulation(const MunitParameter params[], void* fixture) {
 	void* graph_mem = malloc(mem_required);
 	hgraph_t* graph = hgraph_init(registry, &graph_config, graph_mem, &mem_required);
 	munit_assert_not_null(graph);
+
+	iterator_state i = { 0 };
+
+	hgraph_iterate_nodes(graph, iterate_nodes, &i);
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_nodes, ==, 0);
+	munit_assert_int32(i.num_edges, ==, 0);
+
+	i.start_id = hgraph_create_node(graph, &plugin1_start);
+	hgraph_iterate_nodes(graph, iterate_nodes, &i);
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_nodes, ==, 1);
+	munit_assert_int32(i.num_edges, ==, 0);
 
 	free(graph_mem);
 	free(registry_mem);

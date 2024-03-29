@@ -38,7 +38,7 @@ hgraph_slot_map_allocate(
 		return;
 	}
 
-	hgraph_index_t slot = ++slot_map->num_items;
+	hgraph_index_t slot = slot_map->num_items++;
 	*id_out = slot_map->ids_for_slot[slot];
 	*slot_index_out = slot;
 }

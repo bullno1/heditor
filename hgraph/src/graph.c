@@ -497,7 +497,7 @@ hgraph_get_node_attribute(
 }
 
 void
-hgraph_iterate_node(
+hgraph_iterate_nodes(
 	hgraph_t* graph,
 	hgraph_node_iterator_t iterator,
 	void* userdata
@@ -515,7 +515,7 @@ hgraph_iterate_node(
 }
 
 void
-hgraph_iterate_edge(
+hgraph_iterate_edges(
 	hgraph_t* graph,
 	hgraph_edge_iterator_t iterator,
 	void* userdata
