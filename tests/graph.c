@@ -205,6 +205,15 @@ manipulation(const MunitParameter params[], void* fixture) {
 	munit_assert_int32(i.num_edges, ==, 2);
 	munit_assert(i.seen_start_mid);
 	munit_assert(i.seen_mid_end);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.mid_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.end_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 0);
 
 	hgraph_destroy_node(graph, i.mid_id);
 	// |start|         |end|
