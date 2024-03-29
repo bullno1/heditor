@@ -384,6 +384,7 @@ name(const MunitParameter params[], void* fixture) {
 	hgraph_index_t b = hgraph_create_node(
 		graph, &plugin1_start
 	);
+	munit_assert_int32(a, !=, b);
 
 	hgraph_set_node_name(graph, a, HGRAPH_STR("a"));
 	hgraph_set_node_name(graph, b, HGRAPH_STR("b"));
@@ -412,6 +413,28 @@ name(const MunitParameter params[], void* fixture) {
 	return MUNIT_OK;
 }
 
+static MunitResult
+attribute(const MunitParameter params[], void* fixture) {
+	(void)params;
+
+	hgraph_t* graph = ((fixture_t*)fixture)->graph;
+	hgraph_index_t node = hgraph_create_node(graph, &plugin2_mid);
+	const bool* round_up = hgraph_get_node_attribute(
+		graph, node, &plugin2_mid_attr_round_up
+	);
+	munit_assert(*round_up);
+
+	hgraph_set_node_attribute(
+		graph, node, &plugin2_mid_attr_round_up, &(bool){ false }
+	);
+	round_up = hgraph_get_node_attribute(
+		graph, node, &plugin2_mid_attr_round_up
+	);
+	munit_assert_false(*round_up);
+
+	return MUNIT_OK;
+}
+
 MunitSuite test_graph = {
 	.prefix = "/graph",
 	.tests = (MunitTest[]){
@@ -424,6 +447,12 @@ MunitSuite test_graph = {
 		{
 			.name = "/name",
 			.test = name,
+			.setup = setup,
+			.tear_down = tear_down,
+		},
+		{
+			.name = "/attribute",
+			.test = attribute,
 			.setup = setup,
 			.tear_down = tear_down,
 		},

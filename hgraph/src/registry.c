@@ -301,7 +301,7 @@ hgraph_registry_init(
 			const hgraph_attribute_description_t* attribute_def = node_type_def->attributes[j];
 			hgraph_data_type_info_t* data_type_info = hgraph_ptr_table_lookup(
 				&registry->data_type_by_definition,
-				attribute_def
+				attribute_def->data_type
 			);
 			HGRAPH_ASSERT(data_type_info != NULL);
 			attributes[j] = (hgraph_var_t){
