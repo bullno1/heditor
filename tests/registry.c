@@ -5,12 +5,25 @@
 
 typedef struct {
 	hgraph_index_t num_items;
+	bool seen_start;
+	bool seen_mid;
+	bool seen_end;
 } iterator_state;
 
 static bool
 iterate_registry(const hgraph_node_type_t* node, void* userdata) {
-	(void)node;
 	iterator_state* state = userdata;
+
+	if (node == &plugin1_start) {
+		state->seen_start = true;
+	} else if (node == &plugin1_end) {
+		state->seen_end = true;
+	} else if (node == &plugin2_mid) {
+		state->seen_mid = true;
+	} else {
+		munit_error("Unexpected node type");
+	}
+
 	++state->num_items;
 	return true;
 }
@@ -59,6 +72,9 @@ reg(const MunitParameter params[], void* fixture) {
 		&i
 	);
 	munit_assert_int32(i.num_items, ==, 3);
+	munit_assert_true(i.seen_start);
+	munit_assert_true(i.seen_mid);
+	munit_assert_true(i.seen_end);
 
 	free(registry_mem);
 	free(builder_mem);
