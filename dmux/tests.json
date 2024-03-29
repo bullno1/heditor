@@ -1,0 +1,10 @@
+{
+  "executable": "gdb",
+  "args": ["--interpreter=dap"],
+  "mode": "launch",
+  "config": {
+    "program": "bin/tests",
+	"args": ["--no-fork"],
+    "stopAtBeginningOfMainSubprogram": true
+  }
+}

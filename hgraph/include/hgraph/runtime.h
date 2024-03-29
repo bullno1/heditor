@@ -26,6 +26,7 @@
 typedef struct hgraph_registry_builder_s hgraph_registry_builder_t;
 typedef struct hgraph_registry_s hgraph_registry_t;
 typedef struct hgraph_s hgraph_t;
+typedef struct hgraph_migration_s hgraph_migration_t;
 typedef struct hgraph_pipeline_s hgraph_pipeline_t;
 
 typedef struct hgraph_registry_config_s {
@@ -130,12 +131,19 @@ hgraph_init(
 	size_t* mem_size_inout
 );
 
-HGRAPH_API hgraph_t*
-hgraph_migrate(
-	const hgraph_t* graph,
-	const hgraph_registry_t* new_registry,
+HGRAPH_API hgraph_migration_t*
+hgraph_migration_init(
+	const hgraph_registry_t* from_registry,
+	const hgraph_registry_t* to_registry,
 	void* mem,
 	size_t* mem_size_inout
+);
+
+HGRAPH_API void
+hgraph_migration_execute(
+	const hgraph_migration_t* migration,
+	const hgraph_t* from_graph,
+	hgraph_t* to_graph
 );
 
 HGRAPH_API hgraph_index_t

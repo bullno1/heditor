@@ -3,16 +3,7 @@
 #include "hash.h"
 #include <string.h>
 
-const hgraph_node_type_t* hgraph_dummy_node = &(hgraph_node_type_t){
-	.name = HGRAPH_STR("dummy"),
-	.group = HGRAPH_STR("hidden"),
-	.description = HGRAPH_STR("For internal use"),
-	.size = 0,
-	.alignment = 1,
-	.attributes = (const hgraph_attribute_description_t*[]){ NULL },
-	.input_pins = (const hgraph_pin_description_t*[]){ NULL },
-	.output_pins = (const hgraph_pin_description_t*[]){ NULL },
-};
+const hgraph_node_type_t hgraph_dummy_node = { 0 };
 
 HGRAPH_PRIVATE void
 hgraph_registry_builder_plugin_register_node_type(
@@ -103,7 +94,7 @@ hgraph_registry_builder_init(
 		.data_types = mem_layout_locate(builder, data_types),
 	};
 
-	hgraph_registry_builder_add(builder, hgraph_dummy_node);
+	hgraph_registry_builder_add(builder, &hgraph_dummy_node);
 
 	*mem_size_inout = required_size;
 	return builder;
@@ -116,7 +107,7 @@ hgraph_registry_builder_add(
 ) {
 	for (
 		const hgraph_attribute_description_t** itr = type->attributes;
-		*itr != NULL;
+		itr != NULL && *itr != NULL;
 		++itr
 	) {
 		const hgraph_attribute_description_t* attr = *itr;
@@ -125,7 +116,7 @@ hgraph_registry_builder_add(
 
 	for (
 		const hgraph_pin_description_t** itr = type->input_pins;
-		*itr != NULL;
+		itr != NULL && *itr != NULL;
 		++itr
 	) {
 		const hgraph_pin_description_t* pin = *itr;
@@ -134,7 +125,7 @@ hgraph_registry_builder_add(
 
 	for (
 		const hgraph_pin_description_t** itr = type->output_pins;
-		*itr != NULL;
+		itr!= NULL && *itr != NULL;
 		++itr
 	) {
 		const hgraph_pin_description_t* pin = *itr;
@@ -172,17 +163,29 @@ hgraph_registry_init(
 		const hgraph_node_type_t* node_type = node_types[i];
 		string_table_size += node_type->name.length;
 
-		for (hgraph_index_t j = 0; node_type->attributes[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type->attributes != NULL && node_type->attributes[j] != NULL;
+			++j
+		) {
 			string_table_size += node_type->attributes[j]->name.length;
 			++num_vars;
 		}
 
-		for (hgraph_index_t j = 0; node_type->input_pins[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type->input_pins != NULL && node_type->input_pins[j] != NULL;
+			++j
+		) {
 			string_table_size += node_type->input_pins[j]->name.length;
 			++num_vars;
 		}
 
-		for (hgraph_index_t j = 0; node_type->output_pins[j] != NULL; ++j) {
+		for (
+			hgraph_index_t j = 0;
+			node_type->output_pins != NULL && node_type->output_pins[j] != NULL;
+			++j
+		) {
 			string_table_size += node_type->output_pins[j]->name.length;
 			++num_vars;
 		}
@@ -381,7 +384,8 @@ hgraph_registry_iterate(
 	hgraph_registry_iterator_t iterator,
 	void* userdata
 ) {
-	for (hgraph_index_t i = 0; i < registry->num_data_types; ++i) {
+	// Start from 1 to skip the dummy type
+	for (hgraph_index_t i = 1; i < registry->num_node_types; ++i) {
 		if (!iterator(registry->node_types[i].definition, userdata)) {
 			break;
 		}

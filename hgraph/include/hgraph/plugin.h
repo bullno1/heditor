@@ -3,6 +3,11 @@
 
 #include "common.h"
 
+#define HGRAPH_LIST(TYPE, ...) (const TYPE*[]) { __VA_ARGS__, NULL }
+#define HGRAPH_NODE_PINS(...) HGRAPH_LIST(hgraph_pin_description_t, __VA_ARGS__)
+#define HGRAPH_NODE_ATTRIBUTES(...) HGRAPH_LIST(hgraph_attribute_description_t, __VA_ARGS__)
+
+
 typedef struct hgraph_node_api_s hgraph_node_api_t;
 typedef struct hgraph_plugin_api_s hgraph_plugin_api_t;
 

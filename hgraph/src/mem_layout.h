@@ -20,7 +20,7 @@ mem_layout_reserve(
 	intptr_t base = *layout;
 	intptr_t ptr = mem_layout_align_ptr(base, alignment);
 	*layout = ptr + (intptr_t)size;
-	return ptr - base;
+	return (ptrdiff_t)ptr;
 }
 
 static inline size_t
