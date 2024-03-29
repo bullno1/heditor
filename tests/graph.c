@@ -232,6 +232,113 @@ manipulation(const MunitParameter params[], void* fixture) {
 	munit_assert(i.seen_end);
 	munit_assert_int32(i.num_edges, ==, 0);
 
+	i.mid_id = hgraph_create_node(graph, &plugin2_mid);
+	// |start|  |mid|  |end|
+	i.num_edges = 0;
+	i.num_nodes = 0;
+	i.seen_start = false;
+	i.seen_mid = false;
+	i.seen_end = false;
+	i.seen_start_mid = false;
+	i.seen_mid_end = false;
+	hgraph_iterate_nodes(graph, iterate_nodes, &i);
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_nodes, ==, 3);
+	munit_assert(i.seen_start);
+	munit_assert(i.seen_mid);
+	munit_assert(i.seen_end);
+	munit_assert_int32(i.num_edges, ==, 0);
+
+	hgraph_index_t mid2_id = hgraph_create_node(graph, &plugin2_mid);
+	// |start|  |mid|  |end|
+	//          |mid2|
+	munit_assert(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(
+				graph,
+				hgraph_get_pin_id(graph, i.start_id, &plugin1_start_out_f32),
+				hgraph_get_pin_id(graph, i.mid_id, &plugin2_mid_in_f32)
+			)
+		)
+	);
+	// |start|->|mid|  |end|
+	//          |mid2|
+	munit_assert(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(
+				graph,
+				hgraph_get_pin_id(graph, i.start_id, &plugin1_start_out_f32),
+				hgraph_get_pin_id(graph, mid2_id, &plugin2_mid_in_f32)
+			)
+		)
+	);
+	// |start|->|mid|  |end|
+	//    └---->|mid2|
+	munit_assert(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(
+				graph,
+				hgraph_get_pin_id(graph, i.mid_id, &plugin2_mid_out_i32),
+				hgraph_get_pin_id(graph, i.end_id, &plugin1_end_in_i32)
+			)
+		)
+	);
+	// |start|->|mid|->|end|
+	//    └---->|mid2|
+	i.num_edges = 0;
+	i.num_nodes = 0;
+	i.seen_start = false;
+	i.seen_mid = false;
+	i.seen_end = false;
+	i.seen_start_mid = false;
+	i.seen_mid_end = false;
+	hgraph_iterate_nodes(graph, iterate_nodes, &i);
+	hgraph_iterate_edges(graph, iterate_edges, &i);
+	munit_assert_int32(i.num_nodes, ==, 4);
+	munit_assert_int32(i.num_edges, ==, 3);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 2);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.mid_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
+	i.num_edges = 0;
+	hgraph_iterate_edges_from(graph, i.end_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 0);
+	i.num_edges = 0;
+	hgraph_iterate_edges_to(graph, i.start_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 0);
+	i.num_edges = 0;
+	hgraph_iterate_edges_to(graph, i.mid_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
+	i.num_edges = 0;
+	hgraph_iterate_edges_to(graph, i.end_id, iterate_edges, &i);
+	munit_assert_int32(i.num_edges, ==, 1);
+
+	munit_assert_false(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(
+				graph,
+				hgraph_get_pin_id(graph, mid2_id, &plugin2_mid_out_i32),
+				hgraph_get_pin_id(graph, i.end_id, &plugin1_end_in_i32)
+			)
+		)
+	);
+	hgraph_destroy_node(graph, i.mid_id);
+	// |start|         |end|
+	//    └---->|mid2|
+	munit_assert(
+		HGRAPH_IS_VALID_INDEX(
+			hgraph_connect(
+				graph,
+				hgraph_get_pin_id(graph, mid2_id, &plugin2_mid_out_i32),
+				hgraph_get_pin_id(graph, i.end_id, &plugin1_end_in_i32)
+			)
+		)
+	);
+	// |start|           ┌-->end|
+	//    └---->|mid2|---┘
+
 	free(graph_mem);
 	free(registry_mem);
 	free(builder_mem);
