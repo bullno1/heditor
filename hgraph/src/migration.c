@@ -152,7 +152,7 @@ hgraph_migration_execute(
 ) {
 	// Migrate nodes
 	for (hgraph_index_t i = 0; i < from_graph->node_slot_map.num_items; ++i) {
-		const hgraph_node_t* from_node = (hgraph_node_t*)(from_graph->nodes + from_graph->node_size * i);
+		const hgraph_node_t* from_node = hgraph_get_node_by_slot(from_graph, i);
 
 		const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
 			from_graph, from_node
@@ -243,7 +243,7 @@ hgraph_migration_execute(
 
 	// Delete dummy nodes
 	for (hgraph_index_t i = 0; i < to_graph->node_slot_map.num_items;) {
-		const hgraph_node_t* node = (hgraph_node_t*)(to_graph->nodes + from_graph->node_size * i);
+		const hgraph_node_t* node = hgraph_get_node_by_slot(to_graph, i);
 		if (node->type == 0) {
 			hgraph_index_t id = hgraph_slot_map_id_for_slot(
 				&to_graph->node_slot_map,

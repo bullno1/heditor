@@ -14,6 +14,9 @@ hgraph_get_node_type_internal(
 HGRAPH_INTERNAL hgraph_node_t*
 hgraph_find_node_by_id(const hgraph_t* graph, hgraph_index_t node_id);
 
+HGRAPH_INTERNAL hgraph_node_t*
+hgraph_get_node_by_slot(const hgraph_t* graph, hgraph_index_t slot);
+
 HGRAPH_INTERNAL hgraph_index_t
 hgraph_encode_pin_id(
 	hgraph_index_t node_id,

@@ -14,7 +14,7 @@ hgraph_write_graph_v1(const hgraph_t* graph, hgraph_out_t* out) {
 
 	hgraph_index_t max_name_length = 0;
 	for (hgraph_index_t i = 0; i < num_nodes; ++i) {
-		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		const hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
 		hgraph_str_t name = hgraph_get_node_name_internal(graph, node);
 		max_name_length = HGRAPH_MAX(max_name_length, name.length);
 	}
@@ -22,7 +22,7 @@ hgraph_write_graph_v1(const hgraph_t* graph, hgraph_out_t* out) {
 
 	HGRAPH_CHECK_IO(hgraph_io_write_uint(num_nodes, out));
 	for (hgraph_index_t i = 0; i < num_nodes; ++i) {
-		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		const hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
 
 		const hgraph_node_type_info_t* type_info = hgraph_get_node_type_internal(
 			graph, node
@@ -202,8 +202,8 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 			return HGRAPH_IO_MALFORMED;
 		}
 
-		hgraph_node_t* from_node = (hgraph_node_t*)(graph->nodes + from_node_slot * graph->node_size);
-		hgraph_node_t* to_node = (hgraph_node_t*)(graph->nodes + to_node_slot * graph->node_size);
+		hgraph_node_t* from_node = hgraph_get_node_by_slot(graph, from_node_slot);
+		hgraph_node_t* to_node = hgraph_get_node_by_slot(graph, to_node_slot);
 
 		const hgraph_node_type_info_t* from_node_type = &node_types[from_node->type];
 		const hgraph_node_type_info_t* to_node_type = &node_types[to_node->type];
@@ -245,7 +245,7 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 
 	// Remove dummy nodes
 	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items;) {
-		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		const hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
 		if (node->type == 0) {
 			hgraph_index_t id = hgraph_slot_map_id_for_slot(
 				&graph->node_slot_map,

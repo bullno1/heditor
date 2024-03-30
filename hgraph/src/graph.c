@@ -22,6 +22,11 @@ hgraph_find_node_by_id(
 	return (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
 }
 
+HGRAPH_INTERNAL hgraph_node_t*
+hgraph_get_node_by_slot(const hgraph_t* graph, hgraph_index_t slot) {
+	return (hgraph_node_t*)(graph->nodes + graph->node_size * slot);
+}
+
 HGRAPH_INTERNAL hgraph_str_t
 hgraph_get_node_name_internal(const hgraph_t* graph, const hgraph_node_t* node) {
 	const hgraph_node_type_info_t* type_info = hgraph_get_node_type_internal(graph, node);
@@ -91,6 +96,11 @@ hgraph_init(
 	);
 
 	ptrdiff_t node_slot_map_offset = hgraph_slot_map_reserve(&layout, config->max_nodes);
+	ptrdiff_t node_versions_offset = mem_layout_reserve(
+		&layout,
+		sizeof(hgraph_index_t) * config->max_nodes,
+		_Alignof(max_align_t)
+	);
 
 	size_t max_edges = config->max_nodes * registry->max_edges_per_node;
 	ptrdiff_t edge_slot_map_offset = hgraph_slot_map_reserve(&layout, max_edges);
@@ -111,9 +121,11 @@ hgraph_init(
 		.registry = registry,
 		.config = *config,
 		.node_size = node_size,
+		.node_versions = mem_layout_locate(graph, node_versions_offset),
 		.nodes = mem_layout_locate(graph, nodes_offset),
 		.edges = mem_layout_locate(graph, edges_offset),
 	};
+	memset(graph->node_versions, 0, sizeof(hgraph_index_t) * config->max_nodes);
 	hgraph_slot_map_init(
 		&graph->node_slot_map,
 		config->max_nodes,
@@ -143,7 +155,8 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 	);
 	if (!HGRAPH_IS_VALID_INDEX(node_id)) { return HGRAPH_INVALID_INDEX; }
 
-	hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
+	hgraph_node_t* node = hgraph_get_node_by_slot(graph, node_slot);
+	++graph->node_versions[node_id];
 	node->name_len = 0;
 	node->type = type_info - registry->node_types;
 
@@ -170,6 +183,7 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 		pin->prev = HGRAPH_INVALID_INDEX;
 	}
 
+	++graph->version;
 	return node_id;
 }
 
@@ -212,6 +226,8 @@ hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
 	char* src_node = graph->nodes + node_size * src_slot;
 	char* dst_node = graph->nodes + node_size * dst_slot;
 	memcpy(dst_node, src_node, node_size);
+
+	++graph->version;
 }
 
 const hgraph_node_type_t*
@@ -431,7 +447,7 @@ hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name)
 hgraph_index_t
 hgraph_get_node_by_name(const hgraph_t* graph, hgraph_str_t name) {
 	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
-		hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
 		hgraph_str_t node_name = hgraph_get_node_name_internal(graph, node);
 
 		if (hgraph_str_equal(name, node_name)) {
@@ -494,7 +510,7 @@ hgraph_iterate_nodes(
 	void* userdata
 ) {
 	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
-		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
+		const hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
 		hgraph_index_t id = hgraph_slot_map_id_for_slot(&graph->node_slot_map, i);
 
 		// May happen if removal occurs during iteration
