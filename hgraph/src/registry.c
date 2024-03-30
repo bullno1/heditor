@@ -367,11 +367,6 @@ hgraph_registry_init(
 		mem_layout_t pipeline_data_layout = { 0 };
 		mem_layout_reserve(
 			&pipeline_data_layout,
-			sizeof(hgraph_pipeline_data_header_t),
-			_Alignof(hgraph_pipeline_data_header_t)
-		);
-		node_type_info->pipeline_data_offset = mem_layout_reserve(
-			&pipeline_data_layout,
 			node_type_def->size,
 			node_type_def->alignment
 		);

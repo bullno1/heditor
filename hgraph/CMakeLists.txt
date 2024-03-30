@@ -3,6 +3,7 @@ set(SOURCES
 	"src/graph.c"
 	"src/migration.c"
 	"src/io.c"
+	"src/pipeline.c"
 	"src/ptr_table.c"
 	"src/slot_map.c"
 	"src/slip.c"

@@ -47,7 +47,6 @@ typedef struct hgraph_node_type_info_s {
 
 	size_t size;
 	size_t pipeline_data_size;
-	ptrdiff_t pipeline_data_offset;
 
 	hgraph_index_t num_attributes;
 	hgraph_var_t* attributes;
@@ -96,29 +95,45 @@ typedef struct hgraph_node_s {
 struct hgraph_s {
 	const hgraph_registry_t* registry;
 	hgraph_config_t config;
+	hgraph_index_t version;
 
 	hgraph_slot_map_t node_slot_map;
 	size_t node_size;
+	hgraph_index_t* node_versions;
 	char* nodes;
 
 	hgraph_slot_map_t edge_slot_map;
 	hgraph_edge_t* edges;
 };
 
-typedef struct hgraph_pipeline_node_data_s {
-	hgraph_index_t type;
+typedef enum hgraph_node_pipeline_state_s {
+	HGRAPH_NODE_STATE_WAITING,
+	HGRAPH_NODE_STATE_SCHEDULED,
+	HGRAPH_NODE_STATE_EXECUTED,
+} hgraph_node_pipeline_state_t;
+
+typedef struct hgraph_pipeline_node_meta_s {
+	hgraph_index_t id;
 	hgraph_index_t version;
-} hgraph_pipeline_data_header_t;
+	hgraph_index_t type;
+	char* data;
+	void* status;
+	hgraph_node_pipeline_state_t state;
+} hgraph_pipeline_node_meta_t;
 
 struct hgraph_pipeline_s {
-	hgraph_node_api_t node_api;
+	hgraph_index_t version;
 	hgraph_pipeline_stats_t stats;
 	const hgraph_t* graph;
 
-	char* nodes;
+	hgraph_index_t num_nodes;
+	hgraph_index_t num_ready_nodes;
+	hgraph_index_t* ready_nodes;
 
-	char* tmp_zone_start;
-	char* tmp_zone_end;
+	hgraph_pipeline_node_meta_t* node_metas;
+
+	char* scratch_zone_start;
+	char* scratch_zone_end;
 	char* step_alloc_ptr;
 	char* execution_alloc_ptr;
 };

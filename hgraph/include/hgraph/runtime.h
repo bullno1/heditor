@@ -40,8 +40,6 @@ typedef struct hgraph_config_s {
 } hgraph_config_t;
 
 typedef struct hgraph_pipeline_config_s {
-	size_t max_nodes;
-	size_t max_node_size;
 	size_t max_scratch_memory;
 } hgraph_pipeline_config_t;
 
@@ -241,10 +239,13 @@ hgraph_iterate_edges_from(
 	void* userdata
 );
 
-HGRAPH_API size_t
+HGRAPH_API hgraph_pipeline_t*
 hgraph_pipeline_init(
-	hgraph_pipeline_t* pipeline,
-	const hgraph_pipeline_config_t* config
+	const hgraph_t* graph,
+	const hgraph_pipeline_config_t* config,
+	hgraph_pipeline_t* previous_pipeline,
+	void* mem,
+	size_t* mem_size_inout
 );
 
 HGRAPH_API void
@@ -270,7 +271,11 @@ HGRAPH_API void
 hgraph_pipeline_reset_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
-hgraph_pipeline_render(hgraph_pipeline_t* pipeline, void* render_ctx);
+hgraph_render(
+	const hgraph_t* graph,
+	const hgraph_pipeline_t* pipeline,
+	void* render_ctx
+);
 
 HGRAPH_API hgraph_io_status_t
 hgraph_write_header(hgraph_out_t* out);

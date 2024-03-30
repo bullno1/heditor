@@ -31,15 +31,9 @@ typedef enum hgraph_flow_type_e {
 	HGRAPH_FLOW_ONCE,
 	HGRAPH_FLOW_OPTIONAL,
 	HGRAPH_FLOW_STREAMING,
-	HGRAPH_FLOW_SWITCH,
 } hgraph_flow_type_t;
 
-typedef void (*hgraph_node_lifecycle_callback_t)(
-	const hgraph_node_api_t* api,
-	void* value
-);
-
-typedef void (*hgraph_data_initializer_t)(void* value);
+typedef void (*hgraph_data_lifecycle_callback_t)(void* value);
 
 typedef struct hgraph_data_type_s {
 	hgraph_str_t name;
@@ -49,16 +43,11 @@ typedef struct hgraph_data_type_s {
 	size_t size;
 	size_t alignment;
 
-	hgraph_data_initializer_t init;
+	hgraph_data_lifecycle_callback_t init;
 
 	bool (*serialize)(const void* value, hgraph_out_t* output);
 	bool (*deserialize)(void* value, hgraph_in_t* input);
-
-	void (*render)(
-		const hgraph_node_api_t* api,
-		const void* value,
-		void* render_ctx
-	);
+	void (*render)(const void* value, void* render_ctx);
 } hgraph_data_type_t;
 
 typedef struct hgraph_pin_description_s {
@@ -76,13 +65,9 @@ typedef struct hgraph_attribute_description_s {
 
 	const hgraph_data_type_t* data_type;
 
-	hgraph_data_initializer_t init;
+	hgraph_data_lifecycle_callback_t init;
 
-	void (*render)(
-		const hgraph_node_api_t* api,
-		const void* value,
-		void* render_ctx
-	);
+	void (*render)(const void* value, void* render_ctx);
 } hgraph_attribute_description_t;
 
 typedef struct hgraph_node_type_s {
@@ -93,8 +78,8 @@ typedef struct hgraph_node_type_s {
 
 	size_t size;
 	size_t alignment;
-	hgraph_node_lifecycle_callback_t init;
-	hgraph_node_lifecycle_callback_t cleanup;
+	hgraph_data_lifecycle_callback_t init;
+	hgraph_data_lifecycle_callback_t cleanup;
 
 	const hgraph_pin_description_t** input_pins;
 	const hgraph_pin_description_t** output_pins;
@@ -102,8 +87,9 @@ typedef struct hgraph_node_type_s {
 
 	void (*execute)(const hgraph_node_api_t* api, hgraph_node_phase_t phase);
 
+	void (*transfer)(void* dst, void* src);
+
 	void (*render)(
-		const hgraph_node_api_t* api,
 		hgraph_node_part_t part,
 		const void* last_status,
 		void* render_ctx
@@ -111,20 +97,15 @@ typedef struct hgraph_node_type_s {
 } hgraph_node_type_t;
 
 struct hgraph_node_api_s {
-	const void* switch_on;
-	const void* switch_off;
-
 	void* (*allocate)(
 		const hgraph_node_api_t* api,
 		hgraph_lifetime_t lifetime,
 		size_t size
 	);
 
-	hgraph_index_t (*id)(const hgraph_node_api_t* api);
-
 	void* (*data)(const hgraph_node_api_t* api);
 
-	void (*status)(const hgraph_node_api_t* api, const void* status);
+	void (*report_status)(const hgraph_node_api_t* api, const void* status);
 
 	const void* (*input)(
 		const hgraph_node_api_t* api,
@@ -173,29 +154,8 @@ hgraph_node_output(
 }
 
 static inline void
-hgraph_node_status(const hgraph_node_api_t* api, const void* status) {
-	api->status(api, status);
-}
-
-static inline void
-hgraph_node_switch_on(
-	const hgraph_node_api_t* api,
-	const hgraph_pin_description_t* pin
-) {
-	api->output(api, pin, api->switch_on);
-}
-
-static inline void
-hgraph_node_switch_off(
-	const hgraph_node_api_t* api,
-	const hgraph_pin_description_t* pin
-) {
-	api->output(api, pin, api->switch_off);
-}
-
-static inline hgraph_index_t
-hgraph_node_id(const hgraph_node_api_t* api) {
-	return api->id(api);
+hgraph_node_report_status(const hgraph_node_api_t* api, const void* status) {
+	api->report_status(api, status);
 }
 
 static inline void
