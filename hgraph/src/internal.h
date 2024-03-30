@@ -99,9 +99,24 @@ struct hgraph_s {
 	hgraph_edge_t* edges;
 };
 
+typedef struct hgraph_pipeline_node_data_s {
+	void* status;
+	hgraph_index_t version;
+} hgraph_pipeline_node_data_t;
+
 struct hgraph_pipeline_s {
-	hgraph_pipeline_config_t config;
 	hgraph_node_api_t node_api;
+	hgraph_pipeline_stats_t stats;
+	const hgraph_t* graph;
+
+	char* output_bufs;
+
+	char* tmp_zone_start;
+	char* tmp_zone_end;
+	char* persistent_zone_start;
+	char* persistent_zone_end;
+	char* step_alloc_ptr;
+	char* execution_alloc_ptr;
 };
 
 typedef struct hgraph_var_migration_plan_s {

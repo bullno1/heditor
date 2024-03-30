@@ -6,7 +6,6 @@ hgraph_pipeline_init(
 	hgraph_pipeline_t* pipeline,
 	const hgraph_pipeline_config_t* config
 ) {
-	mem_layout_t layout = { 0 };
 }
 
 void
@@ -27,3 +26,9 @@ hgraph_pipeline_get_node_status(
 
 hgraph_pipeline_stats_t
 hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
+
+void
+hgraph_pipeline_reset_stats(hgraph_pipeline_t* pipeline);
+
+void
+hgraph_pipeline_render(hgraph_pipeline_t* pipeline, void* render_ctx);

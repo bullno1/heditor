@@ -154,9 +154,9 @@ hgraph_migration_execute(
 	for (hgraph_index_t i = 0; i < from_graph->node_slot_map.num_items; ++i) {
 		const hgraph_node_t* from_node = (hgraph_node_t*)(from_graph->nodes + from_graph->node_size * i);
 
-		const hgraph_node_type_info_t* from_type_info;
-		const hgraph_node_type_t* from_type;
-		hgraph_find_node_type(from_graph, from_node, &from_type_info, &from_type);
+		const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
+			from_graph, from_node
+		);
 
 		const hgraph_node_migration_plan_t* node_plan = &migration->node_plans[from_node->type - 1];
 

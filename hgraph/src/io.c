@@ -24,9 +24,9 @@ hgraph_write_graph_v1(const hgraph_t* graph, hgraph_out_t* out) {
 	for (hgraph_index_t i = 0; i < num_nodes; ++i) {
 		const hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * i);
 
-		const hgraph_node_type_info_t* type_info;
-		const hgraph_node_type_t* type_def;
-		hgraph_find_node_type(graph, node, &type_info, &type_def);
+		const hgraph_node_type_info_t* type_info = hgraph_get_node_type_internal(
+			graph, node
+		);
 		HGRAPH_CHECK_IO(hgraph_io_write_str(type_info->name, out));
 
 		hgraph_str_t name = hgraph_get_node_name_internal(graph, node);
@@ -63,10 +63,12 @@ hgraph_write_graph_v1(const hgraph_t* graph, hgraph_out_t* out) {
 		hgraph_node_t* from_node = hgraph_find_node_by_id(graph, from_node_id);
 		hgraph_node_t* to_node = hgraph_find_node_by_id(graph, to_node_id);
 
-		const hgraph_node_type_info_t *from_type_info, *to_type_info;
-		const hgraph_node_type_t *from_type_def, *to_type_def;
-		hgraph_find_node_type(graph, from_node, &from_type_info, &from_type_def);
-		hgraph_find_node_type(graph, to_node, &to_type_info, &to_type_def);
+		const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
+			graph, from_node
+		);
+		const hgraph_node_type_info_t* to_type_info = hgraph_get_node_type_internal(
+			graph, to_node
+		);
 
 		hgraph_index_t from_node_slot = ((char*)from_node - graph->nodes) / graph->node_size;
 		hgraph_index_t to_node_slot = ((char*)to_node - graph->nodes) / graph->node_size;

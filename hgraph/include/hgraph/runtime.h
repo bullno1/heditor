@@ -41,6 +41,7 @@ typedef struct hgraph_config_s {
 
 typedef struct hgraph_pipeline_config_s {
 	size_t max_scratch_memory;
+	size_t max_persistent_memory;
 } hgraph_pipeline_config_t;
 
 typedef enum hgraph_pipeline_event_type_e {
@@ -156,16 +157,19 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type);
 HGRAPH_API void
 hgraph_destroy_node(hgraph_t* graph, hgraph_index_t node);
 
+HGRAPH_API const hgraph_node_type_t*
+hgraph_get_node_type(const hgraph_t* graph, hgraph_index_t node);
+
 HGRAPH_API hgraph_index_t
 hgraph_get_pin_id(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_index_t node,
 	const hgraph_pin_description_t* pin
 );
 
 HGRAPH_API void
 hgraph_resolve_pin(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_index_t pin_id,
 	hgraph_index_t* node_id_out,
 	const hgraph_pin_description_t** pin_desc_out
@@ -182,13 +186,13 @@ HGRAPH_API void
 hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge);
 
 HGRAPH_API hgraph_str_t
-hgraph_get_node_name(hgraph_t* graph, hgraph_index_t node);
+hgraph_get_node_name(const hgraph_t* graph, hgraph_index_t node);
 
 HGRAPH_API void
 hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node, hgraph_str_t name);
 
 HGRAPH_API hgraph_index_t
-hgraph_get_node_by_name(hgraph_t* graph, hgraph_str_t name);
+hgraph_get_node_by_name(const hgraph_t* graph, hgraph_str_t name);
 
 HGRAPH_API void
 hgraph_set_node_attribute(
@@ -200,28 +204,28 @@ hgraph_set_node_attribute(
 
 HGRAPH_API const void*
 hgraph_get_node_attribute(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_index_t node,
 	const hgraph_attribute_description_t* attribute
 );
 
 HGRAPH_API void
 hgraph_iterate_nodes(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_node_iterator_t iterator,
 	void* userdata
 );
 
 HGRAPH_API void
 hgraph_iterate_edges(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_edge_iterator_t iterator,
 	void* userdata
 );
 
 HGRAPH_API void
 hgraph_iterate_edges_to(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_index_t node_id,
 	hgraph_edge_iterator_t iterator,
 	void* userdata
@@ -229,7 +233,7 @@ hgraph_iterate_edges_to(
 
 HGRAPH_API void
 hgraph_iterate_edges_from(
-	hgraph_t* graph,
+	const hgraph_t* graph,
 	hgraph_index_t node_id,
 	hgraph_edge_iterator_t iterator,
 	void* userdata
@@ -259,6 +263,9 @@ hgraph_pipeline_get_node_status(
 
 HGRAPH_API hgraph_pipeline_stats_t
 hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
+
+HGRAPH_API void
+hgraph_pipeline_reset_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
 hgraph_pipeline_render(hgraph_pipeline_t* pipeline, void* render_ctx);
