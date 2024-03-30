@@ -32,6 +32,13 @@ hgraph_alloc_vars(hgraph_var_t** pool, hgraph_index_t num_vars) {
 	return result;
 }
 
+HGRAPH_PRIVATE hgraph_output_buffer_info_t*
+hgraph_alloc_output_buffers(hgraph_output_buffer_info_t** pool, hgraph_index_t num_buffers) {
+	hgraph_output_buffer_info_t* result = *pool;
+	*pool = result + num_buffers;
+	return result;
+}
+
 HGRAPH_PRIVATE void
 hgraph_registry_add_type(
 	hgraph_registry_builder_t* builder,
@@ -151,6 +158,7 @@ hgraph_registry_init(
 ) {
 	size_t string_table_size = 0;
 	hgraph_index_t num_vars = 0;
+	hgraph_index_t num_outputs = 0;
 
 	hgraph_index_t data_types_hash_size = hash_size(builder->data_type_exp);
 	const hgraph_data_type_t** data_types = builder->data_types;
@@ -191,6 +199,7 @@ hgraph_registry_init(
 		) {
 			string_table_size += node_type->output_pins[j]->name.length;
 			++num_vars;
+			++num_outputs;
 		}
 	}
 
@@ -214,6 +223,11 @@ hgraph_registry_init(
 		&layout,
 		sizeof(hgraph_var_t) * num_vars,
 		_Alignof(hgraph_var_t)
+	);
+	ptrdiff_t output_buffers_offset = mem_layout_reserve(
+		&layout,
+		sizeof(hgraph_output_buffer_info_t) * num_outputs,
+		_Alignof(hgraph_output_buffer_info_t)
 	);
 	ptrdiff_t string_table_offset = mem_layout_reserve(
 		&layout,
@@ -241,6 +255,7 @@ hgraph_registry_init(
 		.node_types = mem_layout_locate(registry, node_types_offset),
 	};
 	hgraph_var_t* vars = mem_layout_locate(registry, vars_offset);
+	hgraph_output_buffer_info_t* output_buffers = mem_layout_locate(registry, output_buffers_offset);
 	char* str_table = mem_layout_locate(registry, string_table_offset);
 	hgraph_ptr_table_init(
 		&registry->data_type_by_definition,
@@ -349,6 +364,18 @@ hgraph_registry_init(
 		node_type_info->input_pins = input_pins;
 		max_edges_per_node = HGRAPH_MAX(max_edges_per_node, num_input_pins);
 
+		mem_layout_t pipeline_data_layout = { 0 };
+		mem_layout_reserve(
+			&pipeline_data_layout,
+			sizeof(hgraph_pipeline_data_header_t),
+			_Alignof(hgraph_pipeline_data_header_t)
+		);
+		node_type_info->pipeline_data_offset = mem_layout_reserve(
+			&pipeline_data_layout,
+			node_type_def->size,
+			node_type_def->alignment
+		);
+
 		hgraph_index_t num_output_pins = 0;
 		for (
 			hgraph_index_t j = 0;
@@ -358,6 +385,9 @@ hgraph_registry_init(
 			++num_output_pins;
 		}
 		hgraph_var_t* output_pins = hgraph_alloc_vars(&vars, num_output_pins);
+		hgraph_output_buffer_info_t* node_output_buffers = hgraph_alloc_output_buffers(
+			&output_buffers, num_output_pins
+		);
 		for (hgraph_index_t j = 0; j < num_output_pins; ++j) {
 			const hgraph_pin_description_t* pin_def = node_type_def->output_pins[j];
 			hgraph_data_type_info_t* data_type_info = hgraph_ptr_table_lookup(
@@ -375,11 +405,21 @@ hgraph_registry_init(
 					_Alignof(hgraph_edge_link_t)
 				),
 			};
+
+			node_output_buffers[j] = (hgraph_output_buffer_info_t){
+				.offset = mem_layout_reserve(
+					&pipeline_data_layout,
+					pin_def->data_type->size,
+					pin_def->data_type->alignment
+				),
+			};
 		}
 		node_type_info->num_output_pins = num_output_pins;
 		node_type_info->output_pins = output_pins;
+		node_type_info->output_buffers = node_output_buffers;
 
 		node_type_info->size = mem_layout_size(&node_layout);
+		node_type_info->pipeline_data_size = mem_layout_size(&pipeline_data_layout);
 		max_node_size = HGRAPH_MAX(max_node_size, node_type_info->size);
 
 		hgraph_ptr_table_put(

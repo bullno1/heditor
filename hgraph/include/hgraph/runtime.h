@@ -40,21 +40,23 @@ typedef struct hgraph_config_s {
 } hgraph_config_t;
 
 typedef struct hgraph_pipeline_config_s {
+	size_t max_nodes;
+	size_t max_node_size;
 	size_t max_scratch_memory;
-	size_t max_persistent_memory;
 } hgraph_pipeline_config_t;
 
 typedef enum hgraph_pipeline_event_type_e {
-	HGRAPH_PIPELINE_EV_BEGIN_EXECUTION,
-	HGRAPH_PIPELINE_EV_BEGIN_STEP_NODE,
-	HGRAPH_PIPELINE_EV_END_STEP_NODE,
-	HGRAPH_PIPELINE_EV_END_EXECUTION,
+	HGRAPH_PIPELINE_EV_BEGIN_PIPELINE,
+	HGRAPH_PIPELINE_EV_BEGIN_NODE,
+	HGRAPH_PIPELINE_EV_END_NODE,
+	HGRAPH_PIPELINE_EV_END_PIPELINE,
 } hgraph_pipeline_event_type_t;
 
 typedef enum hgraph_pipeline_execution_status_e {
 	HGRAPH_PIPELINE_EXEC_FINISHED,
 	HGRAPH_PIPELINE_EXEC_INTERRUPTED,
 	HGRAPH_PIPELINE_EXEC_OOM,
+	HGRAPH_PIPELINE_EXEC_NEED_REINIT,
 } hgraph_pipeline_execution_status_t;
 
 typedef struct hgraph_header_s {

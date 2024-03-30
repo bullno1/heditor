@@ -14,7 +14,6 @@ typedef struct hgraph_plugin_api_s hgraph_plugin_api_t;
 typedef enum hgraph_lifetime_e {
 	HGRAPH_LIFETIME_STEP,
 	HGRAPH_LIFETIME_EXECUTION,
-	HGRAPH_LIFETIME_PIPELINE,
 } hgraph_lifetime_t;
 
 typedef enum hgraph_node_part_e {
@@ -23,9 +22,9 @@ typedef enum hgraph_node_part_e {
 } hgraph_node_part_t;
 
 typedef enum hgraph_node_phase_e {
-	HGRAPH_NODE_PHASE_BEGIN_EXECUTION,
-	HGRAPH_NODE_PHASE_STEP,
-	HGRAPH_NODE_PHASE_END_EXECUTION,
+	HGRAPH_NODE_PHASE_BEGIN_PIPELINE,
+	HGRAPH_NODE_PHASE_EXECUTE,
+	HGRAPH_NODE_PHASE_END_PIPELINE,
 } hgraph_node_phase_t;
 
 typedef enum hgraph_flow_type_e {
@@ -120,10 +119,6 @@ struct hgraph_node_api_s {
 		hgraph_lifetime_t lifetime,
 		size_t size
 	);
-	void (*deallocate)(
-		const hgraph_node_api_t* api,
-		void* ptr
-	);
 
 	hgraph_index_t (*id)(const hgraph_node_api_t* api);
 
@@ -156,14 +151,6 @@ hgraph_node_allocate(
 	size_t size
 ) {
 	return api->allocate(api, lifetime, size);
-}
-
-static inline void
-hgraph_node_deallocate(
-	const hgraph_node_api_t* api,
-	void* ptr
-) {
-	api->deallocate(api, ptr);
 }
 
 static inline void*

@@ -37,11 +37,17 @@ typedef struct hgraph_var_s {
 	ptrdiff_t offset;
 } hgraph_var_t;
 
+typedef struct hgraph_output_buffer_info_s {
+	ptrdiff_t offset;
+} hgraph_output_buffer_info_t;
+
 typedef struct hgraph_node_type_info_s {
 	hgraph_str_t name;
 	const hgraph_node_type_t* definition;
 
 	size_t size;
+	size_t pipeline_data_size;
+	ptrdiff_t pipeline_data_offset;
 
 	hgraph_index_t num_attributes;
 	hgraph_var_t* attributes;
@@ -51,6 +57,7 @@ typedef struct hgraph_node_type_info_s {
 
 	hgraph_index_t num_output_pins;
 	hgraph_var_t* output_pins;
+	hgraph_output_buffer_info_t* output_buffers;
 } hgraph_node_type_info_t;
 
 struct hgraph_registry_s {
@@ -83,7 +90,6 @@ struct hgraph_edge_s {
 
 typedef struct hgraph_node_s {
 	size_t name_len;
-	hgraph_index_t version;
 	hgraph_index_t type;
 } hgraph_node_t;
 
@@ -100,21 +106,19 @@ struct hgraph_s {
 };
 
 typedef struct hgraph_pipeline_node_data_s {
-	void* status;
+	hgraph_index_t type;
 	hgraph_index_t version;
-} hgraph_pipeline_node_data_t;
+} hgraph_pipeline_data_header_t;
 
 struct hgraph_pipeline_s {
 	hgraph_node_api_t node_api;
 	hgraph_pipeline_stats_t stats;
 	const hgraph_t* graph;
 
-	char* output_bufs;
+	char* nodes;
 
 	char* tmp_zone_start;
 	char* tmp_zone_end;
-	char* persistent_zone_start;
-	char* persistent_zone_end;
 	char* step_alloc_ptr;
 	char* execution_alloc_ptr;
 };
