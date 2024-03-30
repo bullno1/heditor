@@ -3,10 +3,17 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define HGRAPH_STR(STR) (hgraph_str_t){ .length = sizeof(STR) - 1, .data = STR }
 #define HGRAPH_INVALID_INDEX ((hgraph_index_t)-1)
 #define HGRAPH_IS_VALID_INDEX(X) ((X) >= 0)
+#if __STDC_VERSION__ >= 201112L
+#	define HGRAPH_STATIC_ASSERT(X, MSG) _Static_assert(X, MSG)
+#else
+#	include <assert.h>
+#	define HGRAPH_STATIC_ASSERT(X, MSG) assert((X) && (MSG))
+#endif
 
 typedef int32_t hgraph_index_t;
 
@@ -15,38 +22,26 @@ typedef struct hgraph_str_s {
 	const char* data;
 } hgraph_str_t;
 
-typedef struct hgraph_out_s {
-	hgraph_index_t (*write)(
-		struct hgraph_out_s* output,
-		const void* buffer,
-		hgraph_index_t size
-	);
-} hgraph_out_t;
-
 typedef struct hgraph_in_s {
-	hgraph_index_t (*read)(
+	size_t (*read)(
 		struct hgraph_in_s* input,
 		void* buffer,
-		hgraph_index_t size
+		size_t size
 	);
 } hgraph_in_t;
 
-static inline hgraph_index_t
-hgraph_io_read(
-	hgraph_in_t* input,
-	void* buffer,
-	hgraph_index_t size
-) {
-	return input->read(input, buffer, size);
-}
+typedef struct hgraph_out_s {
+	size_t (*write)(
+		struct hgraph_out_s* output,
+		const void* buffer,
+		size_t size
+	);
+} hgraph_out_t;
 
-static inline hgraph_index_t
-hgraph_io_write(
-	hgraph_out_t* output,
-	const void* buffer,
-	hgraph_index_t size
-) {
-	return output->write(output, buffer, size);
-}
+typedef enum hgraph_io_status_e {
+	HGRAPH_IO_OK,
+	HGRAPH_IO_ERROR,
+	HGRAPH_IO_MALFORMED,
+} hgraph_io_status_t;
 
 #endif

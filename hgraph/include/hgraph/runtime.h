@@ -56,6 +56,10 @@ typedef enum hgraph_pipeline_execution_status_e {
 	HGRAPH_PIPELINE_EXEC_OOM,
 } hgraph_pipeline_execution_status_t;
 
+typedef struct hgraph_header_s {
+	hgraph_index_t version;
+} hgraph_header_t;
+
 typedef struct hgraph_pipeline_event_s {
 	hgraph_pipeline_event_type_t type;
 	hgraph_index_t node;
@@ -258,6 +262,29 @@ hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
 hgraph_pipeline_render(hgraph_pipeline_t* pipeline, void* render_ctx);
+
+HGRAPH_API hgraph_io_status_t
+hgraph_write_header(hgraph_out_t* out);
+
+HGRAPH_API hgraph_io_status_t
+hgraph_read_header(hgraph_header_t* header, hgraph_in_t* in);
+
+HGRAPH_API hgraph_io_status_t
+hgraph_write_graph(const hgraph_t* graph, hgraph_out_t* out);
+
+HGRAPH_API hgraph_io_status_t
+hgraph_read_graph_config(
+	const hgraph_header_t* header,
+	hgraph_config_t* config,
+	hgraph_in_t* input
+);
+
+HGRAPH_API hgraph_io_status_t
+hgraph_read_graph(
+	const hgraph_header_t* header,
+	hgraph_t* graph,
+	hgraph_in_t* input
+);
 
 #ifdef __cplusplus
 }

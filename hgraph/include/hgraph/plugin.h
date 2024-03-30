@@ -52,16 +52,8 @@ typedef struct hgraph_data_type_s {
 
 	hgraph_data_initializer_t init;
 
-	void (*serialize)(
-		const hgraph_node_api_t* api,
-		const void* value,
-		hgraph_out_t* output
-	);
-	void (*deserialize)(
-		const hgraph_node_api_t* api,
-		void* value,
-		hgraph_in_t* input
-	);
+	bool (*serialize)(const void* value, hgraph_out_t* output);
+	bool (*deserialize)(void* value, hgraph_in_t* input);
 
 	void (*render)(
 		const hgraph_node_api_t* api,

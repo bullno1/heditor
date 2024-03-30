@@ -54,8 +54,6 @@ typedef struct hgraph_node_type_info_s {
 } hgraph_node_type_info_t;
 
 struct hgraph_registry_s {
-	hgraph_registry_config_t config;
-
 	size_t max_node_size;
 	hgraph_index_t max_edges_per_node;
 

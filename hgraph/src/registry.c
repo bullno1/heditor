@@ -235,7 +235,6 @@ hgraph_registry_init(
 
 	hgraph_registry_t* registry = mem;
 	*registry = (hgraph_registry_t){
-		.config = builder->config,
 		.num_data_types = builder->num_data_types,
 		.num_node_types = builder->num_node_types,
 		.data_types = mem_layout_locate(registry, data_types_offset),
