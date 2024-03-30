@@ -123,6 +123,8 @@ hgraph_init(
 		.nodes = mem_layout_locate(graph, nodes_offset),
 		.edges = mem_layout_locate(graph, edges_offset),
 	};
+	memset(graph->nodes, 0, node_size * config->max_nodes);
+
 	hgraph_slot_map_init(
 		&graph->node_slot_map,
 		config->max_nodes,
@@ -153,9 +155,6 @@ hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 	if (!HGRAPH_IS_VALID_INDEX(node_id)) { return HGRAPH_INVALID_INDEX; }
 
 	hgraph_node_t* node = (hgraph_node_t*)(graph->nodes + graph->node_size * node_slot);
-	// It doesn't matter whether this is initialized.
-	// Whenever we allocate a node, incrementing the version will invalidate all
-	// previously cached data, if any.
 	++node->version;
 	node->name_len = 0;
 	node->type = type_info - registry->node_types;
