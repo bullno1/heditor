@@ -125,7 +125,7 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 		}
 
 		hgraph_index_t node_id = hgraph_create_node(graph, node_type_info->definition);
-		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(node_id));
+		if (!HGRAPH_IS_VALID_INDEX(node_id)) { return HGRAPH_IO_MALFORMED; }
 
 		hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 		char* name_storage = (char*)node + node_type_info->size;
