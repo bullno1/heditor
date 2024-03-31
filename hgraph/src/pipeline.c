@@ -519,14 +519,16 @@ hgraph_pipeline_execute(
 					&graph->node_slot_map, to_node_id
 				);
 				HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(to_node_slot));
+				HGRAPH_ASSERT(to_node_slot < pipeline->num_nodes);
+				const hgraph_pipeline_node_meta_t* to_node_meta = &pipeline->node_metas[to_node_slot];
 
 				if (
-					hgraph_pipeline_is_node_ready(pipeline, i)
-					&& hgraph_pipeline_schedule_node(pipeline, i)
+					hgraph_pipeline_is_node_ready(pipeline, to_node_slot)
+					&& hgraph_pipeline_schedule_node(pipeline, to_node_slot)
 					&& !watcher(
 						&(hgraph_pipeline_event_t){
 							.type = HGRAPH_PIPELINE_EV_SCHEDULE_NODE,
-							.node = node_meta->id,
+							.node = to_node_meta->id,
 						},
 						userdata
 					)
