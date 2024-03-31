@@ -72,7 +72,6 @@ typedef struct hgraph_pipeline_event_s {
 typedef struct hgraph_pipeline_stats_s {
 	size_t peak_step_memory;
 	size_t peak_execution_memory;
-	size_t peak_persistent_memory;
 } hgraph_pipeline_stats_t;
 
 typedef bool (*hgraph_registry_iterator_t)(

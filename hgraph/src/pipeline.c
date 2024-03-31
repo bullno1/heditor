@@ -12,16 +12,71 @@ typedef struct hgraph_pipeline_node_ctx_s {
 	hgraph_pipeline_execution_status_t termination_reason;
 } hgraph_pipeline_node_ctx_t;
 
+HGRAPH_PRIVATE char*
+hgraph_align_ptr_down(char* ptr, size_t alignment) {
+    uintptr_t addr = (uintptr_t)ptr;
+    addr &= -(uintptr_t)alignment;
+    return (char*)addr;
+}
+
+HGRAPH_PRIVATE void*
+hgraph_pipeline_node_allocate_step(
+	hgraph_pipeline_node_ctx_t* ctx,
+	size_t size
+) {
+	hgraph_pipeline_t* pipeline = ctx->pipeline;
+	char* alloc_ptr = pipeline->step_alloc_ptr;
+	char* result = (char*)mem_layout_align_ptr((intptr_t)alloc_ptr, _Alignof(max_align_t));
+	char* new_alloc_ptr = result + size;
+	if (new_alloc_ptr <= pipeline->execution_alloc_ptr) {
+		pipeline->step_alloc_ptr = new_alloc_ptr;
+		pipeline->stats.peak_step_memory = HGRAPH_MAX(
+			pipeline->stats.peak_step_memory,
+			(size_t)(new_alloc_ptr - pipeline->scratch_zone_start)
+		);
+		return result;
+	} else {
+		ctx->termination_reason = HGRAPH_PIPELINE_EXEC_OOM;
+		return NULL;
+	}
+}
+
+HGRAPH_PRIVATE void*
+hgraph_pipeline_node_allocate_execution(
+	hgraph_pipeline_node_ctx_t* ctx,
+	size_t size
+) {
+	hgraph_pipeline_t* pipeline = ctx->pipeline;
+	char* alloc_ptr = pipeline->execution_alloc_ptr;
+	char* result = hgraph_align_ptr_down(alloc_ptr - size, _Alignof(max_align_t));
+	if (result >= pipeline->step_alloc_ptr) {
+		pipeline->execution_alloc_ptr = result;
+		pipeline->stats.peak_step_memory = HGRAPH_MAX(
+			pipeline->stats.peak_execution_memory,
+			(size_t)(result - pipeline->scratch_zone_end)
+		);
+		return result;
+	} else {
+		ctx->termination_reason = HGRAPH_PIPELINE_EXEC_OOM;
+		return NULL;
+	}
+}
+
 HGRAPH_PRIVATE void*
 hgraph_pipeline_node_allocate(
 	const hgraph_node_api_t* api,
 	hgraph_lifetime_t lifetime,
 	size_t size
 ) {
-	(void)lifetime;
-	(void)size;
 	hgraph_pipeline_node_ctx_t* ctx = HGRAPH_CONTAINER_OF(api, hgraph_pipeline_node_ctx_t, impl);
-	ctx->termination_reason = HGRAPH_PIPELINE_EXEC_OOM;
+
+	switch (lifetime) {
+		case HGRAPH_LIFETIME_STEP:
+			return hgraph_pipeline_node_allocate_step(ctx, size);
+		case HGRAPH_LIFETIME_EXECUTION:
+			return hgraph_pipeline_node_allocate_execution(ctx, size);
+	}
+
 	return NULL;
 }
 
@@ -387,6 +442,7 @@ hgraph_pipeline_execute(
 				.slot = i,
 			};
 			node_type->definition->begin_pipeline(&ctx.impl);
+			pipeline->step_alloc_ptr = pipeline->scratch_zone_start;
 			if (ctx.termination_reason != HGRAPH_PIPELINE_EXEC_FINISHED) {
 				return ctx.termination_reason;
 			}
@@ -436,6 +492,7 @@ hgraph_pipeline_execute(
 			.slot = node_slot,
 		};
 		node_type->definition->execute(&ctx.impl);
+		pipeline->step_alloc_ptr = pipeline->scratch_zone_start;
 		node_meta->state = HGRAPH_NODE_STATE_EXECUTED;
 		if (ctx.termination_reason != HGRAPH_PIPELINE_EXEC_FINISHED) {
 			return ctx.termination_reason;
@@ -504,6 +561,7 @@ hgraph_pipeline_execute(
 				.slot = i,
 			};
 			node_type->definition->end_pipeline(&ctx.impl);
+			pipeline->step_alloc_ptr = pipeline->scratch_zone_start;
 		}
 	}
 
