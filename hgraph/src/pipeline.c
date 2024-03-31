@@ -7,6 +7,8 @@ typedef struct hgraph_pipeline_node_ctx_s {
 	hgraph_node_api_t impl;
 	hgraph_pipeline_t* pipeline;
 	hgraph_index_t slot;
+	hgraph_pipeline_watcher_t watcher;
+	void* watcher_data;
 	hgraph_pipeline_execution_status_t termination_reason;
 } hgraph_pipeline_node_ctx_t;
 
@@ -37,6 +39,16 @@ hgraph_pipeline_node_report_status(const hgraph_node_api_t* api, const void* sta
 	hgraph_pipeline_t* pipeline = ctx->pipeline;
 	hgraph_pipeline_node_meta_t* node_meta = &pipeline->node_metas[ctx->slot];
 	node_meta->status = status;
+
+	if (!ctx->watcher(
+		&(hgraph_pipeline_event_t){
+			.type = HGRAPH_PIPELINE_EV_UPDATE_STATUS,
+			.node = node_meta->id,
+		},
+		ctx->watcher_data
+	)) {
+		ctx->termination_reason = HGRAPH_PIPELINE_EXEC_ABORTED;
+	}
 }
 
 HGRAPH_PRIVATE const void*
@@ -139,6 +151,31 @@ hgraph_pipeline_node_output(
 }
 
 HGRAPH_PRIVATE bool
+hgraph_pipeline_default_watcher(
+	const hgraph_pipeline_event_t* event,
+	void* userdata
+) {
+	(void)event;
+	(void)userdata;
+
+	return true;
+}
+
+static const hgraph_node_api_t hgraph_pipeline_node_api = {
+	.allocate = hgraph_pipeline_node_allocate,
+	.data = hgraph_pipeline_node_data,
+	.input = hgraph_pipeline_node_input,
+	.output = hgraph_pipeline_node_output,
+	.report_status = hgraph_pipeline_node_report_status,
+};
+
+static const hgraph_node_api_t hgraph_pipeline_node_api_no_io = {
+	.allocate = hgraph_pipeline_node_allocate,
+	.data = hgraph_pipeline_node_data,
+	.report_status = hgraph_pipeline_node_report_status,
+};
+
+HGRAPH_PRIVATE bool
 hgraph_pipeline_schedule_node(
 	hgraph_pipeline_t* pipeline, hgraph_index_t node_slot
 ) {
@@ -148,25 +185,6 @@ hgraph_pipeline_schedule_node(
 	pipeline->ready_nodes[pipeline->num_ready_nodes++] = node_slot;
 	node_meta->state = HGRAPH_NODE_STATE_SCHEDULED;
 	return true;
-}
-
-HGRAPH_PRIVATE hgraph_pipeline_node_ctx_t
-hgraph_pipeline_make_node_ctx(
-	hgraph_pipeline_t* pipeline,
-	hgraph_index_t slot
-) {
-	return (hgraph_pipeline_node_ctx_t){
-		.impl = {
-			.allocate = hgraph_pipeline_node_allocate,
-			.data = hgraph_pipeline_node_data,
-			.input = hgraph_pipeline_node_input,
-			.output = hgraph_pipeline_node_output,
-			.report_status = hgraph_pipeline_node_report_status,
-		},
-		.pipeline = pipeline,
-		.slot = slot,
-		.termination_reason = HGRAPH_PIPELINE_EXEC_FINISHED,
-	};
 }
 
 HGRAPH_PRIVATE bool
@@ -321,6 +339,8 @@ hgraph_pipeline_execute(
 		return HGRAPH_PIPELINE_EXEC_OUT_OF_SYNC;
 	}
 
+	if (watcher == NULL) { watcher = hgraph_pipeline_default_watcher; }
+
 	if (!watcher(
 		&(hgraph_pipeline_event_t){
 			.type = HGRAPH_PIPELINE_EV_BEGIN_PIPELINE,
@@ -357,9 +377,13 @@ hgraph_pipeline_execute(
 
 		// Call begin_pipeline
 		if (node_type->definition->begin_pipeline != NULL) {
-			hgraph_pipeline_node_ctx_t ctx = hgraph_pipeline_make_node_ctx(pipeline, i);
-			ctx.impl.input = NULL;
-			ctx.impl.output = NULL;
+			hgraph_pipeline_node_ctx_t ctx = {
+				.impl = hgraph_pipeline_node_api_no_io,
+				.pipeline = pipeline,
+				.watcher = watcher,
+				.watcher_data = userdata,
+				.slot = i,
+			};
 			node_type->definition->begin_pipeline(&ctx.impl);
 			if (ctx.termination_reason != HGRAPH_PIPELINE_EXEC_FINISHED) {
 				return ctx.termination_reason;
@@ -402,7 +426,13 @@ hgraph_pipeline_execute(
 		}
 
 		HGRAPH_ASSERT(node_type->definition->execute != NULL);
-		hgraph_pipeline_node_ctx_t ctx = hgraph_pipeline_make_node_ctx(pipeline, node_slot);
+		hgraph_pipeline_node_ctx_t ctx = {
+			.impl = hgraph_pipeline_node_api,
+			.pipeline = pipeline,
+			.watcher = watcher,
+			.watcher_data = userdata,
+			.slot = node_slot,
+		};
 		node_type->definition->execute(&ctx.impl);
 		node_meta->state = HGRAPH_NODE_STATE_EXECUTED;
 		if (ctx.termination_reason != HGRAPH_PIPELINE_EXEC_FINISHED) {
@@ -464,9 +494,13 @@ hgraph_pipeline_execute(
 		hgraph_pipeline_node_meta_t* node_meta = &pipeline->node_metas[i];
 		const hgraph_node_type_info_t* node_type = &node_types[node_meta->type];
 		if (node_type->definition->end_pipeline != NULL) {
-			hgraph_pipeline_node_ctx_t ctx = hgraph_pipeline_make_node_ctx(pipeline, i);
-			ctx.impl.input = NULL;
-			ctx.impl.output = NULL;
+			hgraph_pipeline_node_ctx_t ctx = {
+				.impl = hgraph_pipeline_node_api_no_io,
+				.pipeline = pipeline,
+				.watcher = watcher,
+				.watcher_data = userdata,
+				.slot = i,
+			};
 			node_type->definition->end_pipeline(&ctx.impl);
 		}
 	}
