@@ -75,15 +75,30 @@ TEST(pipeline, execute) {
 	hgraph_t* graph = fixture.base->graph;
 
 	hgraph_index_t start = hgraph_get_node_by_name(graph, HGRAPH_STR("start"));
+	hgraph_index_t mid = hgraph_get_node_by_name(graph, HGRAPH_STR("mid"));
 	hgraph_index_t end = hgraph_get_node_by_name(graph, HGRAPH_STR("end"));
 	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(start));
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(mid));
 	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(end));
 
 	hgraph_set_node_attribute(graph, start, &plugin1_start_attr_f32, &(float){ 4.20f });
 
-	hgraph_pipeline_execution_status_t status = hgraph_pipeline_execute(pipeline, NULL, NULL);
-	ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_FINISHED);
+	{
+		hgraph_pipeline_execution_status_t status = hgraph_pipeline_execute(pipeline, NULL, NULL);
+		ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_FINISHED);
 
-	int32_t result = *(const int32_t*)hgraph_pipeline_get_node_status(pipeline, end);
-	ASSERT_EQ(result, 5);
+		const int32_t* result = (const int32_t*)hgraph_pipeline_get_node_status(pipeline, end);
+		ASSERT_TRUE(result != NULL);
+		ASSERT_EQ(*result, 5);
+	}
+
+	hgraph_set_node_attribute(graph, mid, &plugin2_mid_attr_round_up, &(bool){ false });
+	{
+		hgraph_pipeline_execution_status_t status = hgraph_pipeline_execute(pipeline, NULL, NULL);
+		ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_FINISHED);
+
+		const int32_t* result = (const int32_t*)hgraph_pipeline_get_node_status(pipeline, end);
+		ASSERT_TRUE(result != NULL);
+		ASSERT_EQ(*result, 4);
+	}
 }
