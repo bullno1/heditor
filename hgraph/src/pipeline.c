@@ -335,6 +335,8 @@ hgraph_pipeline_execute(
 ) {
 	const hgraph_t* graph = pipeline->graph;
 
+	// TODO: if an unrelated node is created and then destroyed, the pipeline is
+	// still in sync
 	if (graph->version != pipeline->version) {
 		return HGRAPH_PIPELINE_EXEC_OUT_OF_SYNC;
 	}
@@ -513,4 +515,32 @@ hgraph_pipeline_execute(
 	);
 
 	return HGRAPH_PIPELINE_EXEC_FINISHED;
+}
+
+const void*
+hgraph_pipeline_get_node_status(
+	const hgraph_pipeline_t* pipeline,
+	hgraph_index_t node_id
+) {
+	hgraph_index_t node_slot = hgraph_slot_map_slot_for_id(
+		&pipeline->graph->node_slot_map, node_id
+	);
+	if (!HGRAPH_IS_VALID_INDEX(node_slot)) { return NULL; }
+	if (node_slot >= pipeline->num_nodes) { return NULL; }
+
+	const hgraph_pipeline_node_meta_t* node_meta = &pipeline->node_metas[node_slot];
+	hgraph_index_t node_version = pipeline->graph->node_versions[node_id];
+	return node_meta->id == node_id && node_meta->version == node_version
+		? node_meta->status
+		: NULL;
+}
+
+hgraph_pipeline_stats_t
+hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline) {
+	return pipeline->stats;
+}
+
+void
+hgraph_pipeline_reset_stats(hgraph_pipeline_t* pipeline) {
+	pipeline->stats = (hgraph_pipeline_stats_t){ 0 };
 }
