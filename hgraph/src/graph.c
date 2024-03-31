@@ -59,7 +59,7 @@ hgraph_decode_pin_id(
 	*is_output = pin_id & 0x01;
 }
 
-HGRAPH_PRIVATE hgraph_edge_link_t*
+HGRAPH_INTERNAL hgraph_edge_link_t*
 hgraph_resolve_edge(
 	const hgraph_t* graph,
 	hgraph_edge_link_t* pin,

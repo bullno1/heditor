@@ -45,16 +45,19 @@ typedef struct hgraph_pipeline_config_s {
 
 typedef enum hgraph_pipeline_event_type_e {
 	HGRAPH_PIPELINE_EV_BEGIN_PIPELINE,
+	HGRAPH_PIPELINE_EV_SCHEDULE_NODE,
 	HGRAPH_PIPELINE_EV_BEGIN_NODE,
+	HGRAPH_PIPELINE_EV_UPDATE_STATUS,
 	HGRAPH_PIPELINE_EV_END_NODE,
 	HGRAPH_PIPELINE_EV_END_PIPELINE,
 } hgraph_pipeline_event_type_t;
 
 typedef enum hgraph_pipeline_execution_status_e {
 	HGRAPH_PIPELINE_EXEC_FINISHED,
-	HGRAPH_PIPELINE_EXEC_INTERRUPTED,
+	HGRAPH_PIPELINE_EXEC_ABORTED,
 	HGRAPH_PIPELINE_EXEC_OOM,
-	HGRAPH_PIPELINE_EXEC_NEED_REINIT,
+	HGRAPH_PIPELINE_EXEC_INCOMPLETE_OUTPUT,
+	HGRAPH_PIPELINE_EXEC_OUT_OF_SYNC,
 } hgraph_pipeline_execution_status_t;
 
 typedef struct hgraph_header_s {
@@ -260,7 +263,7 @@ hgraph_pipeline_execute(
 
 HGRAPH_API const void*
 hgraph_pipeline_get_node_status(
-	hgraph_pipeline_t* pipeline,
+	const hgraph_pipeline_t* pipeline,
 	hgraph_index_t node
 );
 
@@ -269,13 +272,6 @@ hgraph_pipeline_get_stats(hgraph_pipeline_t* pipeline);
 
 HGRAPH_API void
 hgraph_pipeline_reset_stats(hgraph_pipeline_t* pipeline);
-
-HGRAPH_API void
-hgraph_render(
-	const hgraph_t* graph,
-	const hgraph_pipeline_t* pipeline,
-	void* render_ctx
-);
 
 HGRAPH_API hgraph_io_status_t
 hgraph_write_header(hgraph_out_t* out);

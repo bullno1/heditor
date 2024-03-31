@@ -6,6 +6,7 @@
 #include "slot_map.h"
 #include "assert.h"
 #include <string.h>
+#include <limits.h>
 
 #define HGRAPH_PRIVATE static inline
 #define HGRAPH_INTERNAL
@@ -13,7 +14,10 @@
 #define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define HGRAPH_ASSERT assert
 #define HGRAPH_CONTAINER_OF(PTR, TYPE, MEMBER) \
-    (TYPE*)((char *)(PTR) - offsetof(TYPE, MEMBER))
+    (TYPE*)((char*)(PTR) - offsetof(TYPE, MEMBER))
+#define HGRAPH_MAX_PINS ((hgraph_index_t)(sizeof(hgraph_bitset_t) * CHAR_BIT))
+
+typedef int16_t hgraph_bitset_t;
 
 struct hgraph_registry_builder_s {
 	hgraph_registry_config_t config;
@@ -46,7 +50,10 @@ typedef struct hgraph_node_type_info_s {
 	const hgraph_node_type_t* definition;
 
 	size_t size;
+
 	size_t pipeline_data_size;
+	hgraph_bitset_t required_inputs;
+	hgraph_bitset_t required_outputs;
 
 	hgraph_index_t num_attributes;
 	hgraph_var_t* attributes;
@@ -97,10 +104,10 @@ struct hgraph_s {
 	hgraph_config_t config;
 	hgraph_index_t version;
 
-	hgraph_slot_map_t node_slot_map;
 	size_t node_size;
-	hgraph_index_t* node_versions;
+	hgraph_slot_map_t node_slot_map;
 	char* nodes;
+	hgraph_index_t* node_versions;
 
 	hgraph_slot_map_t edge_slot_map;
 	hgraph_edge_t* edges;
@@ -116,8 +123,11 @@ typedef struct hgraph_pipeline_node_meta_s {
 	hgraph_index_t id;
 	hgraph_index_t version;
 	hgraph_index_t type;
+
 	char* data;
-	void* status;
+	const void* status;
+	hgraph_bitset_t received_inputs;
+	hgraph_bitset_t sent_outputs;
 	hgraph_node_pipeline_state_t state;
 } hgraph_pipeline_node_meta_t;
 
@@ -160,6 +170,22 @@ hgraph_str_equal(hgraph_str_t lhs, hgraph_str_t rhs) {
 	if (lhs.length != rhs.length) { return false; }
 
 	return memcmp(lhs.data, rhs.data, lhs.length) == 0;
+}
+
+HGRAPH_PRIVATE void
+hgraph_bitset_init(hgraph_bitset_t* bitset) {
+	*bitset = 0;
+}
+
+HGRAPH_PRIVATE void
+hgraph_bitset_set(hgraph_bitset_t* bitset, hgraph_index_t index) {
+	hgraph_bitset_t mask = (hgraph_bitset_t)0x01 << index;
+	*bitset |= mask;
+}
+
+HGRAPH_PRIVATE bool
+hgraph_bitset_is_all_set(hgraph_bitset_t bitset, hgraph_bitset_t required_bits) {
+	return (bitset & required_bits) == required_bits;
 }
 
 #endif

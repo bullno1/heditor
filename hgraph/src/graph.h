@@ -32,4 +32,11 @@ hgraph_decode_pin_id(
 	bool* is_output
 );
 
+HGRAPH_INTERNAL hgraph_edge_link_t*
+hgraph_resolve_edge(
+	const hgraph_t* graph,
+	hgraph_edge_link_t* pin,
+	hgraph_index_t edge_id
+);
+
 #endif

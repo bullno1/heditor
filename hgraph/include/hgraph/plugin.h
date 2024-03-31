@@ -7,7 +7,6 @@
 #define HGRAPH_NODE_PINS(...) HGRAPH_LIST(hgraph_pin_description_t, __VA_ARGS__)
 #define HGRAPH_NODE_ATTRIBUTES(...) HGRAPH_LIST(hgraph_attribute_description_t, __VA_ARGS__)
 
-
 typedef struct hgraph_node_api_s hgraph_node_api_t;
 typedef struct hgraph_plugin_api_s hgraph_plugin_api_t;
 
@@ -20,12 +19,6 @@ typedef enum hgraph_node_part_e {
 	HGRAPH_NODE_HEADER,
 	HGRAPH_NODE_FOOTER,
 } hgraph_node_part_t;
-
-typedef enum hgraph_node_phase_e {
-	HGRAPH_NODE_PHASE_BEGIN_PIPELINE,
-	HGRAPH_NODE_PHASE_EXECUTE,
-	HGRAPH_NODE_PHASE_END_PIPELINE,
-} hgraph_node_phase_t;
 
 typedef enum hgraph_flow_type_e {
 	HGRAPH_FLOW_ONCE,
@@ -78,6 +71,7 @@ typedef struct hgraph_node_type_s {
 
 	size_t size;
 	size_t alignment;
+
 	hgraph_data_lifecycle_callback_t init;
 	hgraph_data_lifecycle_callback_t cleanup;
 
@@ -85,7 +79,11 @@ typedef struct hgraph_node_type_s {
 	const hgraph_pin_description_t** output_pins;
 	const hgraph_attribute_description_t** attributes;
 
-	void (*execute)(const hgraph_node_api_t* api, hgraph_node_phase_t phase);
+	void (*begin_pipeline)(const hgraph_node_api_t* api);
+
+	void (*execute)(const hgraph_node_api_t* api);
+
+	void (*end_pipeline)(const hgraph_node_api_t* api);
 
 	void (*transfer)(void* dst, void* src);
 
@@ -141,7 +139,7 @@ hgraph_node_data(const hgraph_node_api_t* api) {
 
 static inline const void*
 hgraph_node_input(const hgraph_node_api_t* api, const void* pinOrAttribute) {
-	return api->input(api, pinOrAttribute);
+	return api->input != NULL ? api->input(api, pinOrAttribute) : NULL;
 }
 
 static inline void
@@ -150,7 +148,7 @@ hgraph_node_output(
 	const hgraph_pin_description_t* pin,
 	const void* value
 ) {
-	api->output(api, pin, value);
+	if (api->output != NULL) { api->output(api, pin, value); }
 }
 
 static inline void

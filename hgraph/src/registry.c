@@ -341,6 +341,9 @@ hgraph_registry_init(
 		) {
 			++num_input_pins;
 		}
+		HGRAPH_ASSERT(num_input_pins <= HGRAPH_MAX_PINS);
+		hgraph_bitset_t required_inputs;
+		hgraph_bitset_init(&required_inputs);
 		hgraph_var_t* input_pins = hgraph_alloc_vars(&vars, num_input_pins);
 		for (hgraph_index_t j = 0; j < num_input_pins; ++j) {
 			const hgraph_pin_description_t* pin_def = node_type_def->input_pins[j];
@@ -359,9 +362,14 @@ hgraph_registry_init(
 					_Alignof(hgraph_index_t)
 				),
 			};
+
+			if (pin_def->flow_type == HGRAPH_FLOW_ONCE) {
+				hgraph_bitset_set(&required_inputs, j);
+			}
 		}
 		node_type_info->num_input_pins = num_input_pins;
 		node_type_info->input_pins = input_pins;
+		node_type_info->required_inputs = required_inputs;
 		max_edges_per_node = HGRAPH_MAX(max_edges_per_node, num_input_pins);
 
 		mem_layout_t pipeline_data_layout = { 0 };
@@ -379,6 +387,9 @@ hgraph_registry_init(
 		) {
 			++num_output_pins;
 		}
+		HGRAPH_ASSERT(num_output_pins <= HGRAPH_MAX_PINS);
+		hgraph_bitset_t required_outputs;
+		hgraph_bitset_init(&required_outputs);
 		hgraph_var_t* output_pins = hgraph_alloc_vars(&vars, num_output_pins);
 		hgraph_output_buffer_info_t* node_output_buffers = hgraph_alloc_output_buffers(
 			&output_buffers, num_output_pins
@@ -408,9 +419,14 @@ hgraph_registry_init(
 					pin_def->data_type->alignment
 				),
 			};
+
+			if (pin_def->flow_type == HGRAPH_FLOW_ONCE) {
+				hgraph_bitset_set(&required_outputs, j);
+			}
 		}
 		node_type_info->num_output_pins = num_output_pins;
 		node_type_info->output_pins = output_pins;
+		node_type_info->required_outputs = required_outputs;
 		node_type_info->output_buffers = node_output_buffers;
 
 		node_type_info->size = mem_layout_size(&node_layout);
