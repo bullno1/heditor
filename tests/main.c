@@ -1,17 +1,7 @@
-#include <munit.h>
+#define DEFINE_RKTEST_IMPLEMENTATION
+#define _DEFAULT_SOURCE 1
+#include "rktest.h"
 
-extern MunitSuite test_registry;
-extern MunitSuite test_graph;
-
-int
-main(int argc, char** argv) {
-	MunitSuite suite = {
-		.suites = (MunitSuite[]){
-			test_registry,
-			test_graph,
-			{ 0 },
-		},
-	};
-
-	return munit_suite_main(&suite, NULL, argc, argv);
+int main(int argc, const char* argv[]) {
+    return rktest_main(argc, argv);
 }

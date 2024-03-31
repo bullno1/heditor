@@ -1,7 +1,8 @@
 #include "plugin1.h"
 #include "plugin2.h"
-#include <munit.h>
+#include "rktest.h"
 #include <hgraph/runtime.h>
+#include <stdlib.h>
 
 typedef struct {
 	hgraph_index_t num_items;
@@ -21,18 +22,15 @@ iterate_registry(const hgraph_node_type_t* node, void* userdata) {
 	} else if (node == &plugin2_mid) {
 		state->seen_mid = true;
 	} else {
-		munit_error("Unexpected node type");
+		FAIL("error: Unexpected type");
+		return false;
 	}
 
 	++state->num_items;
 	return true;
 }
 
-static MunitResult
-reg(const MunitParameter params[], void* fixture) {
-	(void)params;
-	(void)fixture;
-
+TEST(registry, reg) {
 	hgraph_registry_config_t config = {
 		.max_data_types = 32,
 		.max_node_types = 32,
@@ -43,7 +41,7 @@ reg(const MunitParameter params[], void* fixture) {
 		NULL,
 		&mem_required
 	);
-	munit_assert_null(builder);
+	ASSERT_TRUE(builder == NULL);
 
 	void* builder_mem = malloc(mem_required);
 	builder = hgraph_registry_builder_init(
@@ -51,7 +49,7 @@ reg(const MunitParameter params[], void* fixture) {
 		builder_mem,
 		&mem_required
 	);
-	munit_assert_not_null(builder);
+	ASSERT_TRUE(builder != NULL);
 
 	hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(builder);
 	plugin1_entry(plugin_api);
@@ -59,7 +57,7 @@ reg(const MunitParameter params[], void* fixture) {
 
 	mem_required = 0;
 	hgraph_registry_t* registry = hgraph_registry_init(builder, NULL, &mem_required);
-	munit_assert_null(registry);
+	ASSERT_TRUE(registry == NULL);
 
 	void* registry_mem = malloc(mem_required);
 	registry = hgraph_registry_init(builder, registry_mem, &mem_required);
@@ -70,24 +68,11 @@ reg(const MunitParameter params[], void* fixture) {
 		iterate_registry,
 		&i
 	);
-	munit_assert_int32(i.num_items, ==, 3);
-	munit_assert_true(i.seen_start);
-	munit_assert_true(i.seen_mid);
-	munit_assert_true(i.seen_end);
+	ASSERT_EQ(i.num_items, 3);
+	ASSERT_TRUE(i.seen_start);
+	ASSERT_TRUE(i.seen_mid);
+	ASSERT_TRUE(i.seen_end);
 
 	free(registry_mem);
 	free(builder_mem);
-
-	return MUNIT_OK;
 }
-
-MunitSuite test_registry = {
-	.prefix = "/registry",
-	.tests = (MunitTest[]){
-		{
-			.name = "/reg",
-			.test = reg,
-		},
-		{ 0 },
-	},
-};

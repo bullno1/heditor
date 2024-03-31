@@ -10,4 +10,4 @@ set(SOURCES
 	"./data.c"
 )
 add_executable(tests "${SOURCES}")
-target_link_libraries(tests hgraph_runtime hgraph_plugin munit)
+target_link_libraries(tests hgraph_runtime hgraph_plugin)
