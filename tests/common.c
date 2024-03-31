@@ -1,12 +1,10 @@
 #include "common.h"
 #include "plugin1.h"
 #include "plugin2.h"
+#include <stdlib.h>
 
-void*
-setup_fixture(const MunitParameter params[], void* user_data) {
-	(void)params;
-	(void)user_data;
-
+fixture_t*
+create_fixture(void) {
 	hgraph_registry_config_t reg_config = {
 		.max_data_types = 32,
 		.max_node_types = 32,
@@ -38,7 +36,6 @@ setup_fixture(const MunitParameter params[], void* user_data) {
 	hgraph_init(registry, &graph_config, NULL, &mem_required);
 	void* graph_mem = malloc(mem_required);
 	hgraph_t* graph = hgraph_init(registry, &graph_config, graph_mem, &mem_required);
-	munit_assert_not_null(graph);
 
 	fixture_t* fixture = malloc(sizeof(fixture_t));
 	*fixture = (fixture_t){
@@ -50,10 +47,8 @@ setup_fixture(const MunitParameter params[], void* user_data) {
 }
 
 void
-tear_down_fixture(void* fixture_p) {
-	fixture_t* fixture = fixture_p;
+destroy_fixture(fixture_t* fixture) {
 	free(fixture->graph);
 	free(fixture->registry);
 	free(fixture);
 }
-

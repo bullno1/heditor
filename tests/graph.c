@@ -1,7 +1,7 @@
+#include "rktest.h"
 #include "common.h"
 #include "plugin1.h"
 #include "plugin2.h"
-#include <munit.h>
 #include <hgraph/runtime.h>
 
 typedef struct {
@@ -34,13 +34,13 @@ iterate_nodes(
 
 	if (node == i->start_id) {
 		i->seen_start = true;
-		munit_assert_ptr(node_type, ==, &plugin1_start);
+		ASSERT_TRUE(node_type == &plugin1_start);
 	} else if (node == i->end_id) {
 		i->seen_end = true;
-		munit_assert_ptr(node_type, ==, &plugin1_end);
+		ASSERT_TRUE(node_type == &plugin1_end);
 	} else if (node == i->mid_id) {
 		i->seen_mid = true;
-		munit_assert_ptr(node_type, ==, &plugin2_mid);
+		ASSERT_TRUE(node_type == &plugin2_mid);
 	}
 
 	return true;
@@ -69,34 +69,40 @@ iterate_edges(
 	return true;
 }
 
-static MunitResult
-connect(const MunitParameter params[], void* fixture_p) {
-	(void)params;
+static fixture_t* fixture = NULL;
 
-	fixture_t* fixture = fixture_p;
+TEST_SETUP(graph) {
+	fixture = create_fixture();
+}
+
+TEST_TEARDOWN(graph) {
+	destroy_fixture(fixture);
+}
+
+TEST(graph, connect) {
 	hgraph_t* graph = fixture->graph;
 
 	iterator_state i = { 0 };
 
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_nodes, ==, 0);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_nodes, 0);
+	ASSERT_EQ(i.num_edges, 0);
 
 	i.start_id = hgraph_create_node(graph, &plugin1_start);
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_nodes, ==, 1);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_nodes, 1);
+	ASSERT_EQ(i.num_edges, 0);
 
 	i.end_id = hgraph_create_node(graph, &plugin1_end);
 	i.mid_id = hgraph_create_node(graph, &plugin2_mid);
 	i.num_nodes = 0;
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
-	munit_assert_int32(i.num_nodes, ==, 3);
-	munit_assert_true(i.seen_start);
-	munit_assert_true(i.seen_mid);
-	munit_assert_true(i.seen_end);
+	ASSERT_EQ(i.num_nodes, 3);
+	ASSERT_TRUE(i.seen_start);
+	ASSERT_TRUE(i.seen_mid);
+	ASSERT_TRUE(i.seen_end);
 
 	hgraph_index_t start_out = hgraph_get_pin_id(
 		graph, i.start_id, &plugin1_start_out_f32
@@ -104,20 +110,20 @@ connect(const MunitParameter params[], void* fixture_p) {
 	hgraph_index_t end_in = hgraph_get_pin_id(
 		graph, i.end_id, &plugin1_end_in_i32
 	);
-	munit_assert_true(HGRAPH_IS_VALID_INDEX(start_out));
-	munit_assert_true(HGRAPH_IS_VALID_INDEX(end_in));
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(start_out));
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(end_in));
 
-	munit_assert_false(
+	ASSERT_FALSE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(graph, start_out, end_in)
 		)
 	);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 
 	hgraph_index_t mid_in = hgraph_get_pin_id(
 		graph, i.mid_id, &plugin2_mid_in_f32
@@ -128,33 +134,33 @@ connect(const MunitParameter params[], void* fixture_p) {
 
 	i.start_mid_id = hgraph_connect(graph, start_out, mid_in);
 	// |start|->|mid|  |end|
-	munit_assert(HGRAPH_IS_VALID_INDEX(i.start_mid_id));
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(i.start_mid_id));
 	i.num_edges = 0;
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
-	munit_assert(i.seen_start_mid);
-	munit_assert_false(i.seen_mid_end);
+	ASSERT_EQ(i.num_edges, 1);
+	ASSERT_TRUE(i.seen_start_mid);
+	ASSERT_FALSE(i.seen_mid_end);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.mid_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 
 	i.mid_end_id = hgraph_connect(graph, mid_out, end_in);
 	// |start|->|mid|->|end|
-	munit_assert(HGRAPH_IS_VALID_INDEX(i.mid_end_id));
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(i.mid_end_id));
 	i.num_edges = 0;
 	i.seen_start_mid = false;
 	i.seen_mid_end = false;
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 2);
-	munit_assert(i.seen_start_mid);
-	munit_assert(i.seen_mid_end);
+	ASSERT_EQ(i.num_edges, 2);
+	ASSERT_TRUE(i.seen_start_mid);
+	ASSERT_TRUE(i.seen_mid_end);
 	i.num_edges = 0;
 	i.seen_start_mid = false;
 	i.seen_mid_end = false;
 	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
-	munit_assert(i.seen_start_mid);
-	munit_assert(!i.seen_mid_end);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_TRUE(i.seen_start_mid);
+	ASSERT_FALSE(i.seen_mid_end);
+	ASSERT_EQ(i.num_edges, 1);
 
 	hgraph_disconnect(graph, i.start_mid_id);
 	// |start|  |mid|->|end|
@@ -162,9 +168,9 @@ connect(const MunitParameter params[], void* fixture_p) {
 	i.seen_start_mid = false;
 	i.seen_mid_end = false;
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
-	munit_assert_false(i.seen_start_mid);
-	munit_assert(i.seen_mid_end);
+	ASSERT_EQ(i.num_edges, 1);
+	ASSERT_FALSE(i.seen_start_mid);
+	ASSERT_TRUE(i.seen_mid_end);
 
 	i.start_mid_id = hgraph_connect(graph, start_out, mid_in);
 	// |start|->|mid|->|end|
@@ -172,18 +178,18 @@ connect(const MunitParameter params[], void* fixture_p) {
 	i.seen_start_mid = false;
 	i.seen_mid_end = false;
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 2);
-	munit_assert(i.seen_start_mid);
-	munit_assert(i.seen_mid_end);
+	ASSERT_EQ(i.num_edges, 2);
+	ASSERT_TRUE(i.seen_start_mid);
+	ASSERT_TRUE(i.seen_mid_end);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_EQ(i.num_edges, 1);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.mid_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_EQ(i.num_edges, 1);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.end_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 
 	hgraph_destroy_node(graph, i.mid_id);
 	// |start|         |end|
@@ -196,11 +202,11 @@ connect(const MunitParameter params[], void* fixture_p) {
 	i.seen_mid_end = false;
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_nodes, ==, 2);
-	munit_assert(i.seen_start);
-	munit_assert(!i.seen_mid);
-	munit_assert(i.seen_end);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_nodes, 2);
+	ASSERT_TRUE(i.seen_start);
+	ASSERT_FALSE(i.seen_mid);
+	ASSERT_TRUE(i.seen_end);
+	ASSERT_EQ(i.num_edges, 0);
 
 	i.mid_id = hgraph_create_node(graph, &plugin2_mid);
 	// |start|  |mid|  |end|
@@ -213,16 +219,16 @@ connect(const MunitParameter params[], void* fixture_p) {
 	i.seen_mid_end = false;
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_nodes, ==, 3);
-	munit_assert(i.seen_start);
-	munit_assert(i.seen_mid);
-	munit_assert(i.seen_end);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_nodes, 3);
+	ASSERT_TRUE(i.seen_start);
+	ASSERT_TRUE(i.seen_mid);
+	ASSERT_TRUE(i.seen_end);
+	ASSERT_EQ(i.num_edges, 0);
 
 	hgraph_index_t mid2_id = hgraph_create_node(graph, &plugin2_mid);
 	// |start|  |mid|  |end|
 	//          |mid2|
-	munit_assert(
+	ASSERT_TRUE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(
 				graph,
@@ -233,7 +239,7 @@ connect(const MunitParameter params[], void* fixture_p) {
 	);
 	// |start|->|mid|  |end|
 	//          |mid2|
-	munit_assert(
+	ASSERT_TRUE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(
 				graph,
@@ -244,7 +250,7 @@ connect(const MunitParameter params[], void* fixture_p) {
 	);
 	// |start|->|mid|  |end|
 	//    └---->|mid2|
-	munit_assert(
+	ASSERT_TRUE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(
 				graph,
@@ -264,28 +270,28 @@ connect(const MunitParameter params[], void* fixture_p) {
 	i.seen_mid_end = false;
 	hgraph_iterate_nodes(graph, iterate_nodes, &i);
 	hgraph_iterate_edges(graph, iterate_edges, &i);
-	munit_assert_int32(i.num_nodes, ==, 4);
-	munit_assert_int32(i.num_edges, ==, 3);
+	ASSERT_EQ(i.num_nodes, 4);
+	ASSERT_EQ(i.num_edges, 3);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.start_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 2);
+	ASSERT_EQ(i.num_edges, 2);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.mid_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_EQ(i.num_edges, 1);
 	i.num_edges = 0;
 	hgraph_iterate_edges_from(graph, i.end_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 	i.num_edges = 0;
 	hgraph_iterate_edges_to(graph, i.start_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 0);
+	ASSERT_EQ(i.num_edges, 0);
 	i.num_edges = 0;
 	hgraph_iterate_edges_to(graph, i.mid_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_EQ(i.num_edges, 1);
 	i.num_edges = 0;
 	hgraph_iterate_edges_to(graph, i.end_id, iterate_edges, &i);
-	munit_assert_int32(i.num_edges, ==, 1);
+	ASSERT_EQ(i.num_edges, 1);
 
-	munit_assert_false(
+	ASSERT_FALSE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(
 				graph,
@@ -297,7 +303,7 @@ connect(const MunitParameter params[], void* fixture_p) {
 	hgraph_destroy_node(graph, i.mid_id);
 	// |start|         |end|
 	//    └---->|mid2|
-	munit_assert(
+	ASSERT_TRUE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_connect(
 				graph,
@@ -308,15 +314,10 @@ connect(const MunitParameter params[], void* fixture_p) {
 	);
 	// |start|           ┌-->end|
 	//    └---->|mid2|---┘
-
-	return MUNIT_OK;
 }
 
-static MunitResult
-name(const MunitParameter params[], void* fixture) {
-	(void)params;
-
-	hgraph_t* graph = ((fixture_t*)fixture)->graph;
+TEST(graph, name) {
+	hgraph_t* graph = fixture->graph;
 
 	hgraph_index_t a = hgraph_create_node(
 		graph, &plugin1_start
@@ -324,45 +325,32 @@ name(const MunitParameter params[], void* fixture) {
 	hgraph_index_t b = hgraph_create_node(
 		graph, &plugin1_start
 	);
-	munit_assert_int32(a, !=, b);
+	ASSERT_NE(a, b);
 
 	hgraph_set_node_name(graph, a, HGRAPH_STR("a"));
 	hgraph_set_node_name(graph, b, HGRAPH_STR("b"));
 
 	hgraph_str_t name_a = hgraph_get_node_name(graph, a);
 	hgraph_str_t name_b = hgraph_get_node_name(graph, b);
-	munit_assert_memory_equal(name_a.length, name_a.data, "a");
-	munit_assert_memory_equal(name_b.length, name_b.data, "b");
+	ASSERT_EQ(memcmp(name_a.data, "a", name_a.length), 0);
+	ASSERT_EQ(memcmp(name_b.data, "b", name_b.length), 0);
 
-	munit_assert_int32(
-		hgraph_get_node_by_name(graph, HGRAPH_STR("a")),
-		==,
-		a
-	);
-	munit_assert_int32(
-		hgraph_get_node_by_name(graph, HGRAPH_STR("b")),
-		==,
-		b
-	);
-	munit_assert_false(
+	ASSERT_EQ(hgraph_get_node_by_name(graph, HGRAPH_STR("a")), a);
+	ASSERT_EQ(hgraph_get_node_by_name(graph, HGRAPH_STR("b")), b);
+	ASSERT_FALSE(
 		HGRAPH_IS_VALID_INDEX(
 			hgraph_get_node_by_name(graph, HGRAPH_STR("c"))
 		)
 	);
-
-	return MUNIT_OK;
 }
 
-static MunitResult
-attribute(const MunitParameter params[], void* fixture) {
-	(void)params;
-
-	hgraph_t* graph = ((fixture_t*)fixture)->graph;
+TEST(graph, attribute) {
+	hgraph_t* graph = fixture->graph;
 	hgraph_index_t node = hgraph_create_node(graph, &plugin2_mid);
 	const bool* round_up = hgraph_get_node_attribute(
 		graph, node, &plugin2_mid_attr_round_up
 	);
-	munit_assert(*round_up);
+	ASSERT_TRUE(*round_up);
 
 	hgraph_set_node_attribute(
 		graph, node, &plugin2_mid_attr_round_up, &(bool){ false }
@@ -370,32 +358,5 @@ attribute(const MunitParameter params[], void* fixture) {
 	round_up = hgraph_get_node_attribute(
 		graph, node, &plugin2_mid_attr_round_up
 	);
-	munit_assert_false(*round_up);
-
-	return MUNIT_OK;
+	ASSERT_FALSE(*round_up);
 }
-
-MunitSuite test_graph = {
-	.prefix = "/graph",
-	.tests = (MunitTest[]){
-		{
-			.name = "/connect",
-			.test = connect,
-			.setup = setup_fixture,
-			.tear_down = tear_down_fixture,
-		},
-		{
-			.name = "/name",
-			.test = name,
-			.setup = setup_fixture,
-			.tear_down = tear_down_fixture,
-		},
-		{
-			.name = "/attribute",
-			.test = attribute,
-			.setup = setup_fixture,
-			.tear_down = tear_down_fixture,
-		},
-		{ 0 },
-	},
-};
