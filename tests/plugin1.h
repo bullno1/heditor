@@ -4,6 +4,7 @@
 #include <hgraph/plugin.h>
 
 extern const hgraph_node_type_t plugin1_start;
+extern const hgraph_attribute_description_t plugin1_start_attr_f32;
 extern const hgraph_pin_description_t plugin1_start_out_f32;
 
 extern const hgraph_node_type_t plugin1_end;

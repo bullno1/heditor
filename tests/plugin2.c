@@ -2,10 +2,19 @@
 #include "data.h"
 #include "hgraph/plugin.h"
 #include <stdbool.h>
+#include <math.h>
 
 static void
 round_up_default(void* value) {
 	*(bool*)value = true;
+}
+
+static void
+plugin2_mid_execute(const hgraph_node_api_t* api) {
+	float input = *(const float*)hgraph_node_input(api, &plugin2_mid_in_f32);
+	bool round_up = *(const bool*)hgraph_node_input(api, &plugin2_mid_attr_round_up);
+	int32_t result = (int32_t)(round_up ? ceilf(input) : floorf(input));
+	hgraph_node_output(api, &plugin2_mid_out_i32, &result);
 }
 
 const hgraph_node_type_t plugin2_mid = {
@@ -19,6 +28,7 @@ const hgraph_node_type_t plugin2_mid = {
 	.output_pins = HGRAPH_NODE_PINS(
 		&plugin2_mid_out_i32
 	),
+	.execute = plugin2_mid_execute,
 };
 
 const hgraph_pin_description_t plugin2_mid_in_f32 = {

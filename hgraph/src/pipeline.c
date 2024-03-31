@@ -201,8 +201,11 @@ hgraph_pipeline_node_output(
 
 				itr = link->next;
 			}
+
+			break;
 		}
 	}
+	// TODO: warn or fail here?
 }
 
 HGRAPH_PRIVATE bool
@@ -310,6 +313,7 @@ hgraph_pipeline_init(
 	hgraph_pipeline_t* pipeline = mem;
 	*pipeline = (hgraph_pipeline_t){
 		.graph = graph,
+		.version = graph->version,
 		.num_nodes = num_nodes,
 		.ready_nodes = mem_layout_locate(pipeline, ready_nodes_offset),
 		.node_metas = mem_layout_locate(pipeline, node_metas_offset),
@@ -325,7 +329,7 @@ hgraph_pipeline_init(
 			graph, node
 		);
 
-		hgraph_index_t node_id = hgraph_slot_map_id_for_slot(&graph->edge_slot_map, i);
+		hgraph_index_t node_id = hgraph_slot_map_id_for_slot(&graph->node_slot_map, i);
 		*node_meta = (hgraph_pipeline_node_meta_t){
 			.id = node_id,
 			.type = node->type,

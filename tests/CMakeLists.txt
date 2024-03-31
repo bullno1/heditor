@@ -3,6 +3,7 @@ set(SOURCES
 
 	"./registry.c"
 	"./graph.c"
+	"./pipeline.c"
 
 	"./common.c"
 	"./plugin1.c"
