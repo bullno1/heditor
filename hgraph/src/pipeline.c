@@ -352,6 +352,7 @@ hgraph_pipeline_init(
 			node_type->definition->transfer != NULL
 			&& previous_pipeline != NULL
 		) {
+			HGRAPH_ASSERT((const void*)previous_pipeline != mem);
 			for (hgraph_index_t j = 0; j < previous_pipeline->num_nodes; ++j) {
 				hgraph_pipeline_node_meta_t* previous_node_meta =
 					&previous_pipeline->node_metas[j];
