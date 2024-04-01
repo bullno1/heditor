@@ -101,7 +101,7 @@ typedef struct hgraph_node_s {
 
 struct hgraph_s {
 	const hgraph_registry_t* registry;
-	hgraph_config_t config;
+	hgraph_index_t max_name_length;
 	hgraph_index_t version;
 
 	size_t node_size;

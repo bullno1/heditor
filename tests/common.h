@@ -8,10 +8,10 @@ typedef struct {
 	hgraph_registry_t* registry;
 } fixture_t;
 
-fixture_t*
-create_fixture(void);
+void
+fixture_init(fixture_t* fixture);
 
 void
-destroy_fixture(fixture_t* fixture);
+fixture_cleanup(fixture_t* fixture);
 
 #endif

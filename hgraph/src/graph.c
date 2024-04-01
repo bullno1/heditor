@@ -73,13 +73,8 @@ hgraph_resolve_edge(
 	return HGRAPH_IS_VALID_INDEX(slot) ? &graph->edges[slot].output_pin_link : pin;
 }
 
-hgraph_t*
-hgraph_init(
-	const hgraph_registry_t* registry,
-	const hgraph_config_t* config,
-	void* mem,
-	size_t* mem_size_inout
-) {
+size_t
+hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
 		&layout,
@@ -87,6 +82,7 @@ hgraph_init(
 		_Alignof(hgraph_t)
 	);
 
+	const hgraph_registry_t* registry = config->registry;
 	size_t node_size = registry->max_node_size + config->max_name_length;
 	node_size = mem_layout_align_ptr((intptr_t)node_size, _Alignof(max_align_t));
 	ptrdiff_t nodes_offset = mem_layout_reserve(
@@ -111,15 +107,11 @@ hgraph_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (mem == NULL || required_size > *mem_size_inout) {
-		*mem_size_inout = required_size;
-		return NULL;
-	}
+	if (graph == NULL) { return required_size; }
 
-	hgraph_t* graph = mem;
 	*graph = (hgraph_t){
 		.registry = registry,
-		.config = *config,
+		.max_name_length = config->max_name_length,
 		.node_size = node_size,
 		.node_versions = mem_layout_locate(graph, node_versions_offset),
 		.nodes = mem_layout_locate(graph, nodes_offset),
@@ -137,8 +129,7 @@ hgraph_init(
 		mem_layout_locate(graph, edge_slot_map_offset)
 	);
 
-	*mem_size_inout = required_size;
-	return graph;
+	return required_size;
 }
 
 hgraph_index_t
@@ -430,7 +421,7 @@ hgraph_get_node_name(const hgraph_t* graph, hgraph_index_t node_id) {
 
 void
 hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name) {
-	if (name.length > graph->config.max_name_length) { return; }
+	if (name.length > graph->max_name_length) { return; }
 
 	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 	if (node == NULL) { return; }

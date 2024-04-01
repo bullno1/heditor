@@ -129,7 +129,7 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 
 		hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
 		char* name_storage = (char*)node + node_type_info->size;
-		node->name_len = graph->config.max_name_length;
+		node->name_len = graph->max_name_length;
 		HGRAPH_CHECK_IO(hgraph_io_read_str(name_storage, &node->name_len, in));
 
 		uint64_t num_attributes_varint;

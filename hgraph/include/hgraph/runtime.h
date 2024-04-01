@@ -35,12 +35,15 @@ typedef struct hgraph_registry_config_s {
 } hgraph_registry_config_t;
 
 typedef struct hgraph_config_s {
+	const hgraph_registry_t* registry;
 	hgraph_index_t max_nodes;
 	hgraph_index_t max_name_length;
 } hgraph_config_t;
 
 typedef struct hgraph_pipeline_config_s {
+	const hgraph_t* graph;
 	size_t max_scratch_memory;
+	const hgraph_pipeline_t* previous_pipeline;
 } hgraph_pipeline_config_t;
 
 typedef enum hgraph_pipeline_event_type_e {
@@ -100,11 +103,10 @@ typedef bool (*hgraph_pipeline_watcher_t)(
 extern "C" {
 #endif
 
-HGRAPH_API hgraph_registry_builder_t*
+HGRAPH_API size_t
 hgraph_registry_builder_init(
-	const hgraph_registry_config_t* config,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_registry_builder_t* builder,
+	const hgraph_registry_config_t* config
 );
 
 HGRAPH_API void
@@ -116,11 +118,10 @@ hgraph_registry_builder_add(
 HGRAPH_API hgraph_plugin_api_t*
 hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder);
 
-HGRAPH_API hgraph_registry_t*
+HGRAPH_API size_t
 hgraph_registry_init(
-	const hgraph_registry_builder_t* builder,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_registry_t* registry,
+	const hgraph_registry_builder_t* builder
 );
 
 HGRAPH_API void
@@ -130,28 +131,8 @@ hgraph_registry_iterate(
 	void* userdata
 );
 
-HGRAPH_API hgraph_t*
-hgraph_init(
-	const hgraph_registry_t* registry,
-	const hgraph_config_t* config,
-	void* mem,
-	size_t* mem_size_inout
-);
-
-HGRAPH_API hgraph_migration_t*
-hgraph_migration_init(
-	const hgraph_registry_t* from_registry,
-	const hgraph_registry_t* to_registry,
-	void* mem,
-	size_t* mem_size_inout
-);
-
-HGRAPH_API void
-hgraph_migration_execute(
-	const hgraph_migration_t* migration,
-	const hgraph_t* from_graph,
-	hgraph_t* to_graph
-);
+HGRAPH_API size_t
+hgraph_init(hgraph_t* graph, const hgraph_config_t* config);
 
 HGRAPH_API hgraph_index_t
 hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type);
@@ -241,13 +222,24 @@ hgraph_iterate_edges_from(
 	void* userdata
 );
 
-HGRAPH_API hgraph_pipeline_t*
+HGRAPH_API size_t
+hgraph_migration_init(
+	hgraph_migration_t* migration,
+	const hgraph_registry_t* from_registry,
+	const hgraph_registry_t* to_registry
+);
+
+HGRAPH_API void
+hgraph_migration_execute(
+	const hgraph_migration_t* migration,
+	const hgraph_t* from_graph,
+	hgraph_t* to_graph
+);
+
+HGRAPH_API size_t
 hgraph_pipeline_init(
-	const hgraph_t* graph,
-	const hgraph_pipeline_config_t* config,
-	hgraph_pipeline_t* previous_pipeline,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_pipeline_t* pipeline,
+	const hgraph_pipeline_config_t* config
 );
 
 HGRAPH_API void

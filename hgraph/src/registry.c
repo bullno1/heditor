@@ -60,11 +60,10 @@ hgraph_registry_add_type(
 	}
 }
 
-hgraph_registry_builder_t*
+size_t
 hgraph_registry_builder_init(
-	const hgraph_registry_config_t* config,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_registry_builder_t* builder,
+	const hgraph_registry_config_t* config
 ) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
@@ -87,13 +86,9 @@ hgraph_registry_builder_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (mem == NULL || required_size > *mem_size_inout) {
-		*mem_size_inout = required_size;
-		return NULL;
-	}
+	if (builder == NULL) { return required_size; }
 
-	memset(mem, 0, required_size);
-	hgraph_registry_builder_t* builder = mem;
+	memset(builder, 0, required_size);
 	*builder = (hgraph_registry_builder_t){
 		.config = *config,
 		.plugin_api = {
@@ -106,8 +101,7 @@ hgraph_registry_builder_init(
 
 	hgraph_registry_builder_add(builder, &hgraph_dummy_node);
 
-	*mem_size_inout = required_size;
-	return builder;
+	return required_size;
 }
 
 void
@@ -150,11 +144,10 @@ hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder) {
 	return &builder->plugin_api;
 }
 
-hgraph_registry_t*
+size_t
 hgraph_registry_init(
-	const hgraph_registry_builder_t* builder,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_registry_t* registry,
+	const hgraph_registry_builder_t* builder
 ) {
 	size_t string_table_size = 0;
 	hgraph_index_t num_vars = 0;
@@ -242,12 +235,8 @@ hgraph_registry_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (mem == NULL || required_size > *mem_size_inout) {
-		*mem_size_inout = required_size;
-		return NULL;
-	}
+	if (registry == NULL) { return required_size; }
 
-	hgraph_registry_t* registry = mem;
 	*registry = (hgraph_registry_t){
 		.num_data_types = builder->num_data_types,
 		.num_node_types = builder->num_node_types,
@@ -443,8 +432,7 @@ hgraph_registry_init(
 	registry->max_node_size = max_node_size;
 	registry->max_edges_per_node = max_edges_per_node;
 
-	*mem_size_inout = required_size;
-	return registry;
+	return required_size;
 }
 
 void

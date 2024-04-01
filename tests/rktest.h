@@ -1075,9 +1075,11 @@ static rktest_environment_t setup_test_env(const rktest_config_t* config) {
 
 	/* Set setup/teardown pointers in tests */
 	vec_foreach(const rktest_suite_t*, suite, env.test_suites) {
-		vec_foreach(rktest_test_t*, test, suite->tests) {
-			test->setup = suite->setup;
-			test->teardown = suite->teardown;
+		if (suite->tests != NULL) {
+			vec_foreach(rktest_test_t*, test, suite->tests) {
+				test->setup = suite->setup;
+				test->teardown = suite->teardown;
+			}
 		}
 	}
 

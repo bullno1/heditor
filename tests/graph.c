@@ -69,18 +69,18 @@ iterate_edges(
 	return true;
 }
 
-static fixture_t* fixture = NULL;
+static fixture_t fixture;
 
 TEST_SETUP(graph) {
-	fixture = create_fixture();
+	fixture_init(&fixture);
 }
 
 TEST_TEARDOWN(graph) {
-	destroy_fixture(fixture);
+	fixture_cleanup(&fixture);
 }
 
 TEST(graph, connect) {
-	hgraph_t* graph = fixture->graph;
+	hgraph_t* graph = fixture.graph;
 
 	iterator_state i = { 0 };
 
@@ -317,7 +317,7 @@ TEST(graph, connect) {
 }
 
 TEST(graph, name) {
-	hgraph_t* graph = fixture->graph;
+	hgraph_t* graph = fixture.graph;
 
 	hgraph_index_t a = hgraph_create_node(
 		graph, &plugin1_start
@@ -345,7 +345,7 @@ TEST(graph, name) {
 }
 
 TEST(graph, attribute) {
-	hgraph_t* graph = fixture->graph;
+	hgraph_t* graph = fixture.graph;
 	hgraph_index_t node = hgraph_create_node(graph, &plugin2_mid);
 	const bool* round_up = hgraph_get_node_attribute(
 		graph, node, &plugin2_mid_attr_round_up

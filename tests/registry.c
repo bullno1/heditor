@@ -35,32 +35,18 @@ TEST(registry, reg) {
 		.max_data_types = 32,
 		.max_node_types = 32,
 	};
-	size_t mem_required = 0;
-	hgraph_registry_builder_t* builder = hgraph_registry_builder_init(
-		&config,
-		NULL,
-		&mem_required
-	);
-	ASSERT_TRUE(builder == NULL);
+	size_t mem_required = hgraph_registry_builder_init(NULL, &config);
 
-	void* builder_mem = malloc(mem_required);
-	builder = hgraph_registry_builder_init(
-		&config,
-		builder_mem,
-		&mem_required
-	);
-	ASSERT_TRUE(builder != NULL);
+	hgraph_registry_builder_t* builder = malloc(mem_required);
+	hgraph_registry_builder_init(builder, &config);
 
 	hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(builder);
 	plugin1_entry(plugin_api);
 	plugin2_entry(plugin_api);
 
-	mem_required = 0;
-	hgraph_registry_t* registry = hgraph_registry_init(builder, NULL, &mem_required);
-	ASSERT_TRUE(registry == NULL);
-
-	void* registry_mem = malloc(mem_required);
-	registry = hgraph_registry_init(builder, registry_mem, &mem_required);
+	mem_required = hgraph_registry_init(NULL, builder);
+	hgraph_registry_t* registry = malloc(mem_required);
+	hgraph_registry_init(registry, builder);
 
 	iterator_state i = { 0 };
 	hgraph_registry_iterate(
@@ -73,6 +59,6 @@ TEST(registry, reg) {
 	ASSERT_TRUE(i.seen_mid);
 	ASSERT_TRUE(i.seen_end);
 
-	free(registry_mem);
-	free(builder_mem);
+	free(registry);
+	free(builder);
 }

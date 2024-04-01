@@ -255,13 +255,10 @@ hgraph_pipeline_is_node_ready(
 	return hgraph_bitset_is_all_set(node_meta->received_inputs, node_type->required_inputs);
 }
 
-hgraph_pipeline_t*
+size_t
 hgraph_pipeline_init(
-	const hgraph_t* graph,
-	const hgraph_pipeline_config_t* config,
-	hgraph_pipeline_t* previous_pipeline,
-	void* mem,
-	size_t* mem_size_inout
+	hgraph_pipeline_t* pipeline,
+	const hgraph_pipeline_config_t* config
 ) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
@@ -270,6 +267,7 @@ hgraph_pipeline_init(
 		_Alignof(hgraph_pipeline_t)
 	);
 
+	const hgraph_t* graph = config->graph;
 	hgraph_index_t num_nodes = graph->node_slot_map.num_items;
 
 	ptrdiff_t ready_nodes_offset = mem_layout_reserve(
@@ -305,12 +303,8 @@ hgraph_pipeline_init(
 	}
 
 	size_t required_size = mem_layout_size(&layout);
-	if (mem == NULL || required_size > *mem_size_inout) {
-		*mem_size_inout = required_size;
-		return NULL;
-	}
+	if (pipeline == NULL) { return required_size; }
 
-	hgraph_pipeline_t* pipeline = mem;
 	*pipeline = (hgraph_pipeline_t){
 		.graph = graph,
 		.version = graph->version,
@@ -350,12 +344,12 @@ hgraph_pipeline_init(
 
 		if (
 			node_type->definition->transfer != NULL
-			&& previous_pipeline != NULL
+			&& config->previous_pipeline != NULL
 		) {
-			HGRAPH_ASSERT((const void*)previous_pipeline != mem);
-			for (hgraph_index_t j = 0; j < previous_pipeline->num_nodes; ++j) {
+			HGRAPH_ASSERT(config->previous_pipeline != pipeline);
+			for (hgraph_index_t j = 0; j < config->previous_pipeline->num_nodes; ++j) {
 				hgraph_pipeline_node_meta_t* previous_node_meta =
-					&previous_pipeline->node_metas[j];
+					&config->previous_pipeline->node_metas[j];
 
 				if (
 					previous_node_meta->id == node_meta->id
@@ -371,8 +365,7 @@ hgraph_pipeline_init(
 		}
 	}
 
-	*mem_size_inout = required_size;
-	return pipeline;
+	return required_size;
 }
 
 void

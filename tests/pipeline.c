@@ -6,14 +6,13 @@
 #include <stdlib.h>
 
 static struct {
-	fixture_t* base;
+	fixture_t base;
 	hgraph_pipeline_t* pipeline;
-	void* pipeline_mem;
 } fixture;
 
 TEST_SETUP(pipeline) {
-	fixture.base = create_fixture();
-	hgraph_t* graph = fixture.base->graph;
+	fixture_init(&fixture.base);
+	hgraph_t* graph = fixture.base.graph;
 
 	// Create the following:
 	// |start| -> |mid| -> |end|
@@ -43,37 +42,23 @@ TEST_SETUP(pipeline) {
 		hgraph_get_pin_id(graph, end, &plugin1_end_in_i32)
 	);
 
-	size_t mem_required = 0;
-	hgraph_pipeline_init(
-		graph,
-		&(hgraph_pipeline_config_t){
-			.max_scratch_memory = 4096
-		},
-		NULL,
-		NULL,
-		&mem_required
-	);
-
-	fixture.pipeline_mem = malloc(mem_required);
-	fixture.pipeline = hgraph_pipeline_init(
-		graph,
-		&(hgraph_pipeline_config_t){
-			.max_scratch_memory = 4096
-		},
-		NULL,
-		fixture.pipeline_mem,
-		&mem_required
-	);
+	hgraph_pipeline_config_t pipeline_config = {
+		.graph = graph,
+		.max_scratch_memory = 4096,
+	};
+	size_t mem_required = hgraph_pipeline_init(NULL, &pipeline_config);
+	fixture.pipeline = malloc(mem_required);
+	hgraph_pipeline_init(fixture.pipeline, &pipeline_config);
 }
 
 TEST_TEARDOWN(pipeline) {
-	free(fixture.pipeline_mem);
-	destroy_fixture(fixture.base);
+	free(fixture.pipeline);
+	fixture_cleanup(&fixture.base);
 }
 
 TEST(pipeline, execute) {
 	hgraph_pipeline_t* pipeline = fixture.pipeline;
-	hgraph_t* graph = fixture.base->graph;
+	hgraph_t* graph = fixture.base.graph;
 
 	hgraph_index_t start = hgraph_get_node_by_name(graph, HGRAPH_STR("start"));
 	hgraph_index_t mid = hgraph_get_node_by_name(graph, HGRAPH_STR("mid"));
@@ -105,7 +90,7 @@ TEST(pipeline, execute) {
 
 TEST(pipeline, transfer) {
 	hgraph_pipeline_t* pipeline = fixture.pipeline;
-	hgraph_t* graph = fixture.base->graph;
+	hgraph_t* graph = fixture.base.graph;
 
 	hgraph_index_t start = hgraph_get_node_by_name(graph, HGRAPH_STR("start"));
 	hgraph_index_t mid = hgraph_get_node_by_name(graph, HGRAPH_STR("mid"));
@@ -122,28 +107,16 @@ TEST(pipeline, transfer) {
 	ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_OUT_OF_SYNC);
 
 	// Create a new pipeline
-	size_t mem_required = 0;
-	hgraph_pipeline_init(
-		graph,
-		&(hgraph_pipeline_config_t){
-			.max_scratch_memory = 4096
-		},
-		NULL,
-		NULL,
-		&mem_required
-	);
+	hgraph_pipeline_config_t pipeline_config = {
+		.graph = graph,
+		.max_scratch_memory = 4096,
+		.previous_pipeline = pipeline,
+	};
+	size_t mem_required = hgraph_pipeline_init(NULL, &pipeline_config);
 
 	// Transfer data from the old pipeline
-	void* new_pipeline_mem = malloc(mem_required);
-	hgraph_pipeline_t* new_pipeline = hgraph_pipeline_init(
-		graph,
-		&(hgraph_pipeline_config_t){
-			.max_scratch_memory = 4096
-		},
-		pipeline,
-		new_pipeline_mem,
-		&mem_required
-	);
+	hgraph_pipeline_t* new_pipeline = malloc(mem_required);
+	hgraph_pipeline_init(new_pipeline, &pipeline_config);
 
 	status = hgraph_pipeline_execute(new_pipeline, NULL, NULL);
 	ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_FINISHED);
@@ -152,5 +125,5 @@ TEST(pipeline, transfer) {
 	// Should be 2 even though this instance is only executed once
 	ASSERT_EQ(mid_state->num_executions, 2);
 
-	free(new_pipeline_mem);
+	free(new_pipeline);
 }

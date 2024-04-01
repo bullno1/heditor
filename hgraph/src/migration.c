@@ -50,12 +50,11 @@ hgraph_create_var_plans(
 	return plans;
 }
 
-hgraph_migration_t*
+size_t
 hgraph_migration_init(
+	hgraph_migration_t* migration,
 	const hgraph_registry_t* from_registry,
-	const hgraph_registry_t* to_registry,
-	void* mem,
-	size_t* mem_size_inout
+	const hgraph_registry_t* to_registry
 ) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
@@ -84,12 +83,8 @@ hgraph_migration_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (mem == NULL || required_size > *mem_size_inout) {
-		*mem_size_inout = required_size;
-		return NULL;
-	}
+	if (migration == NULL) { return required_size; }
 
-	hgraph_migration_t* migration = mem;
 	*migration = (hgraph_migration_t){
 		.node_plans = mem_layout_locate(migration, node_plans_offset),
 	};
@@ -140,8 +135,7 @@ hgraph_migration_init(
 		};
 	}
 
-	*mem_size_inout = required_size;
-	return migration;
+	return required_size;
 }
 
 void
