@@ -596,3 +596,11 @@ hgraph_iterate_edges_from(
 		}
 	}
 }
+
+hgraph_info_t
+hgraph_get_info(const hgraph_t* graph) {
+	return (hgraph_info_t){
+		.num_nodes = graph->node_slot_map.num_items,
+		.num_edges = graph->edge_slot_map.num_items,
+	};
+}

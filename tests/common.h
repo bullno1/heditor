@@ -14,4 +14,7 @@ fixture_init(fixture_t* fixture);
 void
 fixture_cleanup(fixture_t* fixture);
 
+void
+create_start_mid_end_graph(hgraph_t* graph);
+
 #endif

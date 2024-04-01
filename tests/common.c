@@ -42,3 +42,34 @@ fixture_cleanup(fixture_t* fixture) {
 	free(fixture->graph);
 	free(fixture->registry);
 }
+
+void
+create_start_mid_end_graph(hgraph_t* graph) {
+	// Create the following:
+	// |start| -> |mid| -> |end|
+	hgraph_index_t start = hgraph_create_node(
+		graph, &plugin1_start
+	);
+	hgraph_set_node_name(graph, start, HGRAPH_STR("start"));
+
+	hgraph_index_t mid = hgraph_create_node(
+		graph, &plugin2_mid
+	);
+	hgraph_set_node_name(graph, mid, HGRAPH_STR("mid"));
+
+	hgraph_index_t end = hgraph_create_node(
+		graph, &plugin1_end
+	);
+	hgraph_set_node_name(graph, end, HGRAPH_STR("end"));
+
+	hgraph_connect(
+		graph,
+		hgraph_get_pin_id(graph, start, &plugin1_start_out_f32),
+		hgraph_get_pin_id(graph, mid, &plugin2_mid_in_f32)
+	);
+	hgraph_connect(
+		graph,
+		hgraph_get_pin_id(graph, mid, &plugin2_mid_out_i32),
+		hgraph_get_pin_id(graph, end, &plugin1_end_in_i32)
+	);
+}

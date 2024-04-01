@@ -46,6 +46,11 @@ typedef struct hgraph_pipeline_config_s {
 	const hgraph_pipeline_t* previous_pipeline;
 } hgraph_pipeline_config_t;
 
+typedef struct hgraph_info_s {
+	hgraph_index_t num_nodes;
+	hgraph_index_t num_edges;
+} hgraph_info_t;
+
 typedef enum hgraph_pipeline_event_type_e {
 	HGRAPH_PIPELINE_EV_BEGIN_PIPELINE,
 	HGRAPH_PIPELINE_EV_SCHEDULE_NODE,
@@ -198,6 +203,9 @@ hgraph_iterate_nodes(
 	hgraph_node_iterator_t iterator,
 	void* userdata
 );
+
+HGRAPH_API hgraph_info_t
+hgraph_get_info(const hgraph_t* graph);
 
 HGRAPH_API void
 hgraph_iterate_edges(
