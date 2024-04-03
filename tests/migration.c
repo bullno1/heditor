@@ -1,4 +1,3 @@
-#include "hgraph/runtime.h"
 #include "rktest.h"
 #include "common.h"
 #include "plugin1.h"

@@ -38,8 +38,8 @@ typedef struct hgraph_data_type_s {
 
 	hgraph_data_lifecycle_callback_t init;
 
-	bool (*serialize)(const void* value, hgraph_out_t* output);
-	bool (*deserialize)(void* value, hgraph_in_t* input);
+	hgraph_io_status_t (*serialize)(const void* value, hgraph_out_t* output);
+	hgraph_io_status_t (*deserialize)(void* value, hgraph_in_t* input);
 	void (*render)(const void* value, void* render_ctx);
 } hgraph_data_type_t;
 

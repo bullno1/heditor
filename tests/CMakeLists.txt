@@ -5,6 +5,7 @@ set(SOURCES
 	"./graph.c"
 	"./pipeline.c"
 	"./migration.c"
+	"./io.c"
 
 	"./common.c"
 	"./plugin1.c"

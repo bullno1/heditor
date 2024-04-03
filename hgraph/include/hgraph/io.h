@@ -7,7 +7,7 @@
 #define HGRAPH_CHECK_IO(OP) \
 	do { \
 		hgraph_io_status_t status = OP; \
-		if (OP != HGRAPH_IO_OK) { return status; } \
+		if (status != HGRAPH_IO_OK) { return status; } \
 	} while(0)
 
 static inline hgraph_io_status_t
@@ -34,7 +34,7 @@ hgraph_io_write_uint(uint64_t x, hgraph_out_t* out) {
     buf[n] ^= 0x80;
 	n += 1;
 
-	return hgraph_io_write(out, buf, n) == n ? HGRAPH_IO_OK : HGRAPH_IO_ERROR;
+	return hgraph_io_write(out, buf, n);
 }
 
 static inline hgraph_io_status_t
@@ -51,7 +51,7 @@ hgraph_io_read_uint(uint64_t* x, hgraph_in_t* in) {
 	uint64_t tmp = 0;
 
 	for (int i = 0; i < 10; ++i) {
-		if (!hgraph_io_read(in, &c, 1)) { return HGRAPH_IO_ERROR; }
+		HGRAPH_CHECK_IO(hgraph_io_read(in, &c, 1));
 
 		b = c;
 		tmp |= (b & 0x7f) << (7 * i);
