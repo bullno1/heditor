@@ -1,23 +1,23 @@
 #include "slip.h"
 #include "internal.h"
 
-static const char HGRAPH_SLIP_END = 0xc0;
-static const char HGRAPH_SLIP_ESC = 0xdb;
-static const char HGRAPH_SLIP_ESC_END = 0xdc;
-static const char HGRAPH_SLIP_ESC_ESC = 0xdd;
-static const char HGRAPH_SLIP_ESCAPED_END[] = { HGRAPH_SLIP_ESC, HGRAPH_SLIP_ESC_END };
-static const char HGRAPH_SLIP_ESCAPED_ESC[] = { HGRAPH_SLIP_ESC, HGRAPH_SLIP_ESC_ESC };
+static const uint8_t HGRAPH_SLIP_END = 0xc0;
+static const uint8_t HGRAPH_SLIP_ESC = 0xdb;
+static const uint8_t HGRAPH_SLIP_ESC_END = 0xdc;
+static const uint8_t HGRAPH_SLIP_ESC_ESC = 0xdd;
+static const uint8_t HGRAPH_SLIP_ESCAPED_END[] = { HGRAPH_SLIP_ESC, HGRAPH_SLIP_ESC_END };
+static const uint8_t HGRAPH_SLIP_ESCAPED_ESC[] = { HGRAPH_SLIP_ESC, HGRAPH_SLIP_ESC_ESC };
 
 HGRAPH_PRIVATE size_t
 hgraph_slip_out_write(hgraph_out_t* impl, const void* buf, size_t size) {
 	hgraph_slip_out_t* slip = HGRAPH_CONTAINER_OF(impl, hgraph_slip_out_t, impl);
 	hgraph_out_t* out = slip->out;
-	const char* chars = buf;
+	const uint8_t* chars = buf;
 
 	for (size_t i = 0; i < size; ++i) {
-		char ch = chars[i];
+		uint8_t ch = chars[i];
 
-		const char* escaped_buf;
+		const uint8_t* escaped_buf;
 		size_t escaped_size;
 		if (ch == HGRAPH_SLIP_END) {
 			escaped_buf = HGRAPH_SLIP_ESCAPED_END;
@@ -42,10 +42,10 @@ HGRAPH_PRIVATE size_t
 hgraph_slip_in_read(hgraph_in_t* impl, void* buf, size_t size) {
 	hgraph_slip_in_t* slip = HGRAPH_CONTAINER_OF(impl, hgraph_slip_in_t, impl);
 	hgraph_in_t* in = slip->in;
-	char* chars = buf;
+	uint8_t* chars = buf;
 
 	for (size_t i = 0; i < size; ++i) {
-		char ch;
+		uint8_t ch;
 		if (hgraph_io_read(in, &ch, sizeof(ch)) != HGRAPH_IO_OK) { return i; }
 
 		if (ch == HGRAPH_SLIP_ESC) {
@@ -90,7 +90,7 @@ hgraph_slip_in_init(hgraph_slip_in_t* slip, hgraph_in_t* in) {
 hgraph_io_status_t
 hgraph_slip_in_skip(hgraph_in_t* in) {
 	while (true) {
-		char ch;
+		uint8_t ch;
 		HGRAPH_CHECK_IO(hgraph_io_read(in, &ch, sizeof(ch)));
 
 		if (ch == HGRAPH_SLIP_END) {
@@ -101,7 +101,7 @@ hgraph_slip_in_skip(hgraph_in_t* in) {
 
 hgraph_io_status_t
 hgraph_slip_in_end(hgraph_in_t* in) {
-	char ch;
+	uint8_t ch;
 	HGRAPH_CHECK_IO(hgraph_io_read(in, &ch, sizeof(ch)));
 
 	return ch == HGRAPH_SLIP_END ? HGRAPH_IO_OK : HGRAPH_IO_MALFORMED;

@@ -221,7 +221,7 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 		hgraph_index_t to_pin_index = HGRAPH_INVALID_INDEX;
 		for (hgraph_index_t j = 0; j < to_node_type->num_input_pins; ++j) {
 			const hgraph_var_t* pin = &to_node_type->input_pins[j];
-			if (hgraph_str_equal(pin->name, from_pin_name)) {
+			if (hgraph_str_equal(pin->name, to_pin_name)) {
 				to_pin_index = j;
 				break;
 			}
