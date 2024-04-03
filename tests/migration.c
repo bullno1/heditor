@@ -28,6 +28,7 @@ TEST_TEARDOWN(migration) {
 }
 
 TEST(migration, missing_type) {
+	hgraph_t* graph = fixture.base.graph;
 	hgraph_registry_builder_t* builder = fixture.builder;
 	plugin1_entry(
 		hgraph_registry_builder_as_plugin_api(builder)
@@ -58,4 +59,56 @@ TEST(migration, missing_type) {
 	hgraph_info_t new_info = hgraph_get_info(new_graph);
 	ASSERT_EQ(new_info.num_nodes, 2);
 	ASSERT_EQ(new_info.num_edges, 0);
+
+	ASSERT_EQ(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("start")),
+		hgraph_get_node_by_name(new_graph, HGRAPH_STR("start"))
+	);
+	ASSERT_EQ(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("end")),
+		hgraph_get_node_by_name(new_graph, HGRAPH_STR("end"))
+	);
+}
+
+TEST(migration, identical) {
+	// Delete and recreate nodes to shuffle the id space
+	hgraph_t* graph = fixture.base.graph;
+	hgraph_destroy_node(graph, hgraph_get_node_by_name(graph, HGRAPH_STR("mid")));
+	hgraph_destroy_node(graph, hgraph_get_node_by_name(graph, HGRAPH_STR("start")));
+	hgraph_destroy_node(graph, hgraph_get_node_by_name(graph, HGRAPH_STR("end")));
+	ASSERT_EQ(hgraph_get_info(graph).num_nodes, 0);
+	create_start_mid_end_graph(graph);
+
+	// Migrate
+	size_t migration_size = hgraph_migration_init(NULL, fixture.base.registry, fixture.base.registry);
+	hgraph_migration_t* migration = arena_alloc(&fixture.base.arena, migration_size);
+	hgraph_migration_init(migration, fixture.base.registry, fixture.base.registry);
+
+	hgraph_config_t new_graph_config = {
+		.registry = fixture.base.registry,
+		.max_nodes = 64,
+		.max_name_length = 64,
+	};
+	size_t new_graph_size = hgraph_init(NULL, &new_graph_config);
+	hgraph_t* new_graph = arena_alloc(&fixture.base.arena, new_graph_size);
+	hgraph_init(new_graph, &new_graph_config);
+
+	// The id must be identical
+	hgraph_migration_execute(migration, fixture.base.graph, new_graph);
+	hgraph_info_t old_info = hgraph_get_info(new_graph);
+	ASSERT_EQ(old_info.num_nodes, 3);
+	ASSERT_EQ(old_info.num_edges, 2);
+
+	ASSERT_EQ(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("start")),
+		hgraph_get_node_by_name(new_graph, HGRAPH_STR("start"))
+	);
+	ASSERT_EQ(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("mid")),
+		hgraph_get_node_by_name(new_graph, HGRAPH_STR("mid"))
+	);
+	ASSERT_EQ(
+		hgraph_get_node_by_name(graph, HGRAPH_STR("end")),
+		hgraph_get_node_by_name(new_graph, HGRAPH_STR("end"))
+	);
 }

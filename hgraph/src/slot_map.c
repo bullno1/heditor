@@ -1,5 +1,6 @@
 #include "slot_map.h"
 #include "mem_layout.h"
+#include "internal.h"
 
 ptrdiff_t
 hgraph_slot_map_reserve(mem_layout_t* layout, hgraph_index_t max_items) {
@@ -82,4 +83,20 @@ hgraph_slot_map_id_for_slot(const hgraph_slot_map_t* slot_map, hgraph_index_t sl
 	return ((0 <= slot) && (slot < slot_map->num_items))
 		? slot_map->ids_for_slot[slot]
 		: HGRAPH_INVALID_INDEX;
+}
+
+void
+hgraph_slot_map_swap_id(hgraph_slot_map_t* slot_map, hgraph_index_t occupied_id, hgraph_index_t vacant_id) {
+	HGRAPH_ASSERT(
+		(0 <= occupied_id) && (occupied_id < slot_map->max_items)
+		&& (0 <= vacant_id) && (vacant_id < slot_map->max_items)
+	);
+	hgraph_index_t occupied_slot = slot_map->slots_for_id[occupied_id];
+	hgraph_index_t vacant_slot = slot_map->slots_for_id[vacant_id];
+	HGRAPH_ASSERT(occupied_id < slot_map->num_items && slot_map->num_items <= vacant_slot);
+
+	slot_map->slots_for_id[occupied_id] = vacant_slot;
+	slot_map->slots_for_id[vacant_id] = occupied_slot;
+	slot_map->ids_for_slot[occupied_slot] = vacant_id;
+	slot_map->ids_for_slot[vacant_slot] = occupied_id;
 }

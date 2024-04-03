@@ -147,6 +147,7 @@ hgraph_migration_execute(
 	// Migrate nodes
 	for (hgraph_index_t i = 0; i < from_graph->node_slot_map.num_items; ++i) {
 		const hgraph_node_t* from_node = hgraph_get_node_by_slot(from_graph, i);
+		hgraph_index_t from_node_id = hgraph_slot_map_id_for_slot(&from_graph->node_slot_map, i);
 
 		const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
 			from_graph, from_node
@@ -156,6 +157,10 @@ hgraph_migration_execute(
 
 		const hgraph_node_type_info_t* to_type_info = node_plan->new_type;
 		hgraph_index_t to_node_id = hgraph_create_node(to_graph, to_type_info->definition);
+		// Remap the id so that the new graph nodes have the same id as their
+		// counterpart
+		hgraph_slot_map_swap_id(&to_graph->node_slot_map, to_node_id, from_node_id);
+		to_node_id = from_node_id;
 
 		hgraph_set_node_name(
 			to_graph,
@@ -185,6 +190,7 @@ hgraph_migration_execute(
 	// Migrate edges
 	for (hgraph_index_t i = 0; i < from_graph->edge_slot_map.num_items; ++i) {
 		const hgraph_edge_t* from_edge = &from_graph->edges[i];
+		hgraph_index_t from_edge_id = hgraph_slot_map_id_for_slot(&from_graph->edge_slot_map, i);
 
 		bool is_output;
 		hgraph_index_t from_node_id, from_pin_index;
@@ -208,31 +214,19 @@ hgraph_migration_execute(
 			continue;
 		}
 
-		hgraph_index_t from_node_slot = ((char*)from_node - from_graph->nodes) / from_graph->node_size;
-		hgraph_index_t to_node_slot = ((char*)to_node - from_graph->nodes) / from_graph->node_size;
-		HGRAPH_ASSERT(from_node_slot < to_graph->node_slot_map.num_items);
-		HGRAPH_ASSERT(to_node_slot < to_graph->node_slot_map.num_items);
-
-		hgraph_index_t new_from_node_id = hgraph_slot_map_id_for_slot(
-			&to_graph->node_slot_map, from_node_slot
-		);
-		hgraph_index_t new_to_node_id = hgraph_slot_map_id_for_slot(
-			&to_graph->node_slot_map, to_node_slot
-		);
-		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(new_from_node_id));
-		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(new_to_node_id));
-
 		hgraph_index_t new_from_pin = hgraph_encode_pin_id(
-			new_from_node_id,
+			from_node_id,
 			new_from_pin_index,
 			true
 		);
 		hgraph_index_t new_to_pin = hgraph_encode_pin_id(
-			new_to_node_id,
+			to_node_id,
 			new_to_pin_index,
 			false
 		);
-		hgraph_connect(to_graph, new_from_pin, new_to_pin);
+		hgraph_index_t new_edge_id = hgraph_connect(to_graph, new_from_pin, new_to_pin);
+		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(edge_id));
+		hgraph_slot_map_swap_id(&to_graph->edge_slot_map, new_edge_id, from_edge_id);
 	}
 
 	// Delete dummy nodes

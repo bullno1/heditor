@@ -36,6 +36,9 @@ hgraph_slot_map_free(
 	hgraph_index_t* src_slot_index_out
 );
 
+void
+hgraph_slot_map_swap_id(hgraph_slot_map_t* slot_map, hgraph_index_t occupied, hgraph_index_t vacant);
+
 hgraph_index_t
 hgraph_slot_map_slot_for_id(const hgraph_slot_map_t* slot_map, hgraph_index_t id);
 
