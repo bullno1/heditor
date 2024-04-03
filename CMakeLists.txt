@@ -51,4 +51,5 @@ else()
 endif()
 
 add_subdirectory(hgraph)
+add_subdirectory(heditor)
 add_subdirectory(tests)

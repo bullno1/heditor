@@ -1,0 +1,6 @@
+[submodule "deps/remodule"]
+	path = deps/remodule
+	url = https://github.com/bullno1/remodule.git
+[submodule "deps/sokol"]
+	path = deps/sokol
+	url = https://github.com/floooh/sokol.git
