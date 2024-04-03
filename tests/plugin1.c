@@ -29,12 +29,12 @@ const hgraph_node_type_t plugin1_start = {
 };
 
 const hgraph_attribute_description_t plugin1_start_attr_f32 = {
-	.name = HGRAPH_STR("f32"),
+	.name = HGRAPH_STR("num_f32"),
 	.data_type = &test_f32,
 };
 
 const hgraph_pin_description_t plugin1_start_out_f32 = {
-	.name = HGRAPH_STR("f32"),
+	.name = HGRAPH_STR("num_out_f32"),
 	.data_type = &test_f32,
 };
 
@@ -47,7 +47,7 @@ const hgraph_node_type_t plugin1_end = {
 };
 
 const hgraph_pin_description_t plugin1_end_in_i32 = {
-	.name = HGRAPH_STR("i32"),
+	.name = HGRAPH_STR("num_in_i32"),
 	.data_type = &test_i32,
 };
 

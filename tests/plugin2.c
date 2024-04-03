@@ -49,12 +49,12 @@ const hgraph_node_type_t plugin2_mid = {
 };
 
 const hgraph_pin_description_t plugin2_mid_in_f32 = {
-	.name = HGRAPH_STR("f32"),
+	.name = HGRAPH_STR("num_in_f32"),
 	.data_type = &test_f32,
 };
 
 const hgraph_pin_description_t plugin2_mid_out_i32 = {
-	.name = HGRAPH_STR("i32"),
+	.name = HGRAPH_STR("num_out_i32"),
 	.data_type = &test_i32,
 };
 
