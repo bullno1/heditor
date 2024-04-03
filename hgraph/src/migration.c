@@ -159,8 +159,10 @@ hgraph_migration_execute(
 		hgraph_index_t to_node_id = hgraph_create_node(to_graph, to_type_info->definition);
 		// Remap the id so that the new graph nodes have the same id as their
 		// counterpart
-		hgraph_slot_map_swap_id(&to_graph->node_slot_map, to_node_id, from_node_id);
-		to_node_id = from_node_id;
+		if (to_node_id != from_node_id) {
+			hgraph_slot_map_swap_id(&to_graph->node_slot_map, to_node_id, from_node_id);
+			to_node_id = from_node_id;
+		}
 
 		hgraph_set_node_name(
 			to_graph,
@@ -225,8 +227,10 @@ hgraph_migration_execute(
 			false
 		);
 		hgraph_index_t new_edge_id = hgraph_connect(to_graph, new_from_pin, new_to_pin);
-		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(edge_id));
-		hgraph_slot_map_swap_id(&to_graph->edge_slot_map, new_edge_id, from_edge_id);
+		HGRAPH_ASSERT(HGRAPH_IS_VALID_INDEX(new_edge_id));
+		if (new_edge_id != from_edge_id) {
+			hgraph_slot_map_swap_id(&to_graph->edge_slot_map, new_edge_id, from_edge_id);
+		}
 	}
 
 	// Delete dummy nodes
