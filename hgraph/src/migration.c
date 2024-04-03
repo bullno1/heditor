@@ -39,8 +39,9 @@ hgraph_create_var_plans(
 					&& (from_type->size == to_type->size)
 				) {
 					new_index = j;
-					break;
 				}
+
+				break;
 			}
 		}
 
