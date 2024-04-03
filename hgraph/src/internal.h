@@ -7,12 +7,21 @@
 #include "assert.h"
 #include <string.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define HGRAPH_PRIVATE static inline
 #define HGRAPH_INTERNAL
 #define HGRAPH_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define HGRAPH_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define HGRAPH_ASSERT assert
+#define HGRAPH_RUNTIME_ASSERT(COND, MSG) \
+	do { \
+		if (!(COND)) { \
+			fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, MSG); \
+			abort(); \
+		} \
+	} while (0)
 #define HGRAPH_CONTAINER_OF(PTR, TYPE, MEMBER) \
     (TYPE*)((char*)(PTR) - offsetof(TYPE, MEMBER))
 #define HGRAPH_MAX_PINS ((hgraph_index_t)(sizeof(hgraph_bitset_t) * CHAR_BIT))

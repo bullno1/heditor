@@ -1,8 +1,8 @@
-#include "hgraph/common.h"
 #include "hgraph/runtime.h"
 #include "rktest.h"
 #include "common.h"
 #include "../hgraph/src/internal.h"
+#include <hgraph/io.h>
 
 typedef struct {
 	hgraph_in_t in;
@@ -34,6 +34,17 @@ static struct {
 	fixture_t base;
 	memory_io mem_io;
 } fixture;
+
+static hgraph_io_status_t
+write_slip(const void* value, hgraph_out_t* out) {
+	float f32 = *(float*)value;
+	return hgraph_io_write_f32(f32, out);
+}
+
+static hgraph_io_status_t
+read_slip(void* value, hgraph_in_t* in) {
+	return hgraph_io_read_f32(value, in);
+}
 
 TEST_SETUP(io) {
 	fixture_init(&fixture.base);
@@ -78,4 +89,43 @@ TEST(io, read_write_same) {
 	hgraph_info_t graph_info = hgraph_get_info(graph);
 	ASSERT_EQ(graph_info.num_nodes, 3);
 	ASSERT_EQ(graph_info.num_edges, 2);
+}
+
+TEST(io, slip) {
+	hgraph_data_type_t slip_data = {
+		.serialize = write_slip,
+		.deserialize = read_slip,
+	};
+
+	hgraph_attribute_description_t slip_attr = {
+		.name = HGRAPH_STR("slip"),
+		.data_type = &slip_data,
+	};
+
+	hgraph_node_type_t node_type = {
+		.name = HGRAPH_STR("slip_test"),
+		.attributes = HGRAPH_NODE_ATTRIBUTES(&slip_attr),
+	};
+
+	hgraph_registry_config_t registry_config = {
+		.max_data_types = 1,
+		.max_node_types = 1,
+	};
+	size_t mem_size = hgraph_registry_builder_init(NULL, &registry_config);
+	hgraph_registry_builder_t* builder = arena_alloc(&fixture.base.arena, mem_size);
+	hgraph_registry_builder_init(builder, &registry_config);
+
+	hgraph_registry_builder_add(builder, &node_type);
+	mem_size = hgraph_registry_init(NULL, builder);
+	hgraph_registry_t* registry = arena_alloc(&fixture.base.arena, mem_size);
+	hgraph_registry_init(registry, builder);
+
+	hgraph_config_t graph_config = {
+		.max_name_length = 1,
+		.max_nodes = 1,
+		.registry = registry,
+	};
+	mem_size = hgraph_init(NULL, &graph_config);
+	hgraph_t* graph = arena_alloc(&fixture.base.arena, mem_size);
+	hgraph_init(graph, &graph_config);
 }

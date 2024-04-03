@@ -481,7 +481,6 @@ hgraph_pipeline_execute(
 			return HGRAPH_PIPELINE_EXEC_ABORTED;
 		}
 
-		HGRAPH_ASSERT(node_type->definition->execute != NULL);
 		hgraph_pipeline_node_ctx_t ctx = {
 			.impl = hgraph_pipeline_node_api,
 			.pipeline = pipeline,
@@ -489,7 +488,9 @@ hgraph_pipeline_execute(
 			.watcher_data = userdata,
 			.slot = node_slot,
 		};
-		node_type->definition->execute(&ctx.impl);
+		if (node_type->definition->execute != NULL) {
+			node_type->definition->execute(&ctx.impl);
+		}
 		pipeline->step_alloc_ptr = pipeline->scratch_zone_start;
 		node_meta->state = HGRAPH_NODE_STATE_EXECUTED;
 		if (ctx.termination_reason != HGRAPH_PIPELINE_EXEC_FINISHED) {

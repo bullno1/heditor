@@ -52,6 +52,10 @@ hgraph_registry_add_type(
 		i = hash_msi(hash, exp, i);
 		if (data_types[i] == NULL) {
 			data_types[i] = type;
+			HGRAPH_RUNTIME_ASSERT(
+				builder->num_data_types < builder->config.max_data_types,
+				"Maximum number of data types reached"
+			);
 			++builder->num_data_types;
 			return;
 		} else if (data_types[i] == type) {
@@ -73,7 +77,8 @@ hgraph_registry_builder_init(
 	);
 	ptrdiff_t node_types = mem_layout_reserve(
 		&layout,
-		sizeof(hgraph_node_type_t*) * config->max_node_types,
+		// Reserve +1 space for dummy node type too
+		sizeof(hgraph_node_type_t*) * (config->max_node_types + 1),
 		_Alignof(hgraph_node_type_t*)
 	);
 
@@ -109,6 +114,12 @@ hgraph_registry_builder_add(
 	hgraph_registry_builder_t* builder,
 	const hgraph_node_type_t* type
 ) {
+	HGRAPH_RUNTIME_ASSERT(
+		// Take into account +1 slot for dummy node type
+		builder->num_node_types < builder->config.max_node_types + 1,
+		"Maximum number of node types reached"
+	);
+
 	for (
 		const hgraph_attribute_description_t** itr = type->attributes;
 		itr != NULL && *itr != NULL;
