@@ -3,6 +3,7 @@
 #include "common.h"
 #include "../hgraph/src/internal.h"
 #include <hgraph/io.h>
+#include <stdint.h>
 
 typedef struct {
 	hgraph_in_t in;
@@ -30,21 +31,33 @@ memory_io_write(hgraph_out_t* out, const void* buffer, size_t size) {
 	return size;
 }
 
-static struct {
-	fixture_t base;
-	memory_io mem_io;
-} fixture;
-
 static hgraph_io_status_t
 write_slip(const void* value, hgraph_out_t* out) {
-	float f32 = *(float*)value;
-	return hgraph_io_write_f32(f32, out);
+	(void)value;
+	for (uint8_t i = 0; i < UINT8_MAX; ++i) {
+		HGRAPH_CHECK_IO(hgraph_io_write(out, &i, sizeof(i)));
+	}
+
+	return HGRAPH_IO_OK;
 }
 
 static hgraph_io_status_t
 read_slip(void* value, hgraph_in_t* in) {
-	return hgraph_io_read_f32(value, in);
+	(void)value;
+
+	for (uint8_t i = 0; i < UINT8_MAX; ++i) {
+		uint8_t tmp;
+		HGRAPH_CHECK_IO(hgraph_io_read(in, &tmp, sizeof(tmp)));
+		ASSERT_EQ(i, tmp);
+	}
+
+	return HGRAPH_IO_OK;
 }
+
+static struct {
+	fixture_t base;
+	memory_io mem_io;
+} fixture;
 
 TEST_SETUP(io) {
 	fixture_init(&fixture.base);
@@ -92,6 +105,7 @@ TEST(io, read_write_same) {
 }
 
 TEST(io, slip) {
+	// A data type that exists to test the writing of every single byte
 	hgraph_data_type_t slip_data = {
 		.serialize = write_slip,
 		.deserialize = read_slip,
@@ -128,4 +142,24 @@ TEST(io, slip) {
 	mem_size = hgraph_init(NULL, &graph_config);
 	hgraph_t* graph = arena_alloc(&fixture.base.arena, mem_size);
 	hgraph_init(graph, &graph_config);
+	hgraph_create_node(graph, &node_type);
+
+	memory_io* mem_io = &fixture.mem_io;
+	ASSERT_EQ(hgraph_write_header(&mem_io->out), HGRAPH_IO_OK);
+	ASSERT_EQ(hgraph_write_graph(graph, &mem_io->out), HGRAPH_IO_OK);
+	mem_io->end = mem_io->pos;
+	mem_io->pos = mem_io->start;
+
+	hgraph_header_t header;
+	ASSERT_EQ(hgraph_read_header(&header, &mem_io->in), HGRAPH_IO_OK);
+
+	ASSERT_EQ(hgraph_read_graph_config(&header, &graph_config, &mem_io->in), HGRAPH_IO_OK);
+	graph_config.registry = registry;
+
+	hgraph_init(graph, &graph_config);
+	ASSERT_EQ(hgraph_read_graph(&header, graph, &mem_io->in), HGRAPH_IO_OK);
+	ASSERT_TRUE(mem_io->pos == mem_io->end);
+
+	hgraph_info_t graph_info = hgraph_get_info(graph);
+	ASSERT_EQ(graph_info.num_nodes, 1);
 }

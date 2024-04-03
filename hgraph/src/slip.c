@@ -21,7 +21,7 @@ hgraph_slip_out_write(hgraph_out_t* impl, const void* buf, size_t size) {
 		size_t escaped_size;
 		if (ch == HGRAPH_SLIP_END) {
 			escaped_buf = HGRAPH_SLIP_ESCAPED_END;
-			escaped_size = sizeof(HGRAPH_SLIP_ESC_END);
+			escaped_size = sizeof(HGRAPH_SLIP_ESCAPED_END);
 		} else if (ch == HGRAPH_SLIP_ESC) {
 			escaped_buf = HGRAPH_SLIP_ESCAPED_ESC;
 			escaped_size = sizeof(HGRAPH_SLIP_ESCAPED_ESC);
