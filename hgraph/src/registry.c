@@ -52,9 +52,8 @@ hgraph_registry_add_type(
 		i = hash_msi(hash, exp, i);
 		if (data_types[i] == NULL) {
 			data_types[i] = type;
-			HGRAPH_RUNTIME_ASSERT(
-				builder->num_data_types < builder->config.max_data_types,
-				"Maximum number of data types reached"
+			HGRAPH_ASSERT(
+				builder->num_data_types < builder->config.max_data_types
 			);
 			++builder->num_data_types;
 			return;
@@ -114,10 +113,9 @@ hgraph_registry_builder_add(
 	hgraph_registry_builder_t* builder,
 	const hgraph_node_type_t* type
 ) {
-	HGRAPH_RUNTIME_ASSERT(
+	HGRAPH_ASSERT(
 		// Take into account +1 slot for dummy node type
-		builder->num_node_types < builder->config.max_node_types + 1,
-		"Maximum number of node types reached"
+		builder->num_node_types < builder->config.max_node_types + 1
 	);
 
 	for (

@@ -87,10 +87,9 @@ hgraph_slot_map_id_for_slot(const hgraph_slot_map_t* slot_map, hgraph_index_t sl
 
 void
 hgraph_slot_map_swap_id(hgraph_slot_map_t* slot_map, hgraph_index_t occupied_id, hgraph_index_t vacant_id) {
-	HGRAPH_RUNTIME_ASSERT(
-		(0 <= occupied_id) && (occupied_id < slot_map->max_items)
-		&& (0 <= vacant_id) && (vacant_id < slot_map->max_items),
-		"hgraph_slot_map_swap_id can only be used to swap with vacant id"
+	HGRAPH_ASSERT(
+		(0 <= occupied_id && occupied_id < slot_map->max_items)
+		&& (0 <= vacant_id && vacant_id < slot_map->max_items)
 	);
 	hgraph_index_t occupied_slot = slot_map->slots_for_id[occupied_id];
 	hgraph_index_t vacant_slot = slot_map->slots_for_id[vacant_id];
