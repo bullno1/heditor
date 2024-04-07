@@ -17,18 +17,3 @@
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include <sokol_log.h>
-
-#ifndef NDEBUG
-
-const char*
-__lsan_default_suppressions(void) {
-	// NVidia driver always leak
-	return "leak:_sapp_glx_create_context";
-}
-
-const char*
-__asan_default_options(void) {
-	return "fast_unwind_on_malloc=0";
-}
-
-#endif
