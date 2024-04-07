@@ -1,3 +1,7 @@
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "$ORIGIN")
+
 add_library(heditor_libs SHARED "./libs.c")
 target_link_libraries(heditor_libs PUBLIC sokol remodule)
 target_compile_definitions(heditor_libs PUBLIC SOKOL_DLL REMODULE_SHARED)
