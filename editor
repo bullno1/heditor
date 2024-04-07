@@ -1,9 +1,0 @@
-#!/bin/sh -e
-
-# The sanitizer library intercepts dlopen and thus, RUNPATH of the executable
-# is ignore: https://github.com/google/sanitizers/issues/1219
-# We just have to set LD_LIBRARY_PATH ourselves.
-
-SCRIPT_PATH=$(dirname $(readlink -f $0))
-export LD_LIBRARY_PATH="${SCRIPT_PATH}/bin"
-exec bin/heditor

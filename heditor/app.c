@@ -12,13 +12,13 @@ static sapp_logger logger = { 0 };
 
 static
 void init(void) {
-    sg_setup(&(sg_desc){
-        .environment = sglue_environment(),
+	sg_setup(&(sg_desc){
+		.environment = sglue_environment(),
 		.logger = {
 			.func = logger.func,
 			.user_data = logger.user_data,
 		},
-    });
+	});
 }
 
 static void
@@ -28,21 +28,24 @@ event(const sapp_event* ev) {
 
 static void
 frame(void) {
-    state.pass_action = (sg_pass_action) {
-        .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.5f, 0.5f, 0.5f, 1.0 } }
-    };
+	state.pass_action = (sg_pass_action) {
+		.colors[0] = {
+			.load_action = SG_LOADACTION_CLEAR,
+			.clear_value = { 0.5f, 0.5f, 0.5f, 1.0 }
+		}
+	};
 
-    sg_begin_pass(&(sg_pass){
+	sg_begin_pass(&(sg_pass){
 		.action = state.pass_action,
 		.swapchain = sglue_swapchain()
 	});
-    sg_end_pass();
-    sg_commit();
+	sg_end_pass();
+	sg_commit();
 }
 
 static void
 cleanup(void) {
-    sg_shutdown();
+	sg_shutdown();
 }
 
 void

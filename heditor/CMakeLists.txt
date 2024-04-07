@@ -17,6 +17,10 @@ target_compile_definitions(heditor_libs PRIVATE
 )
 set_target_properties(heditor_libs PROPERTIES PREFIX "")
 
+if (NOT MSVC)
+	target_compile_options(heditor_libs PRIVATE -Wno-unused-variable)
+endif()
+
 add_library(heditor_app SHARED "./app.c")
 target_link_libraries(heditor_app PRIVATE heditor_libs)
 set_target_properties(heditor_app PROPERTIES PREFIX "")
