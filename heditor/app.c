@@ -3,11 +3,19 @@
 #include <sokol_app.h>
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
+#include <util/sokol_imgui.h>
 
-static struct {
-    sg_pass_action pass_action;
-} state;
+#ifdef REMODULE_HOST_IMPLEMENTATION
+#error "nope"
+#endif
 
+typedef struct {
+	sg_pass_action pass_action;
+} app_state_t;
+
+REMODULE_VAR(app_state_t, state) = { 0 };
 static sapp_logger logger = { 0 };
 
 static
@@ -19,32 +27,54 @@ void init(void) {
 			.user_data = logger.user_data,
 		},
 	});
+
+	simgui_setup(&(simgui_desc_t){
+		.logger = {
+			.func = logger.func,
+			.user_data = logger.user_data,
+		},
+	});
+
+	state.pass_action = (sg_pass_action) {
+		.colors[0] = {
+			.load_action = SG_LOADACTION_CLEAR,
+			.clear_value = { 0.0f, 0.5f, 1.0f, 1.0 }
+		},
+	};
 }
 
 static void
 event(const sapp_event* ev) {
-	(void)ev;
+	simgui_handle_event(ev);
 }
 
 static void
 frame(void) {
-	state.pass_action = (sg_pass_action) {
-		.colors[0] = {
-			.load_action = SG_LOADACTION_CLEAR,
-			.clear_value = { 0.5f, 0.5f, 0.5f, 1.0 }
-		}
-	};
+	// GUI
+	simgui_new_frame(&(simgui_frame_desc_t){
+		.width = sapp_width(),
+		.height = sapp_height(),
+		.delta_time = sapp_frame_duration(),
+		.dpi_scale = sapp_dpi_scale(),
+	});
+	igSetNextWindowPos((ImVec2){10,10}, ImGuiCond_Once, (ImVec2){0,0});
+	igSetNextWindowSize((ImVec2){400, 100}, ImGuiCond_Once);
+	igBegin("Edit color", 0, ImGuiWindowFlags_None);
+	igColorEdit3("Background", &state.pass_action.colors[0].clear_value.r, ImGuiColorEditFlags_None);
+	igEnd();
 
 	sg_begin_pass(&(sg_pass){
 		.action = state.pass_action,
 		.swapchain = sglue_swapchain()
 	});
+	simgui_render();
 	sg_end_pass();
 	sg_commit();
 }
 
 static void
 cleanup(void) {
+	simgui_shutdown();
 	sg_shutdown();
 }
 

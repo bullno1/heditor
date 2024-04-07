@@ -12,13 +12,12 @@
 
 #define _DEFAULT_SOURCE 1
 
-#ifdef REMODULE_API
-#pragma message #REMODULE_API
-#endif
-
 #include <remodule.h>
 #include <remodule_monitor.h>
 #include <sokol_app.h>
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include "pico_log.h"
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
+#include <util/sokol_imgui.h>
