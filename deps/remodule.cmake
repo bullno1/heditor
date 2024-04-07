@@ -1,2 +1,2 @@
 add_library(remodule INTERFACE)
-target_include_directories(remodule INTERFACE "sokol")
+target_include_directories(remodule INTERFACE "remodule")

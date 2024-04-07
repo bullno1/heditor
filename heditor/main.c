@@ -1,60 +1,83 @@
+#include <remodule.h>
+#include <remodule_monitor.h>
 #include <sokol_app.h>
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include <sokol_log.h>
 
-static struct {
-    sg_pass_action pass_action;
-} state;
+#ifndef NDEBUG
+#	define HEDITOR_LIB_SUFFIX "_d"
+#else
+#	define HEDITOR_LIB_SUFFIX ""
+#endif
+
+static remodule_t* app_module = NULL;
+static remodule_monitor_t* app_monitor = NULL;
+static sapp_desc app = { 0 };
 
 static
 void init(void) {
-    sg_setup(&(sg_desc){
-        .environment = sglue_environment(),
-        .logger.func = slog_func,
-    });
-
-    // initial clear color
-    state.pass_action = (sg_pass_action) {
-        .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.0f, 0.5f, 1.0f, 1.0 } }
-    };
-}
-
-static void
-frame(void) {
-    sg_begin_pass(&(sg_pass){
-		.action = state.pass_action,
-		.swapchain = sglue_swapchain()
-	});
-    sg_end_pass();
-    sg_commit();
+	if (app.init_cb) {
+		app.init_cb();
+	} else if (app.init_userdata_cb) {
+		app.init_userdata_cb(app.user_data);
+	}
 }
 
 static void
 cleanup(void) {
-    sg_shutdown();
+	if (app.cleanup_cb) {
+		app.cleanup_cb();
+	} else if (app.cleanup_userdata_cb) {
+		app.cleanup_userdata_cb(app.user_data);
+	}
+
+	remodule_unmonitor(app_monitor);
+	remodule_unload(app_module);
+}
+
+static void
+frame(void) {
+	remodule_check(app_monitor);
+
+	if (app.frame_cb) {
+		app.frame_cb();
+	} else if (app.frame_userdata_cb) {
+		app.frame_userdata_cb(app.user_data);
+	}
 }
 
 static void
 event(const sapp_event* ev) {
-	(void)ev;
+	if (app.event_cb) {
+		app.event_cb(ev);
+	} else if (app.event_userdata_cb) {
+		app.event_userdata_cb(ev, app.user_data);
+	}
 }
 
 sapp_desc
 sokol_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
-    return (sapp_desc){
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .event_cb = event,
-        .window_title = "Hello Sokol + Dear ImGui",
-        .width = 800,
-        .height = 600,
-        .icon.sokol_default = true,
-        .logger.func = slog_func,
-    };
+
+	app_module = remodule_load(
+		"heditor_app" HEDITOR_LIB_SUFFIX REMODULE_DYNLIB_EXT,
+		&app
+	);
+	app_monitor = remodule_monitor(app_module);
+
+	sapp_desc desc = app;
+
+	// All callbacks have to be hooked and forwarded since sokol will make
+	// a copy of this structure.
+	// Futher modifications by the plugin will not be recognized by sokol.
+	desc.init_cb = init;
+	desc.frame_cb = frame;
+	desc.event_cb = event;
+	desc.cleanup_cb = cleanup;
+
+	return desc;
 }
 
 #if defined(__has_feature)

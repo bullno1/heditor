@@ -1,6 +1,16 @@
-set(SOURCES
-	"./main.c"
-	"./libs.c"
+add_library(heditor_libs SHARED "./libs.c")
+target_link_libraries(heditor_libs PUBLIC sokol remodule)
+target_compile_definitions(heditor_libs PUBLIC SOKOL_DLL REMODULE_SHARED)
+target_compile_definitions(heditor_libs PRIVATE
+	SOKOL_IMPL
+	REMODULE_HOST_IMPLEMENTATION
+	REMODULE_MONITOR_IMPLEMENTATION
 )
-add_executable(heditor "${SOURCES}")
-target_link_libraries(heditor PRIVATE sokol)
+set_target_properties(heditor_libs PROPERTIES PREFIX "")
+
+add_library(heditor_app SHARED "./app.c")
+target_link_libraries(heditor_app PRIVATE heditor_libs)
+set_target_properties(heditor_app PROPERTIES PREFIX "")
+
+add_executable(heditor "./main.c")
+target_link_libraries(heditor PRIVATE heditor_libs)
