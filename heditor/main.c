@@ -3,7 +3,7 @@
 #include <sokol_app.h>
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
-#include <sokol_log.h>
+#include "pico_log.h"
 
 #ifndef NDEBUG
 #	define HEDITOR_LIB_SUFFIX "_d"
@@ -38,7 +38,9 @@ cleanup(void) {
 
 static void
 frame(void) {
-	remodule_check(app_monitor);
+	if (remodule_check(app_monitor)) {
+		log_info("Reloaded app");
+	}
 
 	if (app.frame_cb) {
 		app.frame_cb();
@@ -56,11 +58,61 @@ event(const sapp_event* ev) {
 	}
 }
 
+static void
+log(
+	const char* tag,                // always "sapp"
+	uint32_t log_level,             // 0=panic, 1=error, 2=warning, 3=info
+	uint32_t log_item_id,           // SAPP_LOGITEM_*
+	const char* message_or_null,    // a message string, may be nullptr in release mode
+	uint32_t line_nr,               // line number in sokol_app.h
+	const char* filename_or_null,   // source filename, may be nullptr in release mode
+	void* user_data
+) {
+	(void)user_data;
+
+	log_level_t level;
+	switch (log_level) {
+		case 0:
+			level = LOG_LEVEL_FATAL;
+			break;
+		case 1:
+			level = LOG_LEVEL_ERROR;
+			break;
+		case 2:
+			level = LOG_LEVEL_WARN;
+			break;
+		case 3:
+			level = LOG_LEVEL_INFO;
+			break;
+		default:
+			level = LOG_LEVEL_INFO;
+			break;
+	}
+
+	log_write(
+		level,
+		filename_or_null != NULL ? filename_or_null : "<unknown>",
+		line_nr,
+		"<unknown>",
+		"%s(%d): %s",
+		tag, log_item_id, message_or_null != NULL ? message_or_null : "<empty>"
+	);
+}
+
 sapp_desc
 sokol_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
 
+	// Setup logging
+	log_appender_t id = log_add_stream(stderr, LOG_LEVEL_TRACE);
+	log_set_time_fmt(id, "%H:%M:%S");
+	log_display_colors(id, true);
+	log_display_timestamp(id, true);
+	log_display_file(id, true);
+	app.logger.func = log;
+
+	// Load main app module
 	app_module = remodule_load(
 		"heditor_app" HEDITOR_LIB_SUFFIX REMODULE_DYNLIB_EXT,
 		&app
@@ -76,6 +128,7 @@ sokol_main(int argc, char* argv[]) {
 	desc.frame_cb = frame;
 	desc.event_cb = event;
 	desc.cleanup_cb = cleanup;
+	desc.logger.func = log;
 
 	return desc;
 }

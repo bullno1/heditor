@@ -3,17 +3,21 @@
 #include <sokol_app.h>
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
-#include <sokol_log.h>
 
 static struct {
     sg_pass_action pass_action;
 } state;
 
+static sapp_logger logger = { 0 };
+
 static
 void init(void) {
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
-        .logger.func = slog_func,
+		.logger = {
+			.func = logger.func,
+			.user_data = logger.user_data,
+		},
     });
 }
 
@@ -45,6 +49,7 @@ void
 remodule_entry(remodule_op_t op, void* userdata) {
 	sapp_desc* app = userdata;
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
+		logger = app->logger;
 		*app = (sapp_desc){
 			.init_cb = init,
 			.cleanup_cb = cleanup,
@@ -54,7 +59,6 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.width = 1280,
 			.height = 720,
 			.icon.sokol_default = true,
-			.logger.func = slog_func,
 		};
 	}
 }

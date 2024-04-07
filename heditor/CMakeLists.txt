@@ -4,11 +4,16 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
 add_library(heditor_libs SHARED "./libs.c")
 target_link_libraries(heditor_libs PUBLIC sokol remodule)
-target_compile_definitions(heditor_libs PUBLIC SOKOL_DLL REMODULE_SHARED)
+target_compile_definitions(heditor_libs PUBLIC
+	SOKOL_DLL
+	REMODULE_SHARED
+	PICO_LOG_SHARED
+)
 target_compile_definitions(heditor_libs PRIVATE
 	SOKOL_IMPL
 	REMODULE_HOST_IMPLEMENTATION
 	REMODULE_MONITOR_IMPLEMENTATION
+	PICO_LOG_IMPLEMENTATION
 )
 set_target_properties(heditor_libs PROPERTIES PREFIX "")
 
