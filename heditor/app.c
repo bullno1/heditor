@@ -58,6 +58,7 @@ frame(void) {
 		.dpi_scale = sapp_dpi_scale(),
 	});
 
+	static bool show_imgui_demo = false;
 	if (igBeginMainMenuBar()) {
 		if (igBeginMenu("File", true)) {
 			if (igMenuItem_Bool("New", NULL, false, true)) {
@@ -85,12 +86,25 @@ frame(void) {
 				log_trace("Save");
 			}
 
+			igEndMenu();
+		}
 
+		if (igBeginMenu("Help", true)) {
+#ifndef NDEBUG
+			if (igMenuItem_Bool("Dear ImGui", NULL, show_imgui_demo, true)) {
+				show_imgui_demo = !show_imgui_demo;
+			}
+#endif
 			igEndMenu();
 		}
 
 		igEndMainMenuBar();
 	}
+
+	if (show_imgui_demo) {
+		igShowDemoWindow(&show_imgui_demo);
+	}
+
 
 	// Render
 	sg_begin_pass(&(sg_pass){
