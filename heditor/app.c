@@ -8,6 +8,7 @@
 #include <util/sokol_imgui.h>
 #include "sfd/sfd.h"
 #include "pico_log.h"
+#include "command.h"
 #include <string.h>
 #include <errno.h>
 
@@ -65,25 +66,18 @@ frame(void) {
 				log_trace("New");
 			}
 
-			if (igMenuItem_Bool("Open", NULL, false, true)) {
-				errno = 0;
-				const char* path = sfd_open_dialog(&(sfd_Options){
-					.title = "Open a graph file",
-					.filter_name = "Graph file",
-					.filter = "*.hed",
-				});
-				log_trace("File: %s", path != NULL ? path : "<no file>");
-
-				if (path == NULL) {
-					const char* error = sfd_get_error();
-					if (error) {
-						log_error("%s (%d)", error, strerror(errno));
-					}
-				}
+			if (igMenuItem_Bool("Open", "Ctrl+O", false, true)) {
+				HEDITOR_CMD(HEDITOR_CMD_OPEN);
 			}
 
 			if (igMenuItem_Bool("Save", NULL, false, true)) {
 				log_trace("Save");
+			}
+
+			igSeparator();
+
+			if (igMenuItem_Bool("Exit", NULL, false, true)) {
+				HEDITOR_CMD(HEDITOR_CMD_EXIT);
 			}
 
 			igEndMenu();
@@ -101,10 +95,43 @@ frame(void) {
 		igEndMainMenuBar();
 	}
 
+	// Hot keys
+	if (igIsKeyChordPressed_Nil(ImGuiKey_O | ImGuiMod_Ctrl)) {
+		HEDITOR_CMD(HEDITOR_CMD_OPEN);
+	}
+
+	// Handle GUI commands
+
 	if (show_imgui_demo) {
 		igShowDemoWindow(&show_imgui_demo);
 	}
 
+	heditor_command_t cmd;
+	while (heditor_next_cmd(&cmd)) {
+		switch (cmd.type) {
+			case HEDITOR_CMD_EXIT:
+				sapp_request_quit();
+				break;
+			case HEDITOR_CMD_OPEN:
+				{
+					errno = 0;
+					const char* path = sfd_open_dialog(&(sfd_Options){
+						.title = "Open a graph file",
+						.filter_name = "Graph file",
+						.filter = "*.hed",
+					});
+					log_trace("File: %s", path != NULL ? path : "<no file>");
+
+					if (path == NULL) {
+						const char* error = sfd_get_error();
+						if (error) {
+							log_error("%s (%d)", error, strerror(errno));
+						}
+					}
+				}
+				break;
+		}
+	}
 
 	// Render
 	sg_begin_pass(&(sg_pass){

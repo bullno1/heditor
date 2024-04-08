@@ -32,6 +32,7 @@ endif()
 set(HEDITOR_APP_SOURCES
 	./app.c
 	./sfd/sfd.c
+	./command.c
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
 target_link_libraries(heditor_app PRIVATE heditor_libs)
