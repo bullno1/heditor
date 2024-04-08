@@ -29,7 +29,11 @@ if (NOT MSVC)
 	target_compile_options(heditor_libs PRIVATE -Wno-unused-variable)
 endif()
 
-setup_library(heditor_app FALSE "./app.c")
+set(HEDITOR_APP_SOURCES
+	./app.c
+	./sfd/sfd.c
+)
+setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
 target_link_libraries(heditor_app PRIVATE heditor_libs)
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 

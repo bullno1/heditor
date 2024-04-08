@@ -6,10 +6,10 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 #include <util/sokol_imgui.h>
-
-#ifdef REMODULE_HOST_IMPLEMENTATION
-#error "nope"
-#endif
+#include "sfd/sfd.h"
+#include "pico_log.h"
+#include <string.h>
+#include <errno.h>
 
 typedef struct {
 	sg_pass_action pass_action;
@@ -57,12 +57,42 @@ frame(void) {
 		.delta_time = sapp_frame_duration(),
 		.dpi_scale = sapp_dpi_scale(),
 	});
-	igSetNextWindowPos((ImVec2){10,10}, ImGuiCond_Once, (ImVec2){0,0});
-	igSetNextWindowSize((ImVec2){400, 100}, ImGuiCond_Once);
-	igBegin("Edit color", 0, ImGuiWindowFlags_None);
-	igColorEdit3("Background", &state.pass_action.colors[0].clear_value.r, ImGuiColorEditFlags_None);
-	igEnd();
 
+	if (igBeginMainMenuBar()) {
+		if (igBeginMenu("File", true)) {
+			if (igMenuItem_Bool("New", NULL, false, true)) {
+				log_trace("New");
+			}
+
+			if (igMenuItem_Bool("Open", NULL, false, true)) {
+				errno = 0;
+				const char* path = sfd_open_dialog(&(sfd_Options){
+					.title = "Open a graph file",
+					.filter_name = "Graph file",
+					.filter = "*.hed",
+				});
+				log_trace("File: %s", path != NULL ? path : "<no file>");
+
+				if (path == NULL) {
+					const char* error = sfd_get_error();
+					if (error) {
+						log_error("%s (%d)", error, strerror(errno));
+					}
+				}
+			}
+
+			if (igMenuItem_Bool("Save", NULL, false, true)) {
+				log_trace("Save");
+			}
+
+
+			igEndMenu();
+		}
+
+		igEndMainMenuBar();
+	}
+
+	// Render
 	sg_begin_pass(&(sg_pass){
 		.action = state.pass_action,
 		.swapchain = sglue_swapchain()
