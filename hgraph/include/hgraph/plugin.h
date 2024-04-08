@@ -37,6 +37,7 @@ typedef struct hgraph_data_type_s {
 	size_t alignment;
 
 	hgraph_data_lifecycle_callback_t init;
+	hgraph_data_lifecycle_callback_t cleanup;
 
 	hgraph_io_status_t (*serialize)(const void* value, hgraph_out_t* output);
 	hgraph_io_status_t (*deserialize)(void* value, hgraph_in_t* input);
@@ -59,6 +60,7 @@ typedef struct hgraph_attribute_description_s {
 	const hgraph_data_type_t* data_type;
 
 	hgraph_data_lifecycle_callback_t init;
+	hgraph_data_lifecycle_callback_t cleanup;
 
 	void (*render)(const void* value, void* render_ctx);
 } hgraph_attribute_description_t;

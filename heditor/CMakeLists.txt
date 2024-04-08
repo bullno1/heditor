@@ -5,9 +5,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN")
 add_library(heditor_libs SHARED
 	./libs.c
 	../deps/cimgui/cimgui.cpp
-	../deps/cimgui/cimgui.h
 	../deps/cimgui/imgui/imgui.cpp
-	../deps/cimgui/imgui/imgui.h
 	../deps/cimgui/imgui/imgui_widgets.cpp
 	../deps/cimgui/imgui/imgui_draw.cpp
 	../deps/cimgui/imgui/imgui_tables.cpp
@@ -31,7 +29,7 @@ if (NOT MSVC)
 	target_compile_options(heditor_libs PRIVATE -Wno-unused-variable)
 endif()
 
-add_library(heditor_app SHARED "./app.c")
+setup_library(heditor_app FALSE "./app.c")
 target_link_libraries(heditor_app PRIVATE heditor_libs)
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 

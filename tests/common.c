@@ -47,6 +47,7 @@ fixture_init(fixture_t* fixture) {
 
 void
 fixture_cleanup(fixture_t* fixture) {
+	hgraph_cleanup(fixture->graph);
 	arena_cleanup(&fixture->arena);
 }
 

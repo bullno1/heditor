@@ -132,6 +132,30 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 	return required_size;
 }
 
+void
+hgraph_cleanup(hgraph_t* graph) {
+	for (hgraph_index_t i = 0; i < graph->node_slot_map.num_items; ++i) {
+		hgraph_node_t* node = hgraph_get_node_by_slot(graph, i);
+
+		const hgraph_node_type_info_t* type_info = hgraph_get_node_type_internal(graph, node);
+		const hgraph_node_type_t* type_def = type_info->definition;
+		for (hgraph_index_t i = 0; i < type_info->num_attributes; ++i) {
+			void* value = (char*)node + type_info->attributes[i].offset;
+
+			if (type_def->attributes[i]->cleanup != NULL) {
+				type_def->attributes[i]->cleanup(value);
+			} else if (type_def->attributes[i]->data_type->cleanup != NULL) {
+				type_def->attributes[i]->data_type->cleanup(value);
+			} else {
+#ifdef _DEBUG
+				memset(value, 0, type->attributes[i]->data_type->size);
+#endif
+				value = NULL;
+			}
+		}
+	}
+}
+
 hgraph_index_t
 hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type) {
 	const hgraph_registry_t* registry = graph->registry;
@@ -205,6 +229,23 @@ hgraph_destroy_node(hgraph_t* graph, hgraph_index_t id) {
 				edge_slot
 			);
 			hgraph_disconnect(graph, edge_id);
+		}
+	}
+
+	// Cleanup attributes
+	const hgraph_node_type_t* type_def = type_info->definition;
+	for (hgraph_index_t i = 0; i < type_info->num_attributes; ++i) {
+		void* value = (char*)node + type_info->attributes[i].offset;
+
+		if (type_def->attributes[i]->cleanup != NULL) {
+			type_def->attributes[i]->cleanup(value);
+		} else if (type_def->attributes[i]->data_type->cleanup != NULL) {
+			type_def->attributes[i]->data_type->cleanup(value);
+		} else {
+#ifdef _DEBUG
+			memset(value, 0, type->attributes[i]->data_type->size);
+#endif
+			value = NULL;
 		}
 	}
 
