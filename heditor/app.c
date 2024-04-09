@@ -19,36 +19,26 @@ REMODULE_VAR(bool, heditor_debug) = false;
 REMODULE_VAR(bool, heditor_debug) = true;
 #endif
 
-typedef struct {
-	sg_pass_action pass_action;
-} app_state_t;
-
-REMODULE_VAR(app_state_t, state) = { 0 };
-static sapp_logger logger = { 0 };
+REMODULE_VAR(bool, show_imgui_demo) = false;
 
 static
-void init(void) {
+void init(void* userdata) {
+	sapp_desc* app = userdata;
+
 	sg_setup(&(sg_desc){
 		.environment = sglue_environment(),
 		.logger = {
-			.func = logger.func,
-			.user_data = logger.user_data,
+			.func = app->logger.func,
+			.user_data = app->logger.user_data,
 		},
 	});
 
 	simgui_setup(&(simgui_desc_t){
 		.logger = {
-			.func = logger.func,
-			.user_data = logger.user_data,
+			.func = app->logger.func,
+			.user_data = app->logger.user_data,
 		},
 	});
-
-	state.pass_action = (sg_pass_action) {
-		.colors[0] = {
-			.load_action = SG_LOADACTION_CLEAR,
-			.clear_value = { 0.5f, 0.5f, 0.5f, 1.0 }
-		},
-	};
 
 	heditor_debug = heditor_debug || is_debugger_attached();
 	igGetIO()->ConfigDebugIsDebuggerPresent = heditor_debug;
@@ -69,7 +59,6 @@ frame(void) {
 		.dpi_scale = sapp_dpi_scale(),
 	});
 
-	static bool show_imgui_demo = false;
 	if (igBeginMainMenuBar()) {
 		if (igBeginMenu("File", true)) {
 			if (igMenuItem_Bool("New", NULL, false, true)) {
@@ -142,7 +131,12 @@ frame(void) {
 
 	// Render
 	sg_begin_pass(&(sg_pass){
-		.action = state.pass_action,
+		.action =  {
+			.colors[0] = {
+				.load_action = SG_LOADACTION_CLEAR,
+				.clear_value = { 0.5f, 0.5f, 0.5f, 1.0 }
+			},
+		},
 		.swapchain = sglue_swapchain()
 	});
 	simgui_render();
@@ -160,9 +154,8 @@ void
 remodule_entry(remodule_op_t op, void* userdata) {
 	sapp_desc* app = userdata;
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
-		logger = app->logger;
 		*app = (sapp_desc){
-			.init_cb = init,
+			.init_userdata_cb = init,
 			.cleanup_cb = cleanup,
 			.event_cb = event,
 			.frame_cb = frame,
@@ -170,6 +163,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.width = 1280,
 			.height = 720,
 			.icon.sokol_default = true,
+			.user_data = userdata,
 		};
 	}
 }
