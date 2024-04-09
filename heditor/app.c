@@ -9,8 +9,15 @@
 #include "sfd/sfd.h"
 #include "pico_log.h"
 #include "command.h"
+#include "detect_debugger.h"
 #include <string.h>
 #include <errno.h>
+
+#ifdef NDEBUG
+REMODULE_VAR(bool, heditor_debug) = false;
+#else
+REMODULE_VAR(bool, heditor_debug) = true;
+#endif
 
 typedef struct {
 	sg_pass_action pass_action;
@@ -39,9 +46,12 @@ void init(void) {
 	state.pass_action = (sg_pass_action) {
 		.colors[0] = {
 			.load_action = SG_LOADACTION_CLEAR,
-			.clear_value = { 0.0f, 0.5f, 1.0f, 1.0 }
+			.clear_value = { 0.5f, 0.5f, 0.5f, 1.0 }
 		},
 	};
+
+	heditor_debug = heditor_debug || is_debugger_attached();
+	igGetIO()->ConfigDebugIsDebuggerPresent = heditor_debug;
 }
 
 static void
@@ -83,12 +93,10 @@ frame(void) {
 			igEndMenu();
 		}
 
-		if (igBeginMenu("Help", true)) {
-#ifndef NDEBUG
+		if (heditor_debug && igBeginMenu("Debug", true)) {
 			if (igMenuItem_Bool("Dear ImGui", NULL, show_imgui_demo, true)) {
 				show_imgui_demo = !show_imgui_demo;
 			}
-#endif
 			igEndMenu();
 		}
 
@@ -101,7 +109,6 @@ frame(void) {
 	}
 
 	// Handle GUI commands
-
 	if (show_imgui_demo) {
 		igShowDemoWindow(&show_imgui_demo);
 	}
