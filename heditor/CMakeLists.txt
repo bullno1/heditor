@@ -29,14 +29,25 @@ if (NOT MSVC)
 	target_compile_options(heditor_libs PRIVATE -Wno-unused-variable)
 endif()
 
+if (MSVC)
+	set(HEDITOR_RC ./resources.rc)
+else()
+	set(HEDITOR_RC)
+endif()
 set(HEDITOR_APP_SOURCES
 	./app.c
 	./sfd/sfd.c
 	./command.c
 	./detect_debugger.c
+	./resources.c
+	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
-target_link_libraries(heditor_app PRIVATE heditor_libs)
+target_link_libraries(heditor_app PRIVATE
+	heditor_libs
+	bullno1-libs
+)
+target_include_directories(heditor_app PRIVATE "./")
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 
 add_executable(heditor "./main.c")

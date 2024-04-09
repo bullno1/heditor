@@ -7,3 +7,6 @@
 [submodule "deps/cimgui"]
 	path = deps/cimgui
 	url = https://github.com/cimgui/cimgui.git
+[submodule "deps/bullno1-libs"]
+	path = deps/bullno1-libs
+	url = https://github.com/bullno1/libs.git

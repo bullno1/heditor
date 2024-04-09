@@ -1,0 +1,3 @@
+#include <xincbin.h>
+
+XINCBIN(icon, "./assets/planning.qoi")

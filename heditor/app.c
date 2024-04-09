@@ -10,8 +10,12 @@
 #include "pico_log.h"
 #include "command.h"
 #include "detect_debugger.h"
+#include "resources.h"
+#include <xincbin.h>
 #include <string.h>
 #include <errno.h>
+#define QOI_IMPLEMENTATION
+#include <qoi.h>
 
 #ifdef NDEBUG
 REMODULE_VAR(bool, heditor_debug) = false;
@@ -24,6 +28,7 @@ REMODULE_VAR(bool, show_imgui_demo) = false;
 static
 void init(void* userdata) {
 	sapp_desc* app = userdata;
+	free((void*)app->icon.images[0].pixels.ptr);
 
 	sg_setup(&(sg_desc){
 		.environment = sglue_environment(),
@@ -150,6 +155,40 @@ cleanup(void) {
 	sg_shutdown();
 }
 
+static sapp_icon_desc
+load_app_icon(void) {
+	xincbin_data_t qoi_icon = XINCBIN_GET(icon);
+	struct qoidecoder decoder = qoidecoder(qoi_icon.data, (int)qoi_icon.size);
+	if (decoder.error) {
+		return (sapp_icon_desc){ .sokol_default = true };
+	}
+
+	int num_pixels = decoder.count;
+	size_t icon_size = sizeof(unsigned) * num_pixels;
+	unsigned* pixels = malloc(icon_size);
+	for (int i = 0; i < num_pixels; ++i) {
+		pixels[i] = qoidecode(&decoder);
+	}
+
+	if (decoder.error) {
+		free(pixels);
+		return (sapp_icon_desc){ .sokol_default = true };
+	} else {
+		return (sapp_icon_desc){
+			.images = {
+				{
+					.width = decoder.width,
+					.height = decoder.height,
+					.pixels = {
+						.ptr = pixels,
+						.size = icon_size,
+					},
+				},
+			},
+		};
+	}
+}
+
 void
 remodule_entry(remodule_op_t op, void* userdata) {
 	sapp_desc* app = userdata;
@@ -162,7 +201,9 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.window_title = "heditor",
 			.width = 1280,
 			.height = 720,
-			.icon.sokol_default = true,
+			.icon = op == REMODULE_OP_LOAD
+				? load_app_icon()
+				: (sapp_icon_desc){ .sokol_default = true },
 			.user_data = userdata,
 		};
 	}
