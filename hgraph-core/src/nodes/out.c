@@ -3,13 +3,13 @@
 
 // f32
 static const hgraph_pin_description_t hgraph_core_f32_out_out = {
-	.name = HGRAPH_STR("core.out.f32.out"),
+	.name = HGRAPH_STR("out"),
 	.label = HGRAPH_STR("Output"),
 	.data_type = &hgraph_core_f32,
 };
 
 const hgraph_attribute_description_t hgraph_core_f32_out_attr_value = {
-	.name = HGRAPH_STR("core.out.f32.value"),
+	.name = HGRAPH_STR("value"),
 	.label = HGRAPH_STR("Value"),
 	.description = HGRAPH_STR("The value to output"),
 	.data_type = &hgraph_core_f32,
@@ -42,13 +42,13 @@ const hgraph_node_type_t hgraph_core_f32_out = {
 
 // i32
 static const hgraph_pin_description_t hgraph_core_i32_out_out = {
-	.name = HGRAPH_STR("core.out.i32.out"),
+	.name = HGRAPH_STR("out"),
 	.label = HGRAPH_STR("Output"),
 	.data_type = &hgraph_core_i32,
 };
 
 const hgraph_attribute_description_t hgraph_core_i32_out_attr_value = {
-	.name = HGRAPH_STR("core.out.i32.value"),
+	.name = HGRAPH_STR("value"),
 	.label = HGRAPH_STR("Value"),
 	.description = HGRAPH_STR("The value to output"),
 	.data_type = &hgraph_core_i32,
@@ -78,13 +78,13 @@ const hgraph_node_type_t hgraph_core_i32_out = {
 
 // fixed string
 static const hgraph_pin_description_t hgraph_core_fixed_str_out_out = {
-	.name = HGRAPH_STR("core.out.fixed_str.out"),
+	.name = HGRAPH_STR("out"),
 	.label = HGRAPH_STR("Output"),
 	.data_type = &hgraph_core_var_str,
 };
 
 const hgraph_attribute_description_t hgraph_core_fixed_str_out_attr_value = {
-	.name = HGRAPH_STR("core.out.fixed_str.value"),
+	.name = HGRAPH_STR("value"),
 	.label = HGRAPH_STR("Value"),
 	.description = HGRAPH_STR("The value to output"),
 	.data_type = &hgraph_core_fixed_str,
@@ -120,13 +120,13 @@ const hgraph_node_type_t hgraph_core_fixed_str_out = {
 
 // variable string
 static const hgraph_pin_description_t hgraph_core_var_str_out_out = {
-	.name = HGRAPH_STR("core.out.var_str.out"),
+	.name = HGRAPH_STR("out"),
 	.label = HGRAPH_STR("Output"),
 	.data_type = &hgraph_core_var_str,
 };
 
 const hgraph_attribute_description_t hgraph_core_var_str_out_attr_value = {
-	.name = HGRAPH_STR("core.out.var_str.value"),
+	.name = HGRAPH_STR("value"),
 	.label = HGRAPH_STR("Value"),
 	.description = HGRAPH_STR("The value to output"),
 	.data_type = &hgraph_core_var_str,
