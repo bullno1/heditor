@@ -12,7 +12,6 @@
 #include "detect_debugger.h"
 #include "entry.h"
 #include "allocator/arena.h"
-#include "path.h"
 #include <string.h>
 #include <errno.h>
 
@@ -26,7 +25,10 @@ REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 
 extern sapp_icon_desc
-load_app_icon(void);
+load_app_icon(hed_arena_t* arena);
+
+extern void
+load_app_config(hed_arena_t* arena);
 
 static
 void init(void* userdata) {
@@ -171,33 +173,6 @@ cleanup(void) {
 	hed_arena_cleanup(&frame_arena);
 }
 
-static void
-load_app_config(hed_arena_t* arena) {
-	hed_allocator_t* alloc = hed_arena_as_allocator(arena);
-	hed_path_t* path = hed_path_current(alloc);
-
-	while (path != NULL) {
-		HED_WITH_ARENA(arena) {
-			hed_path_t* config_path = hed_path_join(
-				alloc,
-				path,
-				(const char*[]){ "heditor.ini", NULL }
-			);
-
-			const char* str_path = hed_path_as_str(config_path);
-			FILE* config_file = fopen(str_path, "rb");
-			if (config_file != NULL) {
-				path = NULL;
-				log_trace("Found config at: %s", str_path);
-				fclose(config_file);
-				break;
-			}
-		}
-
-		path = hed_path_dirname(alloc, path);
-	}
-}
-
 void
 remodule_entry(remodule_op_t op, void* userdata) {
 	entry_args_t* args = userdata;
@@ -220,7 +195,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.width = 1280,
 			.height = 720,
 			.icon = op == REMODULE_OP_LOAD
-				? load_app_icon()
+				? load_app_icon(&frame_arena)
 				: (sapp_icon_desc){ .sokol_default = true },
 			.user_data = userdata,
 			.logger = args->sokol_logger,
