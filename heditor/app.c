@@ -33,15 +33,25 @@ void init(void* userdata) {
 	sg_setup(&(sg_desc){
 		.environment = sglue_environment(),
 		.logger = {
-			.func = args->logger.func,
-			.user_data = args->logger.user_data,
+			.func = args->sokol_logger.func,
+			.user_data = args->sokol_logger.user_data,
+		},
+		.allocator = {
+			.alloc_fn = args->sokol_allocator.alloc_fn,
+			.free_fn = args->sokol_allocator.free_fn,
+			.user_data = args->sokol_allocator.user_data,
 		},
 	});
 
 	simgui_setup(&(simgui_desc_t){
 		.logger = {
-			.func = args->logger.func,
-			.user_data = args->logger.user_data,
+			.func = args->sokol_logger.func,
+			.user_data = args->sokol_logger.user_data,
+		},
+		.allocator = {
+			.alloc_fn = args->sokol_allocator.alloc_fn,
+			.free_fn = args->sokol_allocator.free_fn,
+			.user_data = args->sokol_allocator.user_data,
 		},
 	});
 
@@ -205,6 +215,8 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				? load_app_icon()
 				: (sapp_icon_desc){ .sokol_default = true },
 			.user_data = userdata,
+			.logger = args->sokol_logger,
+			.allocator = args->sokol_allocator,
 		};
 	}
 }

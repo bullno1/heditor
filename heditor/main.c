@@ -5,6 +5,9 @@
 #include <sokol_glue.h>
 #include "pico_log.h"
 #include "entry.h"
+#include "allocator/std.h"
+#include "allocator/sokol.h"
+#include "allocator/counting.h"
 
 #ifndef NDEBUG
 #	define HEDITOR_LIB_SUFFIX "_d"
@@ -15,6 +18,12 @@
 static remodule_t* app_module = NULL;
 static remodule_monitor_t* app_monitor = NULL;
 static entry_args_t entry = { 0 };
+static hed_allocator_t allocator = { 0 };
+
+#ifndef NDEBUG
+static hed_counting_allocator_t app_allocator = { 0 };
+static hed_counting_allocator_t sokol_allocator = { 0 };
+#endif
 
 static
 void init(void) {
@@ -35,6 +44,11 @@ cleanup(void) {
 
 	remodule_unmonitor(app_monitor);
 	remodule_unload(app_module);
+
+#ifndef NDEBUG
+	log_debug("Peak app allocation %zu", app_allocator.peak_allocated);
+	log_debug("Peak sokol allocation %zu", sokol_allocator.peak_allocated);
+#endif
 }
 
 static void
@@ -60,7 +74,7 @@ event(const sapp_event* ev) {
 }
 
 static void
-log(
+sokol_log(
 	const char* tag,                // always "sapp"
 	uint32_t log_level,             // 0=panic, 1=error, 2=warning, 3=info
 	uint32_t log_item_id,           // SAPP_LOGITEM_*
@@ -102,8 +116,21 @@ log(
 
 sapp_desc
 sokol_main(int argc, char* argv[]) {
+	// Args
 	entry.argc = argc;
 	entry.argv = argv;
+
+	// Allocator
+	allocator = hed_std_allocator();
+#ifndef NDEBUG
+	entry.allocator = hed_counting_allocator_init(&app_allocator, &allocator);
+	entry.sokol_allocator = hed_allocator_to_sokol(
+		hed_counting_allocator_init(&sokol_allocator, &allocator)
+	);
+#else
+	entry.allocator = &allocator;
+	entry.sokol_allocator = hed_allocator_to_sokol(&allocator);
+#endif
 
 	// Setup logging
 	log_appender_t id = log_add_stream(stderr, LOG_LEVEL_TRACE);
@@ -111,7 +138,7 @@ sokol_main(int argc, char* argv[]) {
 	log_display_colors(id, true);
 	log_display_timestamp(id, true);
 	log_display_file(id, true);
-	entry.logger.func = log;
+	entry.sokol_logger.func = sokol_log;
 
 	// Load main app module
 	app_module = remodule_load(
@@ -129,7 +156,6 @@ sokol_main(int argc, char* argv[]) {
 	desc.frame_cb = frame;
 	desc.event_cb = event;
 	desc.cleanup_cb = cleanup;
-	desc.logger.func = log;
 
 	return desc;
 }

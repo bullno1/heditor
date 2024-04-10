@@ -51,5 +51,8 @@ target_link_libraries(heditor_app PRIVATE
 target_include_directories(heditor_app PRIVATE "./")
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 
-add_executable(heditor "./main.c")
+add_executable(heditor
+	./main.c
+	./allocator/counting.c
+)
 target_link_libraries(heditor PRIVATE heditor_libs)
