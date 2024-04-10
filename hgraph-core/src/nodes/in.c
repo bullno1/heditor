@@ -3,20 +3,18 @@
 
 // f32
 static const hgraph_pin_description_t hgraph_core_f32_in_in = {
-	.name = HGRAPH_STR("core.in.f32.in"),
+	.name = HGRAPH_STR("in"),
 	.label = HGRAPH_STR("Input"),
 	.data_type = &hgraph_core_f32,
 };
 
 static inline void
 hgraph_core_f32_in_execute(const hgraph_node_api_t* api) {
-	float value = *(const float*)hgraph_node_input(
+	const float* value = hgraph_node_input(
 		api,
 		&hgraph_core_f32_in_in
 	);
-	float* status = hgraph_node_allocate(api, HGRAPH_LIFETIME_EXECUTION, sizeof(float));
-	*status = value;
-	hgraph_node_report_status(api, status);
+	hgraph_node_report_status(api, value);
 }
 
 const hgraph_node_type_t hgraph_core_f32_in = {
@@ -34,20 +32,18 @@ const hgraph_node_type_t hgraph_core_f32_in = {
 
 // i32
 static const hgraph_pin_description_t hgraph_core_i32_in_in = {
-	.name = HGRAPH_STR("core.in.i32.in"),
+	.name = HGRAPH_STR("in"),
 	.label = HGRAPH_STR("Input"),
 	.data_type = &hgraph_core_i32,
 };
 
 static inline void
 hgraph_core_i32_in_execute(const hgraph_node_api_t* api) {
-	int32_t value = *(const int32_t*)hgraph_node_input(
+	const int32_t* value = hgraph_node_input(
 		api,
 		&hgraph_core_i32_in_in
 	);
-	int32_t* status = hgraph_node_allocate(api, HGRAPH_LIFETIME_EXECUTION, sizeof(int32_t));
-	*status = value;
-	hgraph_node_report_status(api, status);
+	hgraph_node_report_status(api, value);
 }
 
 const hgraph_node_type_t hgraph_core_i32_in = {
@@ -65,7 +61,7 @@ const hgraph_node_type_t hgraph_core_i32_in = {
 
 // str
 static const hgraph_pin_description_t hgraph_core_str_in_in = {
-	.name = HGRAPH_STR("core.in.str.in"),
+	.name = HGRAPH_STR("in"),
 	.label = HGRAPH_STR("Input"),
 	.data_type = &hgraph_core_var_str,
 };
