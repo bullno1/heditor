@@ -14,7 +14,6 @@
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
-#define QOI_IMPLEMENTATION
 #include <qoi.h>
 
 #ifdef NDEBUG
