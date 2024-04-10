@@ -78,7 +78,7 @@ HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_concat;
 // Manual registration
 
 HGRAPH_CORE_API void
-hgraph_core_register(hgraph_plugin_api_t* plugin_api);
+hgraph_core_register(const hgraph_plugin_api_t* plugin_api);
 
 // Type safe manipulation functions
 
