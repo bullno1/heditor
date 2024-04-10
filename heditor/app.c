@@ -11,11 +11,11 @@
 #include "command.h"
 #include "detect_debugger.h"
 #include "resources.h"
+#include "qoi.h"
+#include "entry.h"
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
-#include <qoi.h>
-#include <entry.h>
 
 #ifdef NDEBUG
 REMODULE_VAR(bool, heditor_debug) = false;
