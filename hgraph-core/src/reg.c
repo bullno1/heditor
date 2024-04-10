@@ -9,6 +9,10 @@ hgraph_core_register(const hgraph_plugin_api_t* api) {
 	hgraph_plugin_register_node_type(api, &hgraph_core_i32_out);
 	hgraph_plugin_register_node_type(api, &hgraph_core_fixed_str_out);
 	hgraph_plugin_register_node_type(api, &hgraph_core_var_str_out);
+
+	hgraph_plugin_register_node_type(api, &hgraph_core_f32_in);
+	hgraph_plugin_register_node_type(api, &hgraph_core_i32_in);
+	hgraph_plugin_register_node_type(api, &hgraph_core_str_in);
 }
 
 void
