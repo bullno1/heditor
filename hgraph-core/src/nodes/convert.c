@@ -1,6 +1,7 @@
 #include <hgraph/core.h>
 #include <heditor/plugin.h>
 #include <math.h>
+#include <stdio.h>
 
 // i32_to_f32
 static void
@@ -118,4 +119,84 @@ hgraph_core_f32_to_i32_attr_rounding_mode_render(void* value, void* gui) {
 		"Floor",
 		"Ceiling"
 	});
+}
+
+// i32_to_str
+static void
+hgraph_core_i32_to_str_execute(const hgraph_node_api_t* api);
+
+const hgraph_node_type_t hgraph_core_i32_to_str = {
+	.name = HGRAPH_STR("core.convert.i32_to_str"),
+	.label = HGRAPH_STR("i32 to str"),
+	.description = HGRAPH_STR("Convert i32 to string"),
+	.group = HGRAPH_STR("Core/Convert"),
+	.size = 0,
+	.alignment = _Alignof(char),
+	.input_pins = HGRAPH_NODE_PINS(
+		&(hgraph_pin_description_t){
+			.name = HGRAPH_STR("in"),
+			.label = HGRAPH_STR("Input"),
+			.data_type = &hgraph_core_i32,
+		}
+	),
+	.output_pins = HGRAPH_NODE_PINS(
+		&(hgraph_pin_description_t){
+			.name = HGRAPH_STR("out"),
+			.label = HGRAPH_STR("Output"),
+			.data_type = &hgraph_core_var_str,
+		}
+	),
+	.execute = hgraph_core_i32_to_str_execute,
+};
+
+void
+hgraph_core_i32_to_str_execute(const hgraph_node_api_t* api) {
+	char buf[32];
+	int32_t input = *(const int32_t*)hgraph_node_input(
+		api,
+		hgraph_core_i32_to_str.input_pins[0]
+	);
+	int len = snprintf(buf, sizeof(buf), "%d", input);
+	hgraph_str_t out = hgraph_core_alloc_str_output(api, (size_t)len, buf);
+	hgraph_node_output(api, hgraph_core_f32_to_str.output_pins[0], &out);
+}
+
+// f32_to_str
+static void
+hgraph_core_f32_to_str_execute(const hgraph_node_api_t* api);
+
+const hgraph_node_type_t hgraph_core_f32_to_str = {
+	.name = HGRAPH_STR("core.convert.f32_to_str"),
+	.label = HGRAPH_STR("f32 to str"),
+	.description = HGRAPH_STR("Convert f32 to string"),
+	.group = HGRAPH_STR("Core/Convert"),
+	.size = 0,
+	.alignment = _Alignof(char),
+	.input_pins = HGRAPH_NODE_PINS(
+		&(hgraph_pin_description_t){
+			.name = HGRAPH_STR("in"),
+			.label = HGRAPH_STR("Input"),
+			.data_type = &hgraph_core_f32,
+		}
+	),
+	.output_pins = HGRAPH_NODE_PINS(
+		&(hgraph_pin_description_t){
+			.name = HGRAPH_STR("out"),
+			.label = HGRAPH_STR("Output"),
+			.data_type = &hgraph_core_var_str,
+		}
+	),
+	.execute = hgraph_core_f32_to_str_execute,
+};
+
+void
+hgraph_core_f32_to_str_execute(const hgraph_node_api_t* api) {
+	char buf[32];
+	float input = *(const float*)hgraph_node_input(
+		api,
+		hgraph_core_f32_to_str.input_pins[0]
+	);
+	int len = snprintf(buf, sizeof(buf), "%f", input);
+	hgraph_str_t out = hgraph_core_alloc_str_output(api, (size_t)len, buf);
+	hgraph_node_output(api, hgraph_core_f32_to_str.output_pins[0], &out);
 }

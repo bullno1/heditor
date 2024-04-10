@@ -96,9 +96,7 @@ hgraph_core_fixed_str_out_execute(const hgraph_node_api_t* api) {
 		api,
 		&hgraph_core_fixed_str_out_attr_value
 	);
-	char* chars = hgraph_node_allocate(api, HGRAPH_LIFETIME_EXECUTION, value->len);
-	memcpy(chars, value->data, value->len);
-	hgraph_str_t out = { .length = value->len, .data = chars };
+	hgraph_str_t out = hgraph_core_alloc_str_output(api, value->len, value->data);
 	hgraph_node_output(api, &hgraph_core_fixed_str_out_out, &out);
 }
 
@@ -138,9 +136,7 @@ hgraph_core_var_str_out_execute(const hgraph_node_api_t* api) {
 		api,
 		&hgraph_core_var_str_out_attr_value
 	);
-	char* chars = hgraph_node_allocate(api, HGRAPH_LIFETIME_EXECUTION, value.length);
-	memcpy(chars, value.data, value.length);
-	hgraph_str_t out = { .length = value.length, .data = chars };
+	hgraph_str_t out = hgraph_core_alloc_str_output(api, value.length, value.data);
 	hgraph_node_output(api, &hgraph_core_var_str_out_out, &out);
 }
 
