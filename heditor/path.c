@@ -6,7 +6,7 @@
 
 #if defined(__unix__)
 #	define PATH_SEP '/'
-#	include <libgen.h>
+#	include <unistd.h>
 #elif defined(_WIN32)
 #	define PATH_SEP '\\'
 #else
@@ -98,13 +98,14 @@ hed_path_join(hed_allocator_t* alloc, const hed_path_t* base, const char* parts[
 		tmp_buf_size += strlen(parts[i]) + 1;
 	}
 
-	char* tmp_buf = hed_malloc(tmp_buf_size + 1, alloc);
+	char* tmp_buf = hed_malloc(tmp_buf_size, alloc);
 	char* pos = tmp_buf;
 	memcpy(pos, base->name, base->len);
 	pos += base->len;
 
 	for (int i = 0; parts[i] != NULL; ++i) {
 		pos[0] = PATH_SEP;
+		++pos;
 
 		int len = strlen(parts[i]);
 		memcpy(pos, parts[i], len);
@@ -123,5 +124,17 @@ hed_path_is_root(const hed_path_t* path) {
 	return path->len == 1 && path->name[0] == '/';
 #else
 	return path->len == 2 && path->name[1] == ':';
+#endif
+}
+
+hed_path_t*
+hed_path_current(hed_allocator_t* alloc) {
+#if defined(__linux__)
+	char* dir = getcwd(NULL, 0);
+	hed_path_t* result = hed_path_alloc(alloc, dir, strlen(dir));
+	free(dir);
+	return result;
+#else
+#	error "TODO"
 #endif
 }

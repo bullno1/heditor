@@ -14,6 +14,7 @@
 #include "qoi.h"
 #include "entry.h"
 #include "allocator/arena.h"
+#include "path.h"
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
@@ -203,11 +204,43 @@ load_app_icon(void) {
 	}
 }
 
+static void
+load_app_config(hed_arena_t* arena) {
+	hed_allocator_t* alloc = hed_arena_as_allocator(arena);
+	hed_path_t* path = hed_path_current(alloc);
+
+	while (path != NULL) {
+		HED_WITH_ARENA(arena) {
+			hed_path_t* config_path = hed_path_join(
+				alloc,
+				path,
+				(const char*[]){ "heditor.ini", NULL }
+			);
+
+			const char* str_path = hed_path_as_str(config_path);
+			FILE* config_file = fopen(str_path, "rb");
+			if (config_file != NULL) {
+				path = NULL;
+				log_trace("Found config at: %s", str_path);
+				fclose(config_file);
+				break;
+			}
+		}
+
+		path = hed_path_dirname(alloc, path);
+	}
+}
+
 void
 remodule_entry(remodule_op_t op, void* userdata) {
 	entry_args_t* args = userdata;
 	if (op == REMODULE_OP_LOAD) {
 		hed_arena_init(&frame_arena, 4 * 1024 * 1024, args->allocator);
+
+		// TODO: config reload
+		HED_WITH_ARENA(&frame_arena) {
+			load_app_config(&frame_arena);
+		}
 	}
 
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {

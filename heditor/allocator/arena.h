@@ -10,7 +10,7 @@
 			hed_arena_checkpoint_t checkpoint; \
 		} itr = { 0, hed_arena_begin(ARENA) }; \
 		itr.i < 1; \
-		++i, hed_arena_end(ARENA, itr.checkpoint) \
+		++itr.i, hed_arena_end(ARENA, itr.checkpoint) \
 	) \
 
 typedef struct hed_arena_chunk_s hed_arena_chunk_t;

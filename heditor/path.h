@@ -18,6 +18,9 @@ hed_path_basename(hed_allocator_t* alloc, const hed_path_t* file);
 hed_path_t*
 hed_path_join(hed_allocator_t* alloc, const hed_path_t* base, const char* parts[]);
 
+hed_path_t*
+hed_path_current(hed_allocator_t* alloc);
+
 bool
 hed_path_is_root(const hed_path_t* path);
 
