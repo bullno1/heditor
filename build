@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/sh -e
 
 mkdir -p .build
 cd .build
+# Work around for LTO not being able to find the assets
+if [ ! -L assets ]
+then
+	ln -s ../heditor/assets assets
+fi
 
 BUILD_TYPE=${1:-RelWithDebInfo}
 

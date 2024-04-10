@@ -3,7 +3,7 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
 add_library(heditor_libs SHARED
-	./libs.c
+	./src/libs.c
 	../deps/cimgui/cimgui.cpp
 	../deps/cimgui/imgui/imgui.cpp
 	../deps/cimgui/imgui/imgui_widgets.cpp
@@ -30,19 +30,19 @@ if (NOT MSVC)
 endif()
 
 if (MSVC)
-	set(HEDITOR_RC ./resources.rc)
+	set(HEDITOR_RC ./src/resources.rc)
 else()
 	set(HEDITOR_RC)
 endif()
 set(HEDITOR_APP_SOURCES
-	./app.c
-	./sfd/sfd.c
-	./command.c
-	./detect_debugger.c
-	./resources.c
-	./qoi.c
-	./path.c
-	./allocator/arena.c
+	./src/app.c
+	./src/sfd/sfd.c
+	./src/command.c
+	./src/detect_debugger.c
+	./src/resources.c
+	./src/qoi.c
+	./src/path.c
+	./src/allocator/arena.c
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
@@ -50,11 +50,14 @@ target_link_libraries(heditor_app PRIVATE
 	heditor_libs
 	bullno1-libs
 )
-target_include_directories(heditor_app PRIVATE "./")
+target_include_directories(heditor_app PRIVATE "./src")
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 
+add_library(heditor_plugin INTERFACE)
+target_include_directories(heditor_plugin INTERFACE "include")
+
 add_executable(heditor
-	./main.c
-	./allocator/counting.c
+	./src/main.c
+	./src/allocator/counting.c
 )
 target_link_libraries(heditor PRIVATE heditor_libs)
