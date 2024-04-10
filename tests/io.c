@@ -102,8 +102,6 @@ TEST(io, read_write_same) {
 	hgraph_info_t graph_info = hgraph_get_info(graph);
 	ASSERT_EQ(graph_info.num_nodes, 3);
 	ASSERT_EQ(graph_info.num_edges, 2);
-
-	hgraph_cleanup(graph);
 }
 
 TEST(io, slip) {
@@ -158,13 +156,10 @@ TEST(io, slip) {
 	ASSERT_EQ(hgraph_read_graph_config(&header, &graph_config, &mem_io->in), HGRAPH_IO_OK);
 	graph_config.registry = registry;
 
-	hgraph_cleanup(graph);
 	hgraph_init(graph, &graph_config);
 	ASSERT_EQ(hgraph_read_graph(&header, graph, &mem_io->in), HGRAPH_IO_OK);
 	ASSERT_TRUE(mem_io->pos == mem_io->end);
 
 	hgraph_info_t graph_info = hgraph_get_info(graph);
 	ASSERT_EQ(graph_info.num_nodes, 1);
-
-	hgraph_cleanup(graph);
 }

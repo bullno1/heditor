@@ -139,9 +139,6 @@ hgraph_registry_iterate(
 HGRAPH_API size_t
 hgraph_init(hgraph_t* graph, const hgraph_config_t* config);
 
-HGRAPH_API void
-hgraph_cleanup(hgraph_t* graph);
-
 HGRAPH_API hgraph_index_t
 hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type);
 

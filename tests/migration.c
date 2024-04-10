@@ -68,8 +68,6 @@ TEST(migration, missing_type) {
 		hgraph_get_node_by_name(graph, HGRAPH_STR("end")),
 		hgraph_get_node_by_name(new_graph, HGRAPH_STR("end"))
 	);
-
-	hgraph_cleanup(new_graph);
 }
 
 TEST(migration, identical) {
@@ -113,6 +111,4 @@ TEST(migration, identical) {
 		hgraph_get_node_by_name(graph, HGRAPH_STR("end")),
 		hgraph_get_node_by_name(new_graph, HGRAPH_STR("end"))
 	);
-
-	hgraph_cleanup(new_graph);
 }
