@@ -4,6 +4,7 @@
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include "pico_log.h"
+#include "entry.h"
 
 #ifndef NDEBUG
 #	define HEDITOR_LIB_SUFFIX "_d"
@@ -13,23 +14,23 @@
 
 static remodule_t* app_module = NULL;
 static remodule_monitor_t* app_monitor = NULL;
-static sapp_desc app = { 0 };
+static entry_args_t entry = { 0 };
 
 static
 void init(void) {
-	if (app.init_cb) {
-		app.init_cb();
-	} else if (app.init_userdata_cb) {
-		app.init_userdata_cb(app.user_data);
+	if (entry.app.init_cb) {
+		entry.app.init_cb();
+	} else if (entry.app.init_userdata_cb) {
+		entry.app.init_userdata_cb(entry.app.user_data);
 	}
 }
 
 static void
 cleanup(void) {
-	if (app.cleanup_cb) {
-		app.cleanup_cb();
-	} else if (app.cleanup_userdata_cb) {
-		app.cleanup_userdata_cb(app.user_data);
+	if (entry.app.cleanup_cb) {
+		entry.app.cleanup_cb();
+	} else if (entry.app.cleanup_userdata_cb) {
+		entry.app.cleanup_userdata_cb(entry.app.user_data);
 	}
 
 	remodule_unmonitor(app_monitor);
@@ -42,19 +43,19 @@ frame(void) {
 		log_info("Reloaded app");
 	}
 
-	if (app.frame_cb) {
-		app.frame_cb();
-	} else if (app.frame_userdata_cb) {
-		app.frame_userdata_cb(app.user_data);
+	if (entry.app.frame_cb) {
+		entry.app.frame_cb();
+	} else if (entry.app.frame_userdata_cb) {
+		entry.app.frame_userdata_cb(entry.app.user_data);
 	}
 }
 
 static void
 event(const sapp_event* ev) {
-	if (app.event_cb) {
-		app.event_cb(ev);
-	} else if (app.event_userdata_cb) {
-		app.event_userdata_cb(ev, app.user_data);
+	if (entry.app.event_cb) {
+		entry.app.event_cb(ev);
+	} else if (entry.app.event_userdata_cb) {
+		entry.app.event_userdata_cb(ev, entry.app.user_data);
 	}
 }
 
@@ -101,8 +102,8 @@ log(
 
 sapp_desc
 sokol_main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
+	entry.argc = argc;
+	entry.argv = argv;
 
 	// Setup logging
 	log_appender_t id = log_add_stream(stderr, LOG_LEVEL_TRACE);
@@ -110,16 +111,16 @@ sokol_main(int argc, char* argv[]) {
 	log_display_colors(id, true);
 	log_display_timestamp(id, true);
 	log_display_file(id, true);
-	app.logger.func = log;
+	entry.logger.func = log;
 
 	// Load main app module
 	app_module = remodule_load(
 		"heditor_app" HEDITOR_LIB_SUFFIX REMODULE_DYNLIB_EXT,
-		&app
+		&entry
 	);
 	app_monitor = remodule_monitor(app_module);
 
-	sapp_desc desc = app;
+	sapp_desc desc = entry.app;
 
 	// All callbacks have to be hooked and forwarded since sokol will make
 	// a copy of this structure.

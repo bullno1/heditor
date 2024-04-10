@@ -15,6 +15,7 @@
 #include <string.h>
 #include <errno.h>
 #include <qoi.h>
+#include <entry.h>
 
 #ifdef NDEBUG
 REMODULE_VAR(bool, heditor_debug) = false;
@@ -26,21 +27,21 @@ REMODULE_VAR(bool, show_imgui_demo) = false;
 
 static
 void init(void* userdata) {
-	sapp_desc* app = userdata;
-	free((void*)app->icon.images[0].pixels.ptr);
+	entry_args_t* args = userdata;
+	free((void*)args->app.icon.images[0].pixels.ptr);
 
 	sg_setup(&(sg_desc){
 		.environment = sglue_environment(),
 		.logger = {
-			.func = app->logger.func,
-			.user_data = app->logger.user_data,
+			.func = args->logger.func,
+			.user_data = args->logger.user_data,
 		},
 	});
 
 	simgui_setup(&(simgui_desc_t){
 		.logger = {
-			.func = app->logger.func,
-			.user_data = app->logger.user_data,
+			.func = args->logger.func,
+			.user_data = args->logger.user_data,
 		},
 	});
 
@@ -190,9 +191,9 @@ load_app_icon(void) {
 
 void
 remodule_entry(remodule_op_t op, void* userdata) {
-	sapp_desc* app = userdata;
+	entry_args_t* args = userdata;
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
-		*app = (sapp_desc){
+		args->app = (sapp_desc){
 			.init_userdata_cb = init,
 			.cleanup_cb = cleanup,
 			.event_cb = event,
