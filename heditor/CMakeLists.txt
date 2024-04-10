@@ -42,6 +42,7 @@ set(HEDITOR_APP_SOURCES
 	./src/resources.c
 	./src/qoi.c
 	./src/path.c
+	./src/icon.c
 	./src/allocator/arena.c
 	"${HEDITOR_RC}"
 )

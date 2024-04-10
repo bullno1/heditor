@@ -10,12 +10,9 @@
 #include "pico_log.h"
 #include "command.h"
 #include "detect_debugger.h"
-#include "resources.h"
-#include "qoi.h"
 #include "entry.h"
 #include "allocator/arena.h"
 #include "path.h"
-#include <xincbin.h>
 #include <string.h>
 #include <errno.h>
 
@@ -27,6 +24,9 @@ REMODULE_VAR(bool, hed_debug) = true;
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
+
+extern sapp_icon_desc
+load_app_icon(void);
 
 static
 void init(void* userdata) {
@@ -169,39 +169,6 @@ cleanup(void) {
 	sg_shutdown();
 
 	hed_arena_cleanup(&frame_arena);
-}
-
-static sapp_icon_desc
-load_app_icon(void) {
-	xincbin_data_t qoi_icon = XINCBIN_GET(icon);
-	struct qoidecoder decoder = qoidecoder(qoi_icon.data, (int)qoi_icon.size);
-	if (decoder.error) {
-		return (sapp_icon_desc){ .sokol_default = true };
-	}
-
-	int num_pixels = decoder.count;
-	size_t icon_size = sizeof(unsigned) * num_pixels;
-	unsigned* pixels = hed_arena_alloc(&frame_arena, icon_size, _Alignof(unsigned));
-	for (int i = 0; i < num_pixels; ++i) {
-		pixels[i] = qoidecode(&decoder);
-	}
-
-	if (decoder.error) {
-		return (sapp_icon_desc){ .sokol_default = true };
-	} else {
-		return (sapp_icon_desc){
-			.images = {
-				{
-					.width = decoder.width,
-					.height = decoder.height,
-					.pixels = {
-						.ptr = pixels,
-						.size = icon_size,
-					},
-				},
-			},
-		};
-	}
 }
 
 static void

@@ -10,3 +10,6 @@
 [submodule "deps/bullno1-libs"]
 	path = deps/bullno1-libs
 	url = https://github.com/bullno1/libs.git
+[submodule "deps/inih"]
+	path = deps/inih
+	url = https://github.com/benhoyt/inih.git
