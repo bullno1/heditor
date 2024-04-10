@@ -55,9 +55,10 @@ HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_f32_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_f32_out_attr_value;
 HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_i32_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_i32_out_attr_value;
-
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_str_out;
-HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_str_out_attr_value;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_fixed_str_out;
+HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_fixed_str_out_attr_value;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_var_str_out;
+HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_var_str_out_attr_value;
 
 // Simple input nodes
 
@@ -72,13 +73,14 @@ HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_f32_to_i32;
 HGRAPH_CORE_API extern hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode;
 HGRAPH_CORE_API extern hgraph_node_type_t hgraph_i32_to_str;
 HGRAPH_CORE_API extern hgraph_node_type_t hgraph_f32_to_str;
+HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_concat;
 
 // Manual registration
 
 HGRAPH_CORE_API void
 hgraph_core_register(hgraph_plugin_api_t* plugin_api);
 
-// Utility node manipulation functions
+// Type safe manipulation functions
 
 static inline void
 hgraph_core_set_i32_out_value(
@@ -109,23 +111,33 @@ hgraph_core_set_f32_out_value(
 }
 
 static inline void
-hgraph_core_set_fixed_str_out_value(
+hgraph_core_set_str_out_value(
 	hgraph_t* graph,
 	hgraph_index_t node,
 	hgraph_str_t value
 ) {
-	hgraph_core_fixed_str_t tmp;
-	tmp.len = value.length <= HGRAPH_CORE_FIXED_STR_LEN
-		? value.length
-		: HGRAPH_CORE_FIXED_STR_LEN;
-	memcpy(tmp.data, value.data, tmp.len);
+	const hgraph_node_type_t* type = hgraph_get_node_type(graph, node);
+	if (type == &hgraph_core_fixed_str_out) {
+		hgraph_core_fixed_str_t tmp;
+		tmp.len = value.length <= HGRAPH_CORE_FIXED_STR_LEN
+			? value.length
+			: HGRAPH_CORE_FIXED_STR_LEN;
+		memcpy(tmp.data, value.data, tmp.len);
 
-	hgraph_set_node_attribute(
-		graph,
-		node,
-		&hgraph_core_str_out_attr_value,
-		&tmp
-	);
+		hgraph_set_node_attribute(
+			graph,
+			node,
+			&hgraph_core_fixed_str_out_attr_value,
+			&tmp
+		);
+	} else if (type == &hgraph_core_var_str_out) {
+		hgraph_set_node_attribute(
+			graph,
+			node,
+			&hgraph_core_var_str_out_attr_value,
+			&value
+		);
+	}
 }
 
 static inline void

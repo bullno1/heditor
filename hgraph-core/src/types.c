@@ -98,15 +98,15 @@ hgraph_core_render_fixed_str(void* value, void* gui) {
 static inline hgraph_io_status_t
 hgraph_core_serialize_var_str(const void* value, hgraph_out_t* out) {
 	(void)value;
-	(void)out;
-	return HGRAPH_IO_ERROR;
+	return hgraph_io_write_str(HGRAPH_STR(""), out);
 }
 
 static inline hgraph_io_status_t
 hgraph_core_deserialize_var_str(void* value, hgraph_in_t* in) {
 	(void)value;
-	(void)in;
-	return HGRAPH_IO_ERROR;
+	char buf;
+	size_t len = 1;
+	return hgraph_io_read_str(&buf, &len, in);
 }
 
 static inline void

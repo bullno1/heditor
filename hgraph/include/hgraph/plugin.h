@@ -63,6 +63,7 @@ typedef struct hgraph_pin_description_s {
 
 typedef struct hgraph_attribute_description_s {
 	hgraph_str_t name;
+	hgraph_str_t label;
 	hgraph_str_t description;
 
 	const hgraph_data_type_t* data_type;

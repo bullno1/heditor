@@ -1,5 +1,6 @@
 set(SOURCES
 	./src/types.c
+	./src/nodes/out.c
 )
 setup_library(hgraph_core FALSE "${SOURCES}")
 target_include_directories(hgraph_core PUBLIC "include")
