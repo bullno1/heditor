@@ -51,29 +51,14 @@ HGRAPH_CORE_API extern const hgraph_data_type_t hgraph_core_var_str;
 
 // Simple output nodes
 
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_f32_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_f32_out_attr_value;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_i32_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_i32_out_attr_value;
 HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_fixed_str_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_fixed_str_out_attr_value;
 HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_var_str_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_var_str_out_attr_value;
 
-// Simple input nodes
-
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_f32_in;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_i32_in;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_str_in;
-
-// Simple conversion nodes
-
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_i32_to_f32;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_f32_to_i32;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_i32_to_str;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_f32_to_str;
-HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_str_concat;
 
 // Manual registration
 
@@ -179,6 +164,19 @@ hgraph_core_get_str_in_result(
 ) {
 	const hgraph_str_t* ptr = (const hgraph_str_t*)hgraph_pipeline_get_node_status(pipeline, node);
 	return ptr != NULL ? *ptr : (hgraph_str_t){ 0 };
+}
+
+static inline hgraph_str_t
+hgraph_core_alloc_str_output(
+	const hgraph_node_api_t* node_api,
+	size_t length,
+	const char* data
+) {
+	char* tmp = hgraph_node_allocate(node_api, HGRAPH_LIFETIME_EXECUTION, length);
+	if (tmp == NULL) { return (hgraph_str_t) { 0 }; }
+
+	memcpy(tmp, data, length);
+	return (hgraph_str_t){ .length = length, .data = data };
 }
 
 #ifdef __cplusplus

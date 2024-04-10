@@ -2,17 +2,21 @@
 #include "hgraph/plugin.h"
 #include <hgraph/core.h>
 #include <remodule.h>
+#include <autolist.h>
+
+AUTOLIST_DECLARE(hgraph_core_nodes)
 
 void
 hgraph_core_register(const hgraph_plugin_api_t* api) {
-	hgraph_plugin_register_node_type(api, &hgraph_core_f32_out);
-	hgraph_plugin_register_node_type(api, &hgraph_core_i32_out);
-	hgraph_plugin_register_node_type(api, &hgraph_core_fixed_str_out);
-	hgraph_plugin_register_node_type(api, &hgraph_core_var_str_out);
+	for (
+		const autolist_entry_t* const* itr = AUTOLIST_BEGIN(hgraph_core_nodes);
+		itr != AUTOLIST_END(hgraph_core_nodes);
+		++itr
+	) {
+		if (*itr == NULL) { continue; }
 
-	hgraph_plugin_register_node_type(api, &hgraph_core_f32_in);
-	hgraph_plugin_register_node_type(api, &hgraph_core_i32_in);
-	hgraph_plugin_register_node_type(api, &hgraph_core_str_in);
+		hgraph_plugin_register_node_type(api, (*itr)->value_addr);
+	}
 }
 
 void

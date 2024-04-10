@@ -1,5 +1,6 @@
 #include "hgraph/plugin.h"
 #include <hgraph/core.h>
+#include "../reg.h"
 
 // f32
 static const hgraph_pin_description_t hgraph_core_f32_out_out = {
@@ -24,7 +25,7 @@ hgraph_core_f32_out_execute(const hgraph_node_api_t* api) {
 	hgraph_node_output(api, &hgraph_core_f32_out_out, &value);
 }
 
-const hgraph_node_type_t hgraph_core_f32_out = {
+HGRAPH_CORE_NODE(hgraph_core_f32_out) = {
 	.name = HGRAPH_STR("core.out.f32"),
 	.label = HGRAPH_STR("Float out"),
 	.description = HGRAPH_STR("Output a single float"),
@@ -60,7 +61,7 @@ hgraph_core_i32_out_execute(const hgraph_node_api_t* api) {
 	hgraph_node_output(api, &hgraph_core_i32_out_out, &value);
 }
 
-const hgraph_node_type_t hgraph_core_i32_out = {
+HGRAPH_CORE_NODE(hgraph_core_i32_out) = {
 	.name = HGRAPH_STR("core.out.i32"),
 	.label = HGRAPH_STR("Integer out"),
 	.description = HGRAPH_STR("Output a single integer"),
@@ -100,7 +101,7 @@ hgraph_core_fixed_str_out_execute(const hgraph_node_api_t* api) {
 	hgraph_node_output(api, &hgraph_core_fixed_str_out_out, &out);
 }
 
-const hgraph_node_type_t hgraph_core_fixed_str_out = {
+HGRAPH_CORE_NODE(hgraph_core_fixed_str_out) = {
 	.name = HGRAPH_STR("core.out.fixed_str"),
 	.label = HGRAPH_STR("String out"),
 	.description = HGRAPH_STR("Output a single string"),
@@ -140,7 +141,7 @@ hgraph_core_var_str_out_execute(const hgraph_node_api_t* api) {
 	hgraph_node_output(api, &hgraph_core_var_str_out_out, &out);
 }
 
-const hgraph_node_type_t hgraph_core_var_str_out = {
+HGRAPH_CORE_NODE(hgraph_core_var_str_out) = {
 	.name = HGRAPH_STR("core.out.var_str"),
 	.label = HGRAPH_STR("String out"),
 	.description = HGRAPH_STR("Output a single string. This can only be used programmatically."),

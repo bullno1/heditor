@@ -2,12 +2,13 @@
 #include <heditor/plugin.h>
 #include <math.h>
 #include <stdio.h>
+#include "../reg.h"
 
 // i32_to_f32
 static void
 hgraph_core_i32_to_f32_execute(const hgraph_node_api_t* api);
 
-const hgraph_node_type_t hgraph_core_i32_to_f32 = {
+HGRAPH_CORE_NODE(hgraph_core_i32_to_f32) = {
 	.name = HGRAPH_STR("core.convert.i32_to_f32"),
 	.label = HGRAPH_STR("i32 to f32"),
 	.description = HGRAPH_STR("Convert i32 to f32"),
@@ -55,7 +56,7 @@ const hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode =
 	.render = hgraph_core_f32_to_i32_attr_rounding_mode_render,
 };
 
-const hgraph_node_type_t hgraph_core_f34_to_i32 = {
+HGRAPH_CORE_NODE(hgraph_core_f32_to_i32) = {
 	.name = HGRAPH_STR("core.convert.f32_to_i32"),
 	.label = HGRAPH_STR("i32 to f32"),
 	.description = HGRAPH_STR("Convert f32 to i32"),
@@ -125,7 +126,7 @@ hgraph_core_f32_to_i32_attr_rounding_mode_render(void* value, void* gui) {
 static void
 hgraph_core_i32_to_str_execute(const hgraph_node_api_t* api);
 
-const hgraph_node_type_t hgraph_core_i32_to_str = {
+HGRAPH_CORE_NODE(hgraph_core_i32_to_str) = {
 	.name = HGRAPH_STR("core.convert.i32_to_str"),
 	.label = HGRAPH_STR("i32 to str"),
 	.description = HGRAPH_STR("Convert i32 to string"),
@@ -149,7 +150,7 @@ const hgraph_node_type_t hgraph_core_i32_to_str = {
 	.execute = hgraph_core_i32_to_str_execute,
 };
 
-void
+static void
 hgraph_core_i32_to_str_execute(const hgraph_node_api_t* api) {
 	char buf[32];
 	int32_t input = *(const int32_t*)hgraph_node_input(
@@ -158,14 +159,14 @@ hgraph_core_i32_to_str_execute(const hgraph_node_api_t* api) {
 	);
 	int len = snprintf(buf, sizeof(buf), "%d", input);
 	hgraph_str_t out = hgraph_core_alloc_str_output(api, (size_t)len, buf);
-	hgraph_node_output(api, hgraph_core_f32_to_str.output_pins[0], &out);
+	hgraph_node_output(api, hgraph_core_i32_to_str.output_pins[0], &out);
 }
 
 // f32_to_str
 static void
 hgraph_core_f32_to_str_execute(const hgraph_node_api_t* api);
 
-const hgraph_node_type_t hgraph_core_f32_to_str = {
+HGRAPH_CORE_NODE(hgraph_core_f32_to_str) = {
 	.name = HGRAPH_STR("core.convert.f32_to_str"),
 	.label = HGRAPH_STR("f32 to str"),
 	.description = HGRAPH_STR("Convert f32 to string"),
@@ -189,7 +190,7 @@ const hgraph_node_type_t hgraph_core_f32_to_str = {
 	.execute = hgraph_core_f32_to_str_execute,
 };
 
-void
+static void
 hgraph_core_f32_to_str_execute(const hgraph_node_api_t* api) {
 	char buf[32];
 	float input = *(const float*)hgraph_node_input(

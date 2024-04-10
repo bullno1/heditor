@@ -11,4 +11,5 @@ target_link_libraries(hgraph_core PUBLIC
 	hgraph_plugin
 	heditor_plugin
 	remodule
+	bullno1-libs
 )
