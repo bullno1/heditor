@@ -49,7 +49,7 @@ typedef struct hgraph_data_type_s {
 
 	hgraph_io_status_t (*serialize)(const void* value, hgraph_out_t* output);
 	hgraph_io_status_t (*deserialize)(void* value, hgraph_in_t* input);
-	void (*render)(const void* value, void* render_ctx);
+	void (*render)(void* value, void* render_ctx);
 } hgraph_data_type_t;
 
 typedef struct hgraph_pin_description_s {

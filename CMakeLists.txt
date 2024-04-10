@@ -52,4 +52,5 @@ endif()
 
 add_subdirectory(hgraph)
 add_subdirectory(heditor)
+add_subdirectory(hgraph-core)
 add_subdirectory(tests)
