@@ -68,12 +68,12 @@ HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_str_in;
 
 // Simple conversion nodes
 
-HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_i32_to_f32;
-HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_f32_to_i32;
-HGRAPH_CORE_API extern hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode;
-HGRAPH_CORE_API extern hgraph_node_type_t hgraph_i32_to_str;
-HGRAPH_CORE_API extern hgraph_node_type_t hgraph_f32_to_str;
-HGRAPH_CORE_API extern hgraph_node_type_t hgraph_core_concat;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_i32_to_f32;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_f32_to_i32;
+HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_i32_to_str;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_f32_to_str;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_str_concat;
 
 // Manual registration
 

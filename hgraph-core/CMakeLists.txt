@@ -2,6 +2,7 @@ set(SOURCES
 	./src/types.c
 	./src/nodes/in.c
 	./src/nodes/out.c
+	./src/nodes/convert.c
 	./src/reg.c
 )
 setup_library(hgraph_core FALSE "${SOURCES}")
