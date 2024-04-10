@@ -64,7 +64,7 @@ typedef struct hed_gui_s {
 		struct hed_gui_s* ctx,
 		int* value,
 		int count,
-		const char* labels
+		const char* labels[]
 	);
 
 	void* imgui_ctx;
@@ -123,7 +123,7 @@ hed_gui_render_enum(
 	struct hed_gui_s* ctx,
 	int* value,
 	int count,
-	const char* labels
+	const char* labels[]
 ) {
 	return ctx->render_enum(ctx, value, count, labels);
 }

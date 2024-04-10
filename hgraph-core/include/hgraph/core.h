@@ -31,9 +31,9 @@ typedef struct hgraph_core_fixed_str_s {
 } hgraph_core_fixed_str_t;
 
 typedef enum hgraph_core_rounding_mode_e {
-	HGRAPH_ROUND_CEIL,
-	HGRAPH_ROUND_FLOOR,
-	HGRAPH_ROUND_NEAREST,
+	HGRAPH_CORE_ROUND_NEAREST = 0,
+	HGRAPH_CORE_ROUND_FLOOR = 1,
+	HGRAPH_CORE_ROUND_CEIL = 2,
 } hgraph_core_rounding_mode_t;
 
 #ifdef __cplusplus

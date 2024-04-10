@@ -73,7 +73,7 @@ typedef struct hgraph_attribute_description_s {
 	// Attribute just have different defaults from data types and the same
 	// reasoning applies.
 
-	void (*render)(const void* value, void* render_ctx);
+	void (*render)(void* value, void* render_ctx);
 } hgraph_attribute_description_t;
 
 typedef struct hgraph_node_type_s {
