@@ -41,6 +41,7 @@ set(HEDITOR_APP_SOURCES
 	./detect_debugger.c
 	./resources.c
 	./qoi.c
+	./path.c
 	./allocator/arena.c
 	"${HEDITOR_RC}"
 )

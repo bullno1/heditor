@@ -1,6 +1,5 @@
 #include "arena.h"
 #include "../utils.h"
-#include "../pico_log.h"
 #include <stdint.h>
 
 struct hed_arena_chunk_s {
@@ -29,22 +28,32 @@ hed_arena_alloc_from_chunk(hed_arena_chunk_t* chunk, size_t size, size_t alignme
 	return (void*)result;
 }
 
-HED_PRIVATE void*
+HED_PRIVATE hed_arena_chunk_t*
 hed_arena_alloc_chunk(hed_arena_t* arena, size_t chunk_size) {
 	hed_arena_chunk_t* chunk;
 	if (chunk_size > arena->chunk_size) {  // Oversized alloc
 		chunk = hed_malloc(chunk_size, arena->alloc);
+		if (chunk == NULL) { return NULL; }
 		chunk->end = chunk->start + chunk_size;
 	} else if (arena->free_chunks != NULL) {  // Recycle chunk
 		chunk = arena->free_chunks;
 		arena->free_chunks = chunk->next;
 	} else {  // New chunk
 		chunk = hed_malloc(arena->chunk_size, arena->alloc);
+		if (chunk == NULL) { return NULL; }
 		chunk->end = chunk->start + arena->chunk_size;
 	}
 
 	chunk->pos = chunk->start;
 	return chunk;
+}
+
+HED_PRIVATE void*
+hed_arena_realloc(void* ptr, size_t size, hed_allocator_t* ctx) {
+	if (size == 0 || ptr != NULL) { return NULL; }
+
+	hed_arena_t* arena = HED_CONTAINER_OF(ctx, hed_arena_t, impl);
+	return hed_arena_alloc(arena, size, _Alignof(max_align_t));
 }
 
 void
@@ -81,6 +90,8 @@ hed_arena_alloc(hed_arena_t* arena, size_t size, size_t alignment) {
 		sizeof(hed_arena_chunk_t) + size
 	);
 	hed_arena_chunk_t* new_chunk = hed_arena_alloc_chunk(arena, chunk_size);
+	if (new_chunk == NULL) { return NULL; }
+
 	new_chunk->next = arena->current_chunk;
 	arena->current_chunk = new_chunk;
 	return hed_arena_alloc_from_chunk(new_chunk, size, alignment);
@@ -115,4 +126,17 @@ hed_arena_end(hed_arena_t* arena, hed_arena_checkpoint_t checkpoint) {
 		checkpoint.chunk->pos = checkpoint.chunk_pos;
 	}
 	arena->current_chunk = checkpoint.chunk;
+}
+
+void
+hed_arena_reset(hed_arena_t* arena) {
+	hed_arena_end(arena, (hed_arena_checkpoint_t){ 0 });
+}
+
+hed_allocator_t*
+hed_arena_as_allocator(hed_arena_t* arena) {
+	// Assign each time since there is reloading
+	// But that also means keeping this around is unsafe
+	arena->impl.realloc = hed_arena_realloc;
+	return &arena->impl;
 }
