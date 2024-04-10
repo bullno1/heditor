@@ -3,22 +3,22 @@
 
 #include <stdbool.h>
 
-#define HEDITOR_CMD(...) \
-	heditor_cmd((heditor_command_t){ .type = __VA_ARGS__ })
+#define HED_CMD(...) \
+	hed_cmd((hed_command_t){ .type = __VA_ARGS__ })
 
-typedef enum heditor_command_type_e {
-	HEDITOR_CMD_EXIT,
-	HEDITOR_CMD_OPEN,
-} heditor_command_type_t;
+typedef enum hed_command_type_e {
+	HED_CMD_EXIT,
+	HED_CMD_OPEN,
+} hed_command_type_t;
 
-typedef struct heditor_command_s {
-	heditor_command_type_t type;
-} heditor_command_t;
+typedef struct hed_command_s {
+	hed_command_type_t type;
+} hed_command_t;
 
 void
-heditor_cmd(heditor_command_t cmd);
+hed_cmd(hed_command_t cmd);
 
 bool
-heditor_next_cmd(heditor_command_t* cmd);
+hed_next_cmd(hed_command_t* cmd);
 
 #endif

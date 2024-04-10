@@ -18,9 +18,9 @@
 #include <errno.h>
 
 #ifdef NDEBUG
-REMODULE_VAR(bool, heditor_debug) = false;
+REMODULE_VAR(bool, hed_debug) = false;
 #else
-REMODULE_VAR(bool, heditor_debug) = true;
+REMODULE_VAR(bool, hed_debug) = true;
 #endif
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
@@ -45,8 +45,8 @@ void init(void* userdata) {
 		},
 	});
 
-	heditor_debug = heditor_debug || is_debugger_attached();
-	igGetIO()->ConfigDebugIsDebuggerPresent = heditor_debug;
+	hed_debug = hed_debug || is_debugger_attached();
+	igGetIO()->ConfigDebugIsDebuggerPresent = hed_debug;
 }
 
 static void
@@ -71,7 +71,7 @@ frame(void) {
 			}
 
 			if (igMenuItem_Bool("Open", "Ctrl+O", false, true)) {
-				HEDITOR_CMD(HEDITOR_CMD_OPEN);
+				HED_CMD(HED_CMD_OPEN);
 			}
 
 			if (igMenuItem_Bool("Save", NULL, false, true)) {
@@ -81,13 +81,13 @@ frame(void) {
 			igSeparator();
 
 			if (igMenuItem_Bool("Exit", NULL, false, true)) {
-				HEDITOR_CMD(HEDITOR_CMD_EXIT);
+				HED_CMD(HED_CMD_EXIT);
 			}
 
 			igEndMenu();
 		}
 
-		if (heditor_debug && igBeginMenu("Debug", true)) {
+		if (hed_debug && igBeginMenu("Debug", true)) {
 			if (igMenuItem_Bool("Dear ImGui", NULL, show_imgui_demo, true)) {
 				show_imgui_demo = !show_imgui_demo;
 			}
@@ -99,7 +99,7 @@ frame(void) {
 
 	// Hot keys
 	if (igIsKeyChordPressed_Nil(ImGuiKey_O | ImGuiMod_Ctrl)) {
-		HEDITOR_CMD(HEDITOR_CMD_OPEN);
+		HED_CMD(HED_CMD_OPEN);
 	}
 
 	// Handle GUI commands
@@ -107,13 +107,13 @@ frame(void) {
 		igShowDemoWindow(&show_imgui_demo);
 	}
 
-	heditor_command_t cmd;
-	while (heditor_next_cmd(&cmd)) {
+	hed_command_t cmd;
+	while (hed_next_cmd(&cmd)) {
 		switch (cmd.type) {
-			case HEDITOR_CMD_EXIT:
+			case HED_CMD_EXIT:
 				sapp_request_quit();
 				break;
-			case HEDITOR_CMD_OPEN:
+			case HED_CMD_OPEN:
 				{
 					errno = 0;
 					const char* path = sfd_open_dialog(&(sfd_Options){
