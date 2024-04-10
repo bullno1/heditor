@@ -41,6 +41,7 @@ set(HEDITOR_APP_SOURCES
 	./detect_debugger.c
 	./resources.c
 	./qoi.c
+	./allocator/arena.c
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")

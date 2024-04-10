@@ -13,6 +13,7 @@
 #include "resources.h"
 #include "qoi.h"
 #include "entry.h"
+#include "allocator/arena.h"
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
@@ -24,11 +25,11 @@ REMODULE_VAR(bool, hed_debug) = true;
 #endif
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
+REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 
 static
 void init(void* userdata) {
 	entry_args_t* args = userdata;
-	free((void*)args->app.icon.images[0].pixels.ptr);
 
 	sg_setup(&(sg_desc){
 		.environment = sglue_environment(),
@@ -157,12 +158,16 @@ frame(void) {
 	simgui_render();
 	sg_end_pass();
 	sg_commit();
+
+	hed_arena_reset(&frame_arena);
 }
 
 static void
 cleanup(void) {
 	simgui_shutdown();
 	sg_shutdown();
+
+	hed_arena_cleanup(&frame_arena);
 }
 
 static sapp_icon_desc
@@ -175,13 +180,12 @@ load_app_icon(void) {
 
 	int num_pixels = decoder.count;
 	size_t icon_size = sizeof(unsigned) * num_pixels;
-	unsigned* pixels = malloc(icon_size);
+	unsigned* pixels = hed_arena_alloc(&frame_arena, icon_size, _Alignof(unsigned));
 	for (int i = 0; i < num_pixels; ++i) {
 		pixels[i] = qoidecode(&decoder);
 	}
 
 	if (decoder.error) {
-		free(pixels);
 		return (sapp_icon_desc){ .sokol_default = true };
 	} else {
 		return (sapp_icon_desc){
@@ -202,6 +206,10 @@ load_app_icon(void) {
 void
 remodule_entry(remodule_op_t op, void* userdata) {
 	entry_args_t* args = userdata;
+	if (op == REMODULE_OP_LOAD) {
+		hed_arena_init(&frame_arena, 4 * 1024 * 1024, args->allocator);
+	}
+
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
 		args->app = (sapp_desc){
 			.init_userdata_cb = init,
