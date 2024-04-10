@@ -8,13 +8,7 @@ AUTOLIST_DECLARE(hgraph_core_nodes)
 
 void
 hgraph_core_register(const hgraph_plugin_api_t* api) {
-	for (
-		const autolist_entry_t* const* itr = AUTOLIST_BEGIN(hgraph_core_nodes);
-		itr != AUTOLIST_END(hgraph_core_nodes);
-		++itr
-	) {
-		if (*itr == NULL) { continue; }
-
+	AUTOLIST_FOREACH(itr, hgraph_core_nodes) {
 		hgraph_plugin_register_node_type(api, (*itr)->value_addr);
 	}
 }
