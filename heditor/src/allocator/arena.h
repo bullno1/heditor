@@ -13,6 +13,12 @@
 		++itr.i, hed_arena_end(ARENA, itr.checkpoint) \
 	) \
 
+#define HED_ARENA_ALLOC_TYPE(ARENA, TYPE) \
+	HED_ARENA_ALLOC_ARRAY(ARENA, TYPE, 1)
+
+#define HED_ARENA_ALLOC_ARRAY(ARENA, TYPE, SIZE) \
+	hed_arena_alloc(ARENA, sizeof(TYPE) * SIZE, _Alignof(TYPE))
+
 typedef struct hed_arena_chunk_s hed_arena_chunk_t;
 
 typedef struct hed_arena_checkpoint_s {

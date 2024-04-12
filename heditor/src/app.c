@@ -11,6 +11,7 @@
 #include "command.h"
 #include "detect_debugger.h"
 #include "entry.h"
+#include "app.h"
 #include "allocator/arena.h"
 #include <string.h>
 #include <errno.h>
@@ -27,7 +28,7 @@ REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
 
-extern void
+extern app_config_t*
 load_app_config(hed_arena_t* arena);
 
 static
@@ -181,7 +182,20 @@ remodule_entry(remodule_op_t op, void* userdata) {
 
 		// TODO: config reload
 		HED_WITH_ARENA(&frame_arena) {
-			load_app_config(&frame_arena);
+			app_config_t* config = load_app_config(&frame_arena);
+			if (config == NULL) {
+				log_warn("Could not find config");
+			} else {
+				log_debug("Project root: %s", hed_path_as_str(config->project_root));
+				log_debug("Project name: %.*s", config->project_name.length, config->project_name.data);
+				for (
+					struct plugin_entry_s* itr = config->plugin_entries;
+					itr != NULL;
+					itr = itr->next
+				) {
+					log_debug("Plugin: %.*s", itr->name.length, itr->name.data);
+				}
+			}
 		}
 	}
 

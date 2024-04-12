@@ -30,4 +30,13 @@ hed_path_as_str(const hed_path_t* path);
 int
 hed_path_len(const hed_path_t* path);
 
+size_t
+hed_path_size(const hed_path_t* path);
+
+size_t
+hed_path_alignment(void);
+
+void
+hed_path_copy(hed_path_t* dst, const hed_path_t* src);
+
 #endif

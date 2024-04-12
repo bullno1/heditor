@@ -44,6 +44,7 @@ set(HEDITOR_APP_SOURCES
 	./src/path.c
 	./src/icon.c
 	./src/config.c
+	./src/hstring.c
 	./src/allocator/arena.c
 	"${HEDITOR_RC}"
 )
@@ -51,6 +52,7 @@ setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
 target_link_libraries(heditor_app PRIVATE
 	heditor_libs
 	bullno1-libs
+	inih
 )
 target_include_directories(heditor_app PRIVATE "./src")
 set_target_properties(heditor_app PROPERTIES PREFIX "")

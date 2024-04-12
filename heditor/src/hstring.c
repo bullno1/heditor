@@ -1,0 +1,35 @@
+#include "hstring.h"
+#include "allocator/allocator.h"
+#include <string.h>
+#include <stdio.h>
+
+hed_str_t
+hed_strcpy(struct hed_allocator_s* alloc, hed_str_t str) {
+	char* data = hed_malloc(str.length, alloc);
+	memcpy(data, str.data, str.length);
+	return (hed_str_t){
+		.length = str.length,
+		.data = data,
+	};
+}
+
+hed_str_t
+hed_str_vformat(struct hed_allocator_s* alloc, const char* fmt, va_list args) {
+	int length = vsnprintf(NULL, 0, fmt, args);
+	if (length < 0) { return (hed_str_t) { 0 }; }
+
+	char* data = hed_malloc((size_t)length, alloc);
+	vsnprintf(data, length, fmt, args);
+	return (hed_str_t){
+		.data = data,
+		.length = (size_t)length,
+	};
+}
+
+hed_str_t
+hed_str_from_cstr(const char* str) {
+	return (hed_str_t){
+		.length = strlen(str),
+		.data = str,
+	};
+}

@@ -9,6 +9,7 @@
 #	include <unistd.h>
 #elif defined(_WIN32)
 #	define PATH_SEP '\\'
+#	error "TODO: Windows long path"
 #else
 #	error "Unsupported platform"
 #endif
@@ -29,7 +30,6 @@ hed_path_alloc(hed_allocator_t* alloc, const char* content, int len) {
 
 hed_path_t*
 hed_path_resolve(hed_allocator_t* alloc, const char* path) {
-#if defined(__unix__)
 	// realpath will always alloc.
 	// There is no safe way to use it otherwise.
 	char* tmp = realpath(path, NULL);
@@ -38,9 +38,6 @@ hed_path_resolve(hed_allocator_t* alloc, const char* path) {
 	hed_path_t* result = hed_path_alloc(alloc, tmp, (int)strlen(tmp));
 	free(tmp);
 	return result;
-#elif defined(_WIN32)
-#	error "TODO"
-#endif
 }
 
 const char*
@@ -75,6 +72,7 @@ hed_path_dirname(hed_allocator_t* alloc, const hed_path_t* file) {
 
 const char*
 hed_path_basename(hed_allocator_t* alloc, const hed_path_t* file) {
+#if defined(__linux__)
 	if (file == NULL || hed_path_is_root(file)) { return NULL; }
 
 	int i;
@@ -89,6 +87,8 @@ hed_path_basename(hed_allocator_t* alloc, const hed_path_t* file) {
 	memcpy(name_buf, file->name + i + 1, name_len);
 	name_buf[name_len] = '\0';
 	return name_buf;
+#else
+#endif
 }
 
 hed_path_t*
@@ -123,7 +123,7 @@ hed_path_is_root(const hed_path_t* path) {
 #if defined(__linux__)
 	return path->len == 1 && path->name[0] == '/';
 #else
-	return path->len == 2 && path->name[1] == ':';
+#	error "TODO: Windows long path"
 #endif
 }
 
@@ -135,6 +135,6 @@ hed_path_current(hed_allocator_t* alloc) {
 	free(dir);
 	return result;
 #else
-#	error "TODO"
+#	error "TODO: Windows long path"
 #endif
 }
