@@ -22,6 +22,7 @@ hgraph_alloc_string(char** pool, hgraph_str_t str) {
 	if (str.length > 0) {
 		memcpy(storage, str.data, str.length);
 	}
+	storage[str.length] = '\0';
 	return (hgraph_str_t){ .data = storage, .length = str.length };
 }
 
@@ -167,21 +168,21 @@ hgraph_registry_init(
 	for (hgraph_index_t i = 0; i < data_types_hash_size; ++i) {
 		if (data_types[i] == NULL) { continue; }
 
-		string_table_size += data_types[i]->name.length;
+		string_table_size += data_types[i]->name.length + 1;
 	}
 
 	hgraph_index_t num_node_types = builder->num_node_types;
 	const hgraph_node_type_t** node_types = builder->node_types;
 	for (hgraph_index_t i = 0; i < num_node_types; ++i) {
 		const hgraph_node_type_t* node_type = node_types[i];
-		string_table_size += node_type->name.length;
+		string_table_size += node_type->name.length + 1;
 
 		for (
 			hgraph_index_t j = 0;
 			node_type->attributes != NULL && node_type->attributes[j] != NULL;
 			++j
 		) {
-			string_table_size += node_type->attributes[j]->name.length;
+			string_table_size += node_type->attributes[j]->name.length + 1;
 			++num_vars;
 		}
 
@@ -190,7 +191,7 @@ hgraph_registry_init(
 			node_type->input_pins != NULL && node_type->input_pins[j] != NULL;
 			++j
 		) {
-			string_table_size += node_type->input_pins[j]->name.length;
+			string_table_size += node_type->input_pins[j]->name.length + 1;
 			++num_vars;
 		}
 
@@ -199,7 +200,7 @@ hgraph_registry_init(
 			node_type->output_pins != NULL && node_type->output_pins[j] != NULL;
 			++j
 		) {
-			string_table_size += node_type->output_pins[j]->name.length;
+			string_table_size += node_type->output_pins[j]->name.length + 1;
 			++num_vars;
 			++num_outputs;
 		}

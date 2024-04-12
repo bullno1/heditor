@@ -105,7 +105,7 @@ static inline hgraph_io_status_t
 hgraph_core_deserialize_var_str(void* value, hgraph_in_t* in) {
 	(void)value;
 	char buf;
-	size_t len = 1;
+	size_t len = 0;
 	return hgraph_io_read_str(&buf, &len, in);
 }
 

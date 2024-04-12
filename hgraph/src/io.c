@@ -112,7 +112,7 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 		hgraph_str_t type = { .data = type_buf };
 		hgraph_str_t name = { .data = name_buf };
 
-		len = sizeof(type_buf);
+		len = sizeof(type_buf) - 1;
 		HGRAPH_CHECK_IO(hgraph_io_read_str(type_buf, &len, in));
 		type.length = len;
 
@@ -136,11 +136,11 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 		HGRAPH_CHECK_IO(hgraph_io_read_uint(&num_attributes_varint, in));
 		hgraph_index_t num_attributes = num_attributes_varint;
 		for (hgraph_index_t j = 0; j < num_attributes; ++j) {
-			len = sizeof(type_buf);
+			len = sizeof(type_buf) - 1;
 			HGRAPH_CHECK_IO(hgraph_io_read_str(type_buf, &len, in));
 			type.length = len;
 
-			len = sizeof(name_buf);
+			len = sizeof(name_buf) - 1;
 			HGRAPH_CHECK_IO(hgraph_io_read_str(name_buf, &len, in));
 			name.length = len;
 
@@ -186,12 +186,12 @@ hgraph_read_graph_v1(hgraph_t* graph, hgraph_in_t* in) {
 		uint64_t from_node_slot, to_node_slot;
 
 		HGRAPH_CHECK_IO(hgraph_io_read_uint(&from_node_slot, in));
-		len = sizeof(from_name_buf);
+		len = sizeof(from_name_buf) -1;
 		HGRAPH_CHECK_IO(hgraph_io_read_str(from_name_buf, &len, in));
 		from_pin_name.length = len;
 
 		HGRAPH_CHECK_IO(hgraph_io_read_uint(&to_node_slot, in));
-		len = sizeof(to_name_buf);
+		len = sizeof(to_name_buf) - 1;
 		HGRAPH_CHECK_IO(hgraph_io_read_str(to_name_buf, &len, in));
 		to_pin_name.length = len;
 

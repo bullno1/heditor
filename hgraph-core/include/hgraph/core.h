@@ -23,11 +23,11 @@
 #	define HGRAPH_CORE_API extern
 #endif
 
-#define HGRAPH_CORE_FIXED_STR_LEN 512
+#define HGRAPH_CORE_FIXED_STR_LEN 512 - 1
 
 typedef struct hgraph_core_fixed_str_s {
 	size_t len;
-	char data[HGRAPH_CORE_FIXED_STR_LEN];
+	char data[HGRAPH_CORE_FIXED_STR_LEN + 1];
 } hgraph_core_fixed_str_t;
 
 typedef enum hgraph_core_rounding_mode_e {
@@ -172,10 +172,11 @@ hgraph_core_alloc_str_output(
 	size_t length,
 	const char* data
 ) {
-	char* tmp = hgraph_node_allocate(node_api, HGRAPH_LIFETIME_EXECUTION, length);
+	char* tmp = hgraph_node_allocate(node_api, HGRAPH_LIFETIME_EXECUTION, length + 1);
 	if (tmp == NULL) { return (hgraph_str_t) { 0 }; }
 
 	memcpy(tmp, data, length);
+	tmp[length] = '\0';
 	return (hgraph_str_t){ .length = length, .data = data };
 }
 

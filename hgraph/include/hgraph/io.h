@@ -158,6 +158,7 @@ hgraph_io_read_str(
 	if (length > 0) { HGRAPH_CHECK_IO(hgraph_io_read(in, buf, length)); }
 
 	*len_inout = length;
+	buf[length] = '\0';
 	return HGRAPH_IO_OK;
 }
 

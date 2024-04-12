@@ -83,7 +83,7 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 	);
 
 	const hgraph_registry_t* registry = config->registry;
-	size_t node_size = registry->max_node_size + config->max_name_length;
+	size_t node_size = registry->max_node_size + config->max_name_length + 1;
 	node_size = mem_layout_align_ptr((intptr_t)node_size, _Alignof(max_align_t));
 	ptrdiff_t nodes_offset = mem_layout_reserve(
 		&layout,
@@ -432,6 +432,7 @@ hgraph_set_node_name(hgraph_t* graph, hgraph_index_t node_id, hgraph_str_t name)
 
 	char* name_storage = (char*)node + type_info->size;
 	memcpy(name_storage, name.data, name.length);
+	name_storage[name.length] = '\0';
 	node->name_len = name.length;
 }
 
