@@ -186,14 +186,14 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			if (config == NULL) {
 				log_warn("Could not find config");
 			} else {
-				log_debug("Project root: %s", hed_path_as_str(config->project_root));
-				log_debug("Project name: %.*s", config->project_name.length, config->project_name.data);
+				log_debug("Project root: %s", config->project_root);
+				log_debug("Project name: %s", config->project_name.data);
 				for (
 					struct plugin_entry_s* itr = config->plugin_entries;
 					itr != NULL;
 					itr = itr->next
 				) {
-					log_debug("Plugin: %.*s", itr->name.length, itr->name.data);
+					log_debug("Plugin: %s", itr->name.data);
 				}
 			}
 		}
