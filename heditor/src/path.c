@@ -138,3 +138,11 @@ hed_path_current(hed_allocator_t* alloc) {
 #	error "TODO: Windows long path"
 #endif
 }
+
+hed_path_t*
+hed_path_dup(hed_allocator_t* alloc, const hed_path_t* src) {
+	hed_path_t* dup = hed_malloc(sizeof(hed_path_t) + src->len + 1, alloc);
+	dup->len = src->len;
+	memcpy(dup->name, src->name, src->len + 1);
+	return dup;
+}

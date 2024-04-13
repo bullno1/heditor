@@ -17,7 +17,7 @@ typedef struct {
 } config_load_ctx_t;
 
 static bool
-parse_size(const char* str, hgraph_index_t* out) {
+parse_count(const char* str, hgraph_index_t* out) {
 	errno = 0;
 	char* end;
 	long result = strtol(str, &end, 10);
@@ -43,6 +43,7 @@ parse_app_config(
 	const char* value
 ) {
 	config_load_ctx_t* ctx = userdata;
+	app_config_t* config = ctx->config;
 
 	if (strcmp(section, "project") == 0) {
 		if (strcmp(name, "name") == 0) {
@@ -69,23 +70,32 @@ parse_app_config(
 		}
 	} else if (strcmp(section, "registry") == 0) {
 		if (strcmp(name, "max_data_types") == 0) {
-			return parse_size(value, &ctx->config->registry_max_data_types);
+			return parse_count(value, &config->registry_config.max_data_types);
 		} else if (strcmp(name, "max_node_types") == 0) {
-			return parse_size(value, &ctx->config->registry_max_node_types);
+			return parse_count(value, &config->registry_config.max_node_types);
 		} else {
 			return 0;
 		}
 	} else if (strcmp(section, "graph") == 0) {
 		if (strcmp(name, "max_nodes") == 0) {
-			return parse_size(value, &ctx->config->graph_max_nodes);
+			return parse_count(value, &config->graph_config.max_nodes);
 		} else if (strcmp(name, "max_name_length") == 0) {
-			return parse_size(value, &ctx->config->graph_max_name_length);
+			return parse_count(value, &config->graph_config.max_name_length);
 		} else {
 			return 0;
 		}
 	} else if (strcmp(section, "pipeline") == 0) {
 		if (strcmp(name, "max_scratch_memory") == 0) {
-			return parse_size(value, &ctx->config->pipeline_max_scratch_memory);
+			errno = 0;
+			char* end;
+			size_t result = strtoull(value, &end, 10);
+
+			if (errno != 0 || end != value + strlen(value)) {
+				return false;
+			} else {
+				config->pipeline_config.max_scratch_memory = result;
+				return true;
+			}
 		} else {
 			return 0;
 		}
@@ -121,11 +131,17 @@ load_app_config(hed_arena_t* arena) {
 			);
 			*config = (app_config_t){
 				.project_root = path,
-				.registry_max_data_types = 256,
-				.registry_max_node_types = 256,
-				.graph_max_nodes = 63,
-				.graph_max_name_length = 31,
-				.pipeline_max_scratch_memory = 33554432,
+				.registry_config = {
+					.max_data_types = 256,
+					.max_node_types = 256,
+				},
+				.graph_config = {
+					.max_nodes = 63,
+					.max_name_length = 31,
+				},
+				.pipeline_config = {
+					.max_scratch_memory = 33554432,
+				}
 			};
 			config_load_ctx_t ctx = {
 				.alloc = alloc,

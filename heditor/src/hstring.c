@@ -2,6 +2,7 @@
 #include "allocator/allocator.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 hed_str_t
 hed_strcpy(struct hed_allocator_s* alloc, hed_str_t str) {
@@ -16,11 +17,14 @@ hed_strcpy(struct hed_allocator_s* alloc, hed_str_t str) {
 
 hed_str_t
 hed_str_vformat(struct hed_allocator_s* alloc, const char* fmt, va_list args) {
-	int length = vsnprintf(NULL, 0, fmt, args);
+	va_list args_copy;
+	va_copy(args_copy, args);
+	int length = vsnprintf(NULL, 0, fmt, args_copy);
 	if (length < 0) { return (hed_str_t) { 0 }; }
 
 	char* data = hed_malloc((size_t)length + 1, alloc);
 	vsnprintf(data, length + 1, fmt, args);
+	data[length] = '\0';
 	return (hed_str_t){
 		.data = data,
 		.length = (size_t)length,

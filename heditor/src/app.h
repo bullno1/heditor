@@ -12,11 +12,9 @@ typedef struct {
 	int num_plugins;
 	struct plugin_entry_s* plugin_entries;
 
-	hgraph_index_t registry_max_data_types;
-	hgraph_index_t registry_max_node_types;
-	hgraph_index_t graph_max_nodes;
-	hgraph_index_t graph_max_name_length;
-	hgraph_index_t pipeline_max_scratch_memory;
+	hgraph_registry_config_t registry_config;
+	hgraph_config_t graph_config;
+	hgraph_pipeline_config_t pipeline_config;
 } app_config_t;
 
 struct plugin_entry_s {

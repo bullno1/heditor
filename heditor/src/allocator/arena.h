@@ -27,8 +27,8 @@ typedef struct hed_arena_checkpoint_s {
 } hed_arena_checkpoint_t;
 
 typedef struct hed_arena_s {
-	hed_allocator_t* alloc;
 	hed_allocator_t impl;
+	hed_allocator_t* alloc;
 	size_t chunk_size;
 	hed_arena_chunk_t* current_chunk;
 	hed_arena_chunk_t* free_chunks;

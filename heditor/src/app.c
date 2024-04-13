@@ -1,3 +1,5 @@
+#include "hstring.h"
+#include <remodule_monitor.h>
 #define REMODULE_PLUGIN_IMPLEMENTATION
 #include <remodule.h>
 #include <sokol_app.h>
@@ -16,12 +18,12 @@
 #include <string.h>
 #include <errno.h>
 
-typedef struct project_config_s {
-	hed_str_t name;
-	hed_path_t* root_dir;
-	int num_plugins;
-	remodule_t* plugins;
-} project_config_t;
+#define PLUGIN_PREFIX "lib"
+#ifndef NDEBUG
+#	define PLUGIN_SUFFIX "_d"
+#else
+#	define PLUGIN_SUFFIX ""
+#endif
 
 #ifdef NDEBUG
 REMODULE_VAR(bool, hed_debug) = false;
@@ -31,7 +33,12 @@ REMODULE_VAR(bool, hed_debug) = true;
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
-REMODULE_VAR(project_config_t, project_config) = { 0 };
+REMODULE_VAR(int, num_plugins) = 0;
+REMODULE_VAR(remodule_t**, plugins) = NULL;
+REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
+REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
+REMODULE_VAR(size_t, current_registry_size) = 0;
+REMODULE_VAR(hgraph_registry_t*, current_registry) = 0;
 
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
@@ -175,7 +182,20 @@ frame(void) {
 }
 
 static void
-cleanup(void) {
+cleanup(void* userdata) {
+	entry_args_t* args = userdata;
+
+	hed_free(current_registry, args->allocator);
+
+	for (int i = num_plugins - 1; i >= 0; --i) {
+		remodule_unmonitor(plugin_monitors[i]);
+		remodule_unload(plugins[i]);
+	}
+	hed_free(plugin_monitors, args->allocator);
+	hed_free(plugins, args->allocator);
+
+	hed_free(registry_builder, args->allocator);
+
 	simgui_shutdown();
 	sg_shutdown();
 
@@ -196,12 +216,52 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			} else {
 				log_debug("Project root: %s", hed_path_as_str(config->project_root));
 				log_debug("Project name: %s", config->project_name.data);
+
+				size_t registry_builder_size = hgraph_registry_builder_init(
+					NULL, &config->registry_config
+				);
+				log_debug("Registry builder size: %zu", registry_builder_size);
+				registry_builder = hed_malloc(registry_builder_size, args->allocator);
+				hgraph_registry_builder_init(
+					registry_builder, &config->registry_config
+				);
+				hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(
+					registry_builder
+				);
+				plugins = hed_malloc(
+					sizeof(remodule_t*) * config->num_plugins,
+					args->allocator
+				);
+				plugin_monitors = hed_malloc(
+					sizeof(remodule_monitor_t*) * config->num_plugins,
+					args->allocator
+				);
 				for (
 					struct plugin_entry_s* itr = config->plugin_entries;
 					itr != NULL;
 					itr = itr->next
 				) {
+					hed_str_t module_name = hed_str_format(
+						hed_arena_as_allocator(&frame_arena),
+						"%s%s%s%s",
+						PLUGIN_PREFIX,
+						itr->name.data,
+						PLUGIN_SUFFIX, REMODULE_DYNLIB_EXT
+					);
+					plugins[num_plugins] = remodule_load(
+						module_name.data, plugin_api
+					);
+					plugin_monitors[num_plugins] = remodule_monitor(
+						plugins[num_plugins]
+					);
+					++num_plugins;
 				}
+
+				current_registry_size = hgraph_registry_init(
+					NULL, registry_builder
+				);
+				log_debug("Registry size: %zu", current_registry_size);
+				current_registry = hed_malloc(current_registry_size, args->allocator);
 			}
 		}
 	}
@@ -209,7 +269,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
 		args->app = (sapp_desc){
 			.init_userdata_cb = init,
-			.cleanup_cb = cleanup,
+			.cleanup_userdata_cb = cleanup,
 			.event_cb = event,
 			.frame_cb = frame,
 			.window_title = "heditor",

@@ -4,8 +4,8 @@
 #include "allocator.h"
 
 typedef struct hed_counting_allocator_s {
-	hed_allocator_t* backing;
 	hed_allocator_t impl;
+	hed_allocator_t* backing;
 
 	size_t current_allocated;
 	size_t peak_allocated;
