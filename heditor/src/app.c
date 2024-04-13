@@ -16,6 +16,13 @@
 #include <string.h>
 #include <errno.h>
 
+typedef struct project_config_s {
+	hed_str_t name;
+	hed_path_t* root_dir;
+	int num_plugins;
+	remodule_t* plugins;
+} project_config_t;
+
 #ifdef NDEBUG
 REMODULE_VAR(bool, hed_debug) = false;
 #else
@@ -24,6 +31,7 @@ REMODULE_VAR(bool, hed_debug) = true;
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
+REMODULE_VAR(project_config_t, project_config) = { 0 };
 
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
@@ -186,14 +194,13 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			if (config == NULL) {
 				log_warn("Could not find config");
 			} else {
-				log_debug("Project root: %s", config->project_root);
+				log_debug("Project root: %s", hed_path_as_str(config->project_root));
 				log_debug("Project name: %s", config->project_name.data);
 				for (
 					struct plugin_entry_s* itr = config->plugin_entries;
 					itr != NULL;
 					itr = itr->next
 				) {
-					log_debug("Plugin: %s", itr->name.data);
 				}
 			}
 		}
