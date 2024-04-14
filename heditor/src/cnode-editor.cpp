@@ -1,8 +1,8 @@
 #include "cnode-editor.h"
 #include <imgui_node_editor.h>
 
-namespace ed = ax::NodeEditor;
-typedef ed::EditorContext neEditorContext_t;
+namespace ne = ax::NodeEditor;
+typedef ne::EditorContext neEditorContext_t;
 
 enum IdKind {
 	Node = 1,  // So that the id will never be 0
@@ -14,17 +14,17 @@ template<typename T>
 IdKind IdKindOf();
 
 template<>
-IdKind IdKindOf<ed::NodeId>() {
+IdKind IdKindOf<ne::NodeId>() {
 	return IdKind::Node;
 }
 
 template<>
-IdKind IdKindOf<ed::PinId>() {
+IdKind IdKindOf<ne::PinId>() {
 	return IdKind::Pin;
 }
 
 template<>
-IdKind IdKindOf<ed::LinkId>() {
+IdKind IdKindOf<ne::LinkId>() {
 	return IdKind::Link;
 }
 
@@ -42,106 +42,106 @@ extern "C" {
 
 neEditorContext_t*
 neCreateEditor(void) {
-	return ed::CreateEditor();
+	return ne::CreateEditor();
 }
 
 void
 neDestroyEditor(neEditorContext_t* editor) {
-	ed::DestroyEditor(editor);
+	ne::DestroyEditor(editor);
 }
 
 void
 neSetCurrentEditor(neEditorContext_t* editor) {
-	ed::SetCurrentEditor(editor);
+	ne::SetCurrentEditor(editor);
 }
 
 void
 neBegin(const char* id, const ImVec2 size) {
-	ed::Begin(id, size);
+	ne::Begin(id, size);
 }
 
 void
 neEnd(void) {
-	ed::End();
+	ne::End();
 }
 
 bool
 neShowBackgroundContextMenu(void) {
-	return ed::ShowBackgroundContextMenu();
+	return ne::ShowBackgroundContextMenu();
 }
 
 void
 neSuspend(void) {
-	ed::Suspend();
+	ne::Suspend();
 }
 
 void
 neResume(void) {
-	ed::Resume();
+	ne::Resume();
 }
 
 void
 neBeginNode(int32_t id) {
-	ed::BeginNode(IntToId<ed::NodeId>(id));
+	ne::BeginNode(IntToId<ne::NodeId>(id));
 }
 
 void
 neEndNode() {
-	ed::EndNode();
+	ne::EndNode();
 }
 
 void
 neBeginPin(int32_t id, bool is_input) {
-	ed::BeginPin(
-		IntToId<ed::PinId>(id),
-		is_input ? ed::PinKind::Input : ed::PinKind::Output
+	ne::BeginPin(
+		IntToId<ne::PinId>(id),
+		is_input ? ne::PinKind::Input : ne::PinKind::Output
 	);
 }
 
 void
 neEndPin() {
-	ed::EndPin();
+	ne::EndPin();
 }
 
 void
 neSetNodePosition(int32_t id, ImVec2 pos) {
-	ed::SetNodePosition(IntToId<ed::NodeId>(id), pos);
+	ne::SetNodePosition(IntToId<ne::NodeId>(id), pos);
 }
 
 bool
 neBeginDelete(void) {
-	return ed::BeginDelete();
+	return ne::BeginDelete();
 }
 
 bool
 neQueryDeletedLink(int32_t* link_id) {
-	ed::LinkId id;
-	bool result = ed::QueryDeletedLink(&id);
+	ne::LinkId id;
+	bool result = ne::QueryDeletedLink(&id);
 	*link_id = IdToInt(id);
 	return result;
 }
 
 bool
 neQueryDeletedNode(int32_t* node_id) {
-	ed::NodeId id;
-	bool result = ed::QueryDeletedNode(&id);
+	ne::NodeId id;
+	bool result = ne::QueryDeletedNode(&id);
 	*node_id = IdToInt(id);
 	return result;
 }
 
 bool
 neAcceptDeletedItem(bool deleteDependencies) {
-	return ed::AcceptDeletedItem(deleteDependencies);
+	return ne::AcceptDeletedItem(deleteDependencies);
 }
 
 void
 neRejectDeletedItem(void) {
-	return ed::RejectDeletedItem();
+	return ne::RejectDeletedItem();
 }
 
 void
 neEndDelete(void) {
-	ed::EndDelete();
+	ne::EndDelete();
 }
 
 }
