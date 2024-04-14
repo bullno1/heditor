@@ -103,8 +103,8 @@ hgraph_core_fixed_str_out_execute(const hgraph_node_api_t* api) {
 
 HGRAPH_CORE_NODE(hgraph_core_fixed_str_out) = {
 	.name = HGRAPH_STR("core.out.fixed_str"),
-	.label = HGRAPH_STR("String out"),
-	.description = HGRAPH_STR("Output a single string"),
+	.label = HGRAPH_STR("String out (fixed)"),
+	.description = HGRAPH_STR("Output a single fixed-size string"),
 	.group = HGRAPH_STR("Core/Output"),
 	.size = 0,
 	.alignment = _Alignof(char),
@@ -143,8 +143,8 @@ hgraph_core_var_str_out_execute(const hgraph_node_api_t* api) {
 
 HGRAPH_CORE_NODE(hgraph_core_var_str_out) = {
 	.name = HGRAPH_STR("core.out.var_str"),
-	.label = HGRAPH_STR("String out"),
-	.description = HGRAPH_STR("Output a single string. This can only be used programmatically."),
+	.label = HGRAPH_STR("String out (variable)"),
+	.description = HGRAPH_STR("Output a single variably-sized string.\nThis can only be used programmatically."),
 	.group = HGRAPH_STR("Core/Output"),
 	.size = 0,
 	.alignment = _Alignof(char),

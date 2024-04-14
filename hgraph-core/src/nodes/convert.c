@@ -58,7 +58,7 @@ const hgraph_attribute_description_t hgraph_core_f32_to_i32_attr_rounding_mode =
 
 HGRAPH_CORE_NODE(hgraph_core_f32_to_i32) = {
 	.name = HGRAPH_STR("core.convert.f32_to_i32"),
-	.label = HGRAPH_STR("i32 to f32"),
+	.label = HGRAPH_STR("f32 to i32"),
 	.description = HGRAPH_STR("Convert f32 to i32"),
 	.group = HGRAPH_STR("Core/Convert"),
 	.size = 0,

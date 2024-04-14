@@ -1,4 +1,3 @@
-#include "hstring.h"
 #include <remodule_monitor.h>
 #define REMODULE_PLUGIN_IMPLEMENTATION
 #include <remodule.h>
@@ -35,13 +34,20 @@ REMODULE_VAR(bool, hed_debug) = true;
 
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
+
 REMODULE_VAR(int, num_plugins) = 0;
 REMODULE_VAR(remodule_t**, plugins) = NULL;
 REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
+
+REMODULE_VAR(hgraph_registry_config_t, registry_config) = { 0 };
 REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
 REMODULE_VAR(size_t, current_registry_size) = 0;
-REMODULE_VAR(hgraph_registry_t*, current_registry) = 0;
+REMODULE_VAR(hgraph_registry_t*, current_registry) = NULL;
+REMODULE_VAR(size_t, next_registry_size) = 0;
+REMODULE_VAR(hgraph_registry_t*, next_registry) = NULL;
+
 REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
+
 REMODULE_VAR(size_t, menu_size) = 0;
 REMODULE_VAR(node_type_menu_entry_t*, node_type_menu) = 0;
 
@@ -100,8 +106,26 @@ gui_editor(void) {
 	neResume();
 }
 
-static
-void init(void* userdata) {
+static void
+build_registry(
+	hed_allocator_t* alloc,
+	size_t* size_ptr,
+	hgraph_registry_t** registry_ptr
+) {
+	size_t required_size = hgraph_registry_init(NULL, registry_builder);
+
+	hgraph_registry_t* registry = *registry_ptr;
+	if (required_size > *size_ptr) {
+		registry = hed_realloc(registry, required_size, alloc);
+		*size_ptr = required_size;
+		*registry_ptr = registry;
+	}
+
+	hgraph_registry_init(registry, registry_builder);
+}
+
+static void
+init(void* userdata) {
 	entry_args_t* args = userdata;
 
 	sg_setup(&(sg_desc){
@@ -142,7 +166,49 @@ event(const sapp_event* ev) {
 }
 
 static void
-frame(void) {
+frame(void* userdata) {
+	entry_args_t* args = userdata;
+
+	// Reload plugins
+	bool should_reload_plugins = false;
+	for (int i = 0; i < num_plugins; ++i) {
+		bool plugin_updated = remodule_should_reload(plugin_monitors[i]);
+		should_reload_plugins = should_reload_plugins || plugin_updated;
+		if (plugin_updated) {
+			log_info("Plugin updated: %s", remodule_path(plugins[i]));
+		}
+	}
+	if (should_reload_plugins) {
+		hgraph_registry_builder_init(registry_builder, &registry_config);
+		for (int i = 0; i < num_plugins; ++i) {
+			remodule_reload(plugins[i]);
+		}
+
+		build_registry(args->allocator, &next_registry_size, &next_registry);
+		// TODO: migration
+		size_t tmp_size = current_registry_size;
+		current_registry_size = next_registry_size;
+		next_registry_size = tmp_size;
+
+		hgraph_registry_t* tmp_reg = current_registry;
+		current_registry = next_registry;
+		next_registry = tmp_reg;
+
+		// Build node menu
+		size_t required_menu_size = node_type_menu_init(
+			NULL, current_registry, &frame_arena
+		);
+		if (required_menu_size > menu_size) {
+			node_type_menu = hed_realloc(
+				node_type_menu, required_menu_size, args->allocator
+			);
+			menu_size = required_menu_size;
+		}
+		node_type_menu_init(
+			node_type_menu, current_registry, &frame_arena
+		);
+	}
+
 	// GUI
 	simgui_new_frame(&(simgui_frame_desc_t){
 		.width = sapp_width(),
@@ -270,6 +336,7 @@ cleanup(void* userdata) {
 	neDestroyEditor(node_editor);
 
 	hed_free(current_registry, args->allocator);
+	hed_free(next_registry, args->allocator);
 
 	for (int i = num_plugins - 1; i >= 0; --i) {
 		remodule_unmonitor(plugin_monitors[i]);
@@ -301,14 +368,13 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				log_debug("Project root: %s", hed_path_as_str(config->project_root));
 				log_debug("Project name: %s", config->project_name.data);
 
+				registry_config = config->registry_config;
 				size_t registry_builder_size = hgraph_registry_builder_init(
-					NULL, &config->registry_config
+					NULL, &registry_config
 				);
 				log_debug("Registry builder size: %zu", registry_builder_size);
 				registry_builder = hed_malloc(registry_builder_size, args->allocator);
-				hgraph_registry_builder_init(
-					registry_builder, &config->registry_config
-				);
+				hgraph_registry_builder_init(registry_builder, &registry_config);
 				hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(
 					registry_builder
 				);
@@ -348,12 +414,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 		}
 
 		if (registry_builder != NULL) {
-			current_registry_size = hgraph_registry_init(
-				NULL, registry_builder
-			);
-			log_debug("Registry size: %zu", current_registry_size);
-			current_registry = hed_malloc(current_registry_size, args->allocator);
-			hgraph_registry_init(current_registry, registry_builder);
+			build_registry(args->allocator, &current_registry_size, &current_registry);
 			hgraph_registry_info_t reg_info = hgraph_registry_info(current_registry);
 			log_debug("Number of data types: %d", reg_info.num_data_types);
 			log_debug("Number of node types: %d", reg_info.num_node_types);
@@ -361,11 +422,11 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			size_t required_menu_size = node_type_menu_init(
 				NULL, current_registry, &frame_arena
 			);
-			log_debug("Menu size: %zu", required_menu_size);
 			if (required_menu_size > menu_size) {
 				node_type_menu = hed_realloc(
 					node_type_menu, required_menu_size, args->allocator
 				);
+				menu_size = required_menu_size;
 			}
 			node_type_menu_init(
 				node_type_menu, current_registry, &frame_arena
@@ -378,7 +439,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.init_userdata_cb = init,
 			.cleanup_userdata_cb = cleanup,
 			.event_cb = event,
-			.frame_cb = frame,
+			.frame_userdata_cb = frame,
 			.window_title = "heditor",
 			.width = 1280,
 			.height = 720,
