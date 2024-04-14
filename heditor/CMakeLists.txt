@@ -62,6 +62,7 @@ set(HEDITOR_APP_SOURCES
 	./src/config.c
 	./src/hstring.c
 	./src/allocator/arena.c
+	./src/cnode-editor.cpp
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
@@ -71,7 +72,10 @@ target_link_libraries(heditor_app PRIVATE
 	bullno1-libs
 	inih
 )
-target_include_directories(heditor_app PRIVATE "./src")
+target_include_directories(heditor_app PRIVATE
+	./src
+	../deps/cimgui/imgui
+)
 set_target_properties(heditor_app PROPERTIES PREFIX "")
 
 add_library(heditor_plugin INTERFACE)

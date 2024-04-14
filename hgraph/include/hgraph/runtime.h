@@ -46,6 +46,11 @@ typedef struct hgraph_pipeline_config_s {
 	const hgraph_pipeline_t* previous_pipeline;
 } hgraph_pipeline_config_t;
 
+typedef struct hgraph_registry_info_s {
+	hgraph_index_t num_data_types;
+	hgraph_index_t num_node_types;
+} hgraph_registry_info_t;
+
 typedef struct hgraph_info_s {
 	hgraph_index_t num_nodes;
 	hgraph_index_t num_edges;
@@ -135,6 +140,9 @@ hgraph_registry_iterate(
 	hgraph_registry_iterator_t iterator,
 	void* userdata
 );
+
+HGRAPH_API hgraph_registry_info_t
+hgraph_registry_info(const hgraph_registry_t* registry);
 
 HGRAPH_API size_t
 hgraph_init(hgraph_t* graph, const hgraph_config_t* config);

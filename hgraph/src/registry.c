@@ -458,3 +458,11 @@ hgraph_registry_iterate(
 		}
 	}
 }
+
+hgraph_registry_info_t
+hgraph_registry_info(const hgraph_registry_t* registry) {
+	return (hgraph_registry_info_t){
+		.num_data_types = registry->num_data_types,
+		.num_node_types = registry->num_node_types - 1,  // exclude dummy
+	};
+}

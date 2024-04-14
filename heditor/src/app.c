@@ -15,6 +15,7 @@
 #include "entry.h"
 #include "app.h"
 #include "allocator/arena.h"
+#include "cnode-editor.h"
 #include <string.h>
 #include <errno.h>
 
@@ -39,6 +40,7 @@ REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
 REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
 REMODULE_VAR(size_t, current_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, current_registry) = 0;
+REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
 
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
@@ -77,6 +79,8 @@ void init(void* userdata) {
 
 	hed_debug = hed_debug || is_debugger_attached();
 	igGetIO()->ConfigDebugIsDebuggerPresent = hed_debug;
+
+	node_editor = neCreateEditor();
 }
 
 static void
@@ -94,6 +98,7 @@ frame(void) {
 		.dpi_scale = sapp_dpi_scale(),
 	});
 
+	// Main menu
 	if (igBeginMainMenuBar()) {
 		if (igBeginMenu("File", true)) {
 			if (igMenuItem_Bool("New", NULL, false, true)) {
@@ -126,6 +131,27 @@ frame(void) {
 
 		igEndMainMenuBar();
 	}
+
+	// Main window
+	const ImGuiWindowFlags main_window_flags =
+		ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoBringToFrontOnFocus;
+	ImGuiViewport* viewport = igGetMainViewport();
+	igSetNextWindowPos(viewport->WorkPos, ImGuiCond_None, (ImVec2){ 0 });
+	igSetNextWindowSize(viewport->WorkSize, ImGuiCond_None);
+	igBegin("Main", NULL, main_window_flags);
+	{
+		neBegin("Editor", (ImVec2){ 0 });
+		{
+		}
+		neEnd();
+	}
+	igEnd();
 
 	// Hot keys
 	if (igIsKeyChordPressed_Nil(ImGuiKey_O | ImGuiMod_Ctrl)) {
@@ -185,6 +211,8 @@ static void
 cleanup(void* userdata) {
 	entry_args_t* args = userdata;
 
+	neDestroyEditor(node_editor);
+
 	hed_free(current_registry, args->allocator);
 
 	for (int i = num_plugins - 1; i >= 0; --i) {
@@ -241,6 +269,9 @@ remodule_entry(remodule_op_t op, void* userdata) {
 					itr != NULL;
 					itr = itr->next
 				) {
+					// TODO: if the path starts with `.`, it is relative to the
+					// root.
+					// Otherwise, let the dynamic loader resolve it.
 					hed_str_t module_name = hed_str_format(
 						hed_arena_as_allocator(&frame_arena),
 						"%s%s%s%s",
@@ -248,6 +279,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 						itr->name.data,
 						PLUGIN_SUFFIX, REMODULE_DYNLIB_EXT
 					);
+					log_debug("Loading plugin: %s", module_name.data);
 					plugins[num_plugins] = remodule_load(
 						module_name.data, plugin_api
 					);
@@ -256,13 +288,19 @@ remodule_entry(remodule_op_t op, void* userdata) {
 					);
 					++num_plugins;
 				}
-
-				current_registry_size = hgraph_registry_init(
-					NULL, registry_builder
-				);
-				log_debug("Registry size: %zu", current_registry_size);
-				current_registry = hed_malloc(current_registry_size, args->allocator);
 			}
+		}
+
+		if (registry_builder != NULL) {
+			current_registry_size = hgraph_registry_init(
+				NULL, registry_builder
+			);
+			log_debug("Registry size: %zu", current_registry_size);
+			current_registry = hed_malloc(current_registry_size, args->allocator);
+			hgraph_registry_init(current_registry, registry_builder);
+			hgraph_registry_info_t reg_info = hgraph_registry_info(current_registry);
+			log_debug("Number of data types: %d", reg_info.num_data_types);
+			log_debug("Number of node types: %d", reg_info.num_node_types);
 		}
 	}
 
@@ -282,5 +320,9 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.logger = args->sokol_logger,
 			.allocator = args->sokol_allocator,
 		};
+	}
+
+	if (op == REMODULE_OP_AFTER_RELOAD && node_editor != NULL) {
+		neSetCurrentEditor(node_editor);
 	}
 }
