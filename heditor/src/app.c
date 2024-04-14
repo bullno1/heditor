@@ -32,6 +32,11 @@ REMODULE_VAR(bool, hed_debug) = false;
 REMODULE_VAR(bool, hed_debug) = true;
 #endif
 
+typedef struct {
+	node_type_menu_entry_t* first_entry;
+	ImVec2 node_pos;
+} create_node_menu_ctx_t;
+
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 
@@ -46,6 +51,9 @@ REMODULE_VAR(hgraph_registry_t*, current_registry) = NULL;
 REMODULE_VAR(size_t, next_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, next_registry) = NULL;
 
+REMODULE_VAR(hgraph_config_t, graph_config) = { 0 };
+REMODULE_VAR(size_t, current_graph_size) = 0;
+
 REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
 
 REMODULE_VAR(size_t, menu_size) = 0;
@@ -58,34 +66,54 @@ extern app_config_t*
 load_app_config(hed_arena_t* arena);
 
 static void
-show_node_type_menu_entry(node_type_menu_entry_t* entry) {
-	if (entry->node_type) {
-		if (igMenuItem_Bool(entry->node_type->label.data, NULL, false, true)) {
-			log_trace("Chosen %s", entry->node_type->name.data);
+show_create_node_menu(
+	const create_node_menu_ctx_t* ctx,
+	node_type_menu_entry_t* entry
+) {
+	const hgraph_node_type_t* node_type = entry->node_type;
+	if (node_type != NULL) {
+		igPushID_Int(entry - ctx->first_entry);
+		if (igMenuItem_Bool(node_type->label.data, NULL, false, true)) {
+			HED_CMD(HED_CMD_CREATE_NODE, .create_node_args = {
+				.node_type = node_type,
+				.pos = ctx->node_pos,
+			});
 		}
+		igPopID();
 		if (
-			entry->node_type->description.length > 0
+			node_type->description.length > 0
 			&& igIsItemHovered(ImGuiHoveredFlags_DelayShort)
 		) {
-			igSetTooltip(entry->node_type->description.data);
+			igSetTooltip(node_type->description.data);
 		}
-	} else {
+	} else if (entry->label.length > 0) {
 		if (igBeginMenu(entry->label.data, true)) {
 			for (
 				node_type_menu_entry_t* itr = entry->children;
 				itr != NULL;
 				itr = itr->next_sibling
 			) {
-				show_node_type_menu_entry(itr);
+				show_create_node_menu(ctx, itr);
 			}
 
 			igEndMenu();
+		}
+	} else {
+		for (
+			node_type_menu_entry_t* itr = entry->children;
+			itr != NULL;
+			itr = itr->next_sibling
+		) {
+			show_create_node_menu(ctx, itr);
 		}
 	}
 }
 
 static void
 gui_editor(void) {
+	ImVec2 mouse_pos;
+	igGetMousePos(&mouse_pos);
+
 	neSuspend();
 	if (node_type_menu != NULL && neShowBackgroundContextMenu()) {
 		igOpenPopup_Str("New node", ImGuiPopupFlags_None);
@@ -94,13 +122,13 @@ gui_editor(void) {
 
 	neSuspend();
 	if (igBeginPopup("New node", ImGuiWindowFlags_None)) {
-		for (
-			node_type_menu_entry_t* itr = node_type_menu->children;
-			itr != NULL;
-			itr = itr->next_sibling
-		) {
-			show_node_type_menu_entry(itr);
-		}
+		show_create_node_menu(
+			&(create_node_menu_ctx_t){
+				.first_entry = node_type_menu,
+				.node_pos = mouse_pos,
+			},
+			node_type_menu
+		);
 		igEndPopup();
 	}
 	neResume();
@@ -306,6 +334,8 @@ frame(void* userdata) {
 						}
 					}
 				}
+				break;
+			case HED_CMD_CREATE_NODE:
 				break;
 		}
 	}

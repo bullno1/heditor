@@ -1,3 +1,5 @@
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
 #include "command.h"
 #include "pico_log.h"
 
