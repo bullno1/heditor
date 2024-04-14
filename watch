@@ -5,6 +5,7 @@ inotifywait \
 	--monitor heditor \
 	--monitor hgraph \
 	--monitor hgraph-core \
+	--monitor tests \
 	-e close_write |
 	while read -r directory action file; do
 		echo "$directory$file $action"

@@ -222,6 +222,12 @@ gui_draw_graph_editor(void) {
 			}
 		}
 
+		hgraph_index_t edge_id;
+		while (neQueryDeletedLink(&edge_id)) {
+			if (neAcceptDeletedItem(true)) {
+				hgraph_disconnect(current_graph, edge_id);
+			}
+		}
 	}
 	neEndDelete();
 

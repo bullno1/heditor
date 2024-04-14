@@ -316,6 +316,27 @@ TEST(graph, connect) {
 	//    └---->|mid2|---┘
 }
 
+TEST(graph, double_delete) {
+	hgraph_t* graph = fixture.graph;
+
+	hgraph_index_t from_node = hgraph_create_node(graph, &plugin1_start);
+	hgraph_index_t to_node = hgraph_create_node(graph, &plugin2_mid);
+	hgraph_index_t edge = hgraph_connect(
+		graph,
+		hgraph_get_pin_id(
+			graph, from_node, &plugin1_start_out_f32
+		),
+		hgraph_get_pin_id(
+			graph, to_node, &plugin2_mid_in_f32
+		)
+	);
+	ASSERT_TRUE(HGRAPH_IS_VALID_INDEX(edge));
+
+	hgraph_destroy_node(graph, to_node);
+	// The extra disconnect must not crash
+	hgraph_disconnect(graph, edge);
+}
+
 TEST(graph, name) {
 	hgraph_t* graph = fixture.graph;
 

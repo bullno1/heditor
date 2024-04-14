@@ -415,7 +415,7 @@ hgraph_disconnect(hgraph_t* graph, hgraph_index_t edge_id) {
 		&graph->edge_slot_map,
 		edge_id
 	);
-	if (!HGRAPH_IS_VALID_INDEX(edge_id)) { return; }
+	if (!HGRAPH_IS_VALID_INDEX(edge_slot)) { return; }
 
 	hgraph_edge_t* edge = &graph->edges[edge_slot];
 	bool is_output;
