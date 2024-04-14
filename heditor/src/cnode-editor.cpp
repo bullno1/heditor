@@ -4,15 +4,38 @@
 namespace ed = ax::NodeEditor;
 typedef ed::EditorContext neEditorContext_t;
 
-// All ids are off by 1 because the node editor treat id 0 as null
+enum IdKind {
+	Node = 1,  // So that the id will never be 0
+	Pin = 2,
+	Link = 3,
+};
+
+template<typename T>
+IdKind IdKindOf();
+
+template<>
+IdKind IdKindOf<ed::NodeId>() {
+	return IdKind::Node;
+}
+
+template<>
+IdKind IdKindOf<ed::PinId>() {
+	return IdKind::Pin;
+}
+
+template<>
+IdKind IdKindOf<ed::LinkId>() {
+	return IdKind::Link;
+}
+
 template<typename IdT>
 IdT IntToId(int32_t num) {
-	return IdT(num + 1);
+	return IdT(((uintptr_t)num << 2) | (uintptr_t)IdKindOf<IdT>());
 }
 
 template<typename IdT>
 int32_t IdToInt(IdT id) {
-	return id.Get() - 1;
+	return id.Get() >> 2;
 }
 
 extern "C" {

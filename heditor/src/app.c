@@ -125,7 +125,49 @@ gui_draw_graph_node(
 	(void)node_id;
 
 	neBeginNode(node_id);
-	igText(node_type->label.data);
+	{
+		igText(node_type->label.data);
+
+		for (
+			const hgraph_attribute_description_t** itr = node_type->attributes;
+			itr != NULL && *itr != NULL;
+			++itr
+		) {
+			igText((*itr)->label.data);
+		}
+
+		igBeginGroup();
+		for (
+			const hgraph_pin_description_t** itr = node_type->input_pins;
+			itr != NULL && *itr != NULL;
+			++itr
+		) {
+			hgraph_index_t pin_id = hgraph_get_pin_id(current_graph, node_id, *itr);
+			neBeginPin(pin_id, true);
+			{
+				igText((*itr)->label.data);
+			}
+			neEndPin();
+		}
+		igEndGroup();
+
+		igSameLine(0.f, -1.f);
+
+		igBeginGroup();
+		for (
+			const hgraph_pin_description_t** itr = node_type->output_pins;
+			itr != NULL && *itr != NULL;
+			++itr
+		) {
+			hgraph_index_t pin_id = hgraph_get_pin_id(current_graph, node_id, *itr);
+			neBeginPin(pin_id, false);
+			{
+				igText((*itr)->label.data);
+			}
+			neEndPin();
+		}
+		igEndGroup();
+	}
 	neEndNode();
 
 	return true;
