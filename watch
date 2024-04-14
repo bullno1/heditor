@@ -1,6 +1,11 @@
 #!/bin/sh -e
 
-inotifywait --recursive --monitor heditor -e close_write |
+inotifywait \
+	--recursive \
+	--monitor heditor \
+	--monitor hgraph \
+	--monitor hgraph-core \
+	-e close_write |
 	while read -r directory action file; do
 		echo "$directory$file $action"
 		./build Debug || true

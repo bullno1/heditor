@@ -13,3 +13,6 @@
 [submodule "deps/inih"]
 	path = deps/inih
 	url = https://github.com/benhoyt/inih.git
+[submodule "deps/imgui-node-editor"]
+	path = deps/imgui-node-editor
+	url = https://github.com/thedmd/imgui-node-editor
