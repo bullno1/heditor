@@ -53,6 +53,12 @@ REMODULE_VAR(hgraph_registry_t*, next_registry) = NULL;
 
 REMODULE_VAR(hgraph_config_t, graph_config) = { 0 };
 REMODULE_VAR(size_t, current_graph_size) = 0;
+REMODULE_VAR(hgraph_t*, current_graph) = NULL;
+REMODULE_VAR(size_t, next_graph_size) = 0;
+REMODULE_VAR(hgraph_t*, next_graph) = NULL;
+
+REMODULE_VAR(size_t, migration_size) = 0;
+REMODULE_VAR(hgraph_migration_t*, migration) = NULL;
 
 REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
 
@@ -109,14 +115,44 @@ show_create_node_menu(
 	}
 }
 
+static bool
+gui_draw_graph_node(
+	hgraph_index_t node_id,
+	const hgraph_node_type_t* node_type,
+	void* userdata
+) {
+	(void)userdata;
+	(void)node_id;
+	neBeginNode(node_id);
+	igText(node_type->label.data);
+	neEndNode();
+
+	return true;
+}
+
+/*static bool*/
+/*gui_draw_graph_edge(*/
+	/*hgraph_index_t edge,*/
+	/*hgraph_index_t from_pin,*/
+	/*hgraph_index_t to_pin,*/
+	/*void* userdata*/
+/*) {*/
+	/*return true;*/
+/*}*/
+
 static void
-gui_editor(void) {
-	ImVec2 mouse_pos;
-	igGetMousePos(&mouse_pos);
+gui_draw_graph_editor(void) {
+	hgraph_iterate_nodes(current_graph, gui_draw_graph_node, NULL);
+	/*hgraph_iterate_edges(current_graph, gui_draw_graph_edge, NULL);*/
+
+	static ImVec2 mouse_pos;
+	ImVec2 tmp_pos;
+	igGetMousePos(&tmp_pos);
 
 	neSuspend();
 	if (node_type_menu != NULL && neShowBackgroundContextMenu()) {
 		igOpenPopup_Str("New node", ImGuiPopupFlags_None);
+		mouse_pos = tmp_pos;
 	}
 	neResume();
 
@@ -150,6 +186,27 @@ build_registry(
 	}
 
 	hgraph_registry_init(registry, registry_builder);
+}
+
+static void
+build_graph(
+	hed_allocator_t* alloc,
+	hgraph_registry_t* registry,
+	size_t* size_ptr,
+	hgraph_t** graph_ptr
+) {
+	hgraph_config_t config = graph_config;
+	config.registry = registry;
+	size_t required_size = hgraph_init(NULL, &config);
+
+	hgraph_t* graph = *graph_ptr;
+	if (required_size > *size_ptr) {
+		graph = hed_realloc(graph, required_size, alloc);
+		*size_ptr = required_size;
+		*graph_ptr = graph;
+	}
+
+	hgraph_init(graph, &config);
 }
 
 static void
@@ -213,14 +270,40 @@ frame(void* userdata) {
 		}
 
 		build_registry(args->allocator, &next_registry_size, &next_registry);
-		// TODO: migration
-		size_t tmp_size = current_registry_size;
-		current_registry_size = next_registry_size;
-		next_registry_size = tmp_size;
+		build_graph(args->allocator, next_registry, &next_graph_size, &next_graph);
 
-		hgraph_registry_t* tmp_reg = current_registry;
-		current_registry = next_registry;
-		next_registry = tmp_reg;
+		size_t required_migration_size = hgraph_migration_init(
+			NULL, current_registry, next_registry
+		);
+		if (required_migration_size > migration_size) {
+			migration = hed_realloc(
+				migration, required_migration_size, args->allocator
+			);
+			migration_size = required_migration_size;
+		}
+		hgraph_migration_init(migration, current_registry, next_registry);
+		hgraph_migration_execute(migration, current_graph, next_graph);
+
+		// Swap next and current
+		{
+			size_t tmp_size = current_registry_size;
+			current_registry_size = next_registry_size;
+			next_registry_size = tmp_size;
+
+			hgraph_registry_t* tmp_reg = current_registry;
+			current_registry = next_registry;
+			next_registry = tmp_reg;
+		}
+
+		{
+			size_t tmp_size = current_graph_size;
+			current_graph_size = next_graph_size;
+			next_graph_size = tmp_size;
+
+			hgraph_t* tmp_graph = current_graph;
+			current_graph = next_graph;
+			next_graph = tmp_graph;
+		}
 
 		// Build node menu
 		size_t required_menu_size = node_type_menu_init(
@@ -294,9 +377,7 @@ frame(void* userdata) {
 	igBegin("Main", NULL, main_window_flags);
 	{
 		neBegin("Editor", (ImVec2){ 0 });
-		{
-			gui_editor();
-		}
+		gui_draw_graph_editor();
 		neEnd();
 	}
 	igEnd();
@@ -336,6 +417,13 @@ frame(void* userdata) {
 				}
 				break;
 			case HED_CMD_CREATE_NODE:
+				{
+					hgraph_index_t node_id = hgraph_create_node(
+						current_graph,
+						cmd.create_node_args.node_type
+					);
+					neSetNodePosition(node_id, cmd.create_node_args.pos);
+				}
 				break;
 		}
 	}
@@ -365,6 +453,9 @@ cleanup(void* userdata) {
 
 	neDestroyEditor(node_editor);
 
+	hed_free(migration, args->allocator);
+	hed_free(current_graph, args->allocator);
+	hed_free(next_graph, args->allocator);
 	hed_free(current_registry, args->allocator);
 	hed_free(next_registry, args->allocator);
 
@@ -399,6 +490,8 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				log_debug("Project name: %s", config->project_name.data);
 
 				registry_config = config->registry_config;
+				graph_config = config->graph_config;
+
 				size_t registry_builder_size = hgraph_registry_builder_init(
 					NULL, &registry_config
 				);
@@ -460,6 +553,12 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			}
 			node_type_menu_init(
 				node_type_menu, current_registry, &frame_arena
+			);
+
+			build_graph(
+				args->allocator,
+				current_registry,
+				&current_graph_size, &current_graph
 			);
 		}
 	}

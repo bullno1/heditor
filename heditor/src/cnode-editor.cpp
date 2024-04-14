@@ -1,49 +1,77 @@
 #include "cnode-editor.h"
 #include "imgui_node_editor.h"
 
-namespace Editor = ax::NodeEditor;
-typedef Editor::EditorContext neEditorContext_t;
+namespace ed = ax::NodeEditor;
+typedef ed::EditorContext neEditorContext_t;
 
 extern "C" {
 
 neEditorContext_t*
 neCreateEditor(void) {
-	return Editor::CreateEditor();
+	return ed::CreateEditor();
 }
 
 void
 neDestroyEditor(neEditorContext_t* editor) {
-	Editor::DestroyEditor(editor);
+	ed::DestroyEditor(editor);
 }
 
 void
 neSetCurrentEditor(neEditorContext_t* editor) {
-	Editor::SetCurrentEditor(editor);
+	ed::SetCurrentEditor(editor);
 }
 
 void
 neBegin(const char* id, const ImVec2 size) {
-	Editor::Begin(id, size);
+	ed::Begin(id, size);
 }
 
 void
 neEnd(void) {
-	Editor::End();
+	ed::End();
 }
 
 bool
 neShowBackgroundContextMenu(void) {
-	return Editor::ShowBackgroundContextMenu();
+	return ed::ShowBackgroundContextMenu();
 }
 
 void
 neSuspend(void) {
-	Editor::Suspend();
+	ed::Suspend();
 }
 
 void
 neResume(void) {
-	Editor::Resume();
+	ed::Resume();
+}
+
+void
+neBeginNode(int32_t id) {
+	ed::BeginNode(ed::NodeId(id));
+}
+
+void
+neEndNode() {
+	ed::EndNode();
+}
+
+void
+neBeginPin(int32_t id, bool is_input) {
+	ed::BeginPin(
+		ed::PinId(id),
+		is_input ? ed::PinKind::Input : ed::PinKind::Output
+	);
+}
+
+void
+neEndPin() {
+	ed::EndPin();
+}
+
+void
+neSetNodePosition(int32_t id, ImVec2 pos) {
+	ed::SetNodePosition(ed::NodeId(id), pos);
 }
 
 }

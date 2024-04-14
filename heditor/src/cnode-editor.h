@@ -42,6 +42,21 @@ neSuspend(void);
 void
 neResume(void);
 
+void
+neBeginNode(int32_t id);
+
+void
+neEndNode(void);
+
+void
+neBeginPin(int32_t id, bool is_input);
+
+void
+neEndPin(void);
+
+void
+neSetNodePosition(int32_t id, ImVec2 pos);
+
 #ifdef __cplusplus
 }
 #endif
