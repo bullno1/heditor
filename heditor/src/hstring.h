@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #define HED_STR_LIT(X) (hed_str_t){ .length = sizeof(X) - 1, .data = X }
 
@@ -21,6 +22,9 @@ hed_str_vformat(struct hed_allocator_s* alloc, const char* fmt, va_list args);
 
 hed_str_t
 hed_str_from_cstr(const char* str);
+
+bool
+hed_str_equal(hed_str_t lhs, hed_str_t rhs);
 
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((format (printf, 2, 3)))

@@ -1,5 +1,5 @@
-#include <imgui_node_editor.h>
 #include "cnode-editor.h"
+#include "imgui_node_editor.h"
 
 namespace Editor = ax::NodeEditor;
 typedef Editor::EditorContext neEditorContext_t;
@@ -29,6 +29,21 @@ neBegin(const char* id, const ImVec2 size) {
 void
 neEnd(void) {
 	Editor::End();
+}
+
+bool
+neShowBackgroundContextMenu(void) {
+	return Editor::ShowBackgroundContextMenu();
+}
+
+void
+neSuspend(void) {
+	Editor::Suspend();
+}
+
+void
+neResume(void) {
+	Editor::Resume();
 }
 
 }

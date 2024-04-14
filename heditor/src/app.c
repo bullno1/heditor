@@ -16,6 +16,7 @@
 #include "app.h"
 #include "allocator/arena.h"
 #include "cnode-editor.h"
+#include "node_type_menu.h"
 #include <string.h>
 #include <errno.h>
 
@@ -41,12 +42,63 @@ REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
 REMODULE_VAR(size_t, current_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, current_registry) = 0;
 REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
+REMODULE_VAR(size_t, menu_size) = 0;
+REMODULE_VAR(node_type_menu_entry_t*, node_type_menu) = 0;
 
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
 
 extern app_config_t*
 load_app_config(hed_arena_t* arena);
+
+static void
+show_node_type_menu_entry(node_type_menu_entry_t* entry) {
+	if (entry->node_type) {
+		if (igMenuItem_Bool(entry->node_type->label.data, NULL, false, true)) {
+			log_trace("Chosen %s", entry->node_type->name.data);
+		}
+		if (
+			entry->node_type->description.length > 0
+			&& igIsItemHovered(ImGuiHoveredFlags_DelayShort)
+		) {
+			igSetTooltip(entry->node_type->description.data);
+		}
+	} else {
+		if (igBeginMenu(entry->label.data, true)) {
+			for (
+				node_type_menu_entry_t* itr = entry->children;
+				itr != NULL;
+				itr = itr->next_sibling
+			) {
+				show_node_type_menu_entry(itr);
+			}
+
+			igEndMenu();
+		}
+	}
+}
+
+static void
+gui_editor(void) {
+	neSuspend();
+	if (node_type_menu != NULL && neShowBackgroundContextMenu()) {
+		igOpenPopup_Str("New node", ImGuiPopupFlags_None);
+	}
+	neResume();
+
+	neSuspend();
+	if (igBeginPopup("New node", ImGuiWindowFlags_None)) {
+		for (
+			node_type_menu_entry_t* itr = node_type_menu->children;
+			itr != NULL;
+			itr = itr->next_sibling
+		) {
+			show_node_type_menu_entry(itr);
+		}
+		igEndPopup();
+	}
+	neResume();
+}
 
 static
 void init(void* userdata) {
@@ -81,6 +133,7 @@ void init(void* userdata) {
 	igGetIO()->ConfigDebugIsDebuggerPresent = hed_debug;
 
 	node_editor = neCreateEditor();
+	neSetCurrentEditor(node_editor);
 }
 
 static void
@@ -148,6 +201,7 @@ frame(void) {
 	{
 		neBegin("Editor", (ImVec2){ 0 });
 		{
+			gui_editor();
 		}
 		neEnd();
 	}
@@ -210,6 +264,8 @@ frame(void) {
 static void
 cleanup(void* userdata) {
 	entry_args_t* args = userdata;
+
+	hed_free(node_type_menu, args->allocator);
 
 	neDestroyEditor(node_editor);
 
@@ -301,6 +357,19 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			hgraph_registry_info_t reg_info = hgraph_registry_info(current_registry);
 			log_debug("Number of data types: %d", reg_info.num_data_types);
 			log_debug("Number of node types: %d", reg_info.num_node_types);
+
+			size_t required_menu_size = node_type_menu_init(
+				NULL, current_registry, &frame_arena
+			);
+			log_debug("Menu size: %zu", required_menu_size);
+			if (required_menu_size > menu_size) {
+				node_type_menu = hed_realloc(
+					node_type_menu, required_menu_size, args->allocator
+				);
+			}
+			node_type_menu_init(
+				node_type_menu, current_registry, &frame_arena
+			);
 		}
 	}
 

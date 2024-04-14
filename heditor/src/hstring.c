@@ -38,3 +38,9 @@ hed_str_from_cstr(const char* str) {
 		.data = str,
 	};
 }
+
+bool
+hed_str_equal(hed_str_t lhs, hed_str_t rhs) {
+	if (lhs.length != rhs.length) { return false; }
+	return strncmp(lhs.data, rhs.data, rhs.length) == 0;
+}
