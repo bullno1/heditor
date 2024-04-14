@@ -57,6 +57,24 @@ neEndPin(void);
 void
 neSetNodePosition(int32_t id, ImVec2 pos);
 
+bool
+neBeginDelete(void);
+
+bool
+neQueryDeletedLink(int32_t* link_id);
+
+bool
+neQueryDeletedNode(int32_t* node_id);
+
+bool
+neAcceptDeletedItem(bool deleteDependencies);
+
+void
+neRejectDeletedItem(void);
+
+void
+neEndDelete(void);
+
 #ifdef __cplusplus
 }
 #endif

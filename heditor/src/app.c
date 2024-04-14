@@ -123,6 +123,7 @@ gui_draw_graph_node(
 ) {
 	(void)userdata;
 	(void)node_id;
+
 	neBeginNode(node_id);
 	igText(node_type->label.data);
 	neEndNode();
@@ -142,8 +143,23 @@ gui_draw_graph_node(
 
 static void
 gui_draw_graph_editor(void) {
+	// Draw graph
 	hgraph_iterate_nodes(current_graph, gui_draw_graph_node, NULL);
 	/*hgraph_iterate_edges(current_graph, gui_draw_graph_edge, NULL);*/
+
+	// Edit graph
+	if (neBeginDelete()) {
+		hgraph_index_t node_id;
+		while (neQueryDeletedNode(&node_id)) {
+			if (neAcceptDeletedItem(true)) {
+				hgraph_destroy_node(current_graph, node_id);
+			}
+		}
+
+		neEndDelete();
+	}
+
+	// Menu
 
 	static ImVec2 mouse_pos;
 	ImVec2 tmp_pos;
@@ -154,9 +170,7 @@ gui_draw_graph_editor(void) {
 		igOpenPopup_Str("New node", ImGuiPopupFlags_None);
 		mouse_pos = tmp_pos;
 	}
-	neResume();
 
-	neSuspend();
 	if (igBeginPopup("New node", ImGuiWindowFlags_None)) {
 		show_create_node_menu(
 			&(create_node_menu_ctx_t){
