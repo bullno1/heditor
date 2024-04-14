@@ -54,8 +54,29 @@ neBeginPin(int32_t id, bool is_input);
 void
 neEndPin(void);
 
+bool
+neLink(int32_t linkd_id, int32_t from_pin_id, int32_t to_pin_id);
+
 void
 neSetNodePosition(int32_t id, ImVec2 pos);
+
+bool
+neBeginCreate(void);
+
+bool
+neQueryNewLink(int32_t* from_pin, int32_t* to_pin);
+
+bool
+neQueryNewNode(int32_t* from_pin);
+
+bool
+neAcceptNewItem(ImVec4 color, float thickness);
+
+void
+neRejectNewItem(ImVec4 color, float thickness);
+
+void
+neEndCreate(void);
 
 bool
 neBeginDelete(void);

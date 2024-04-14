@@ -109,6 +109,15 @@ neSetNodePosition(int32_t id, ImVec2 pos) {
 }
 
 bool
+neLink(int32_t link_id, int32_t from_pin, int32_t to_pin) {
+	return ne::Link(
+		IntToId<ne::LinkId>(link_id),
+		IntToId<ne::PinId>(from_pin),
+		IntToId<ne::PinId>(to_pin)
+	);
+}
+
+bool
 neBeginDelete(void) {
 	return ne::BeginDelete();
 }
@@ -142,6 +151,43 @@ neRejectDeletedItem(void) {
 void
 neEndDelete(void) {
 	ne::EndDelete();
+}
+
+bool
+neBeginCreate(void) {
+	return ne::BeginCreate();
+}
+
+bool
+neQueryNewLink(int32_t* from_pin, int32_t* to_pin) {
+	ne::PinId fromPinId, toPinId;
+	bool result = ne::QueryNewLink(&fromPinId, &toPinId);
+	*from_pin = IdToInt(fromPinId);
+	*to_pin = IdToInt(toPinId);
+	return result;
+}
+
+bool
+neQueryNewNode(int32_t* from_pin) {
+	ne::PinId pinId;
+	bool result = ne::QueryNewNode(&pinId);
+	*from_pin = IdToInt(pinId);
+	return result;
+}
+
+bool
+neAcceptNewItem(ImVec4 color, float thickness) {
+	return ne::AcceptNewItem(color, thickness);
+}
+
+void
+neRejectNewItem(ImVec4 color, float thickness) {
+	ne::RejectNewItem(color, thickness);
+}
+
+void
+neEndCreate(void) {
+	ne::EndCreate();
 }
 
 }

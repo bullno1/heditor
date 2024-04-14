@@ -171,6 +171,13 @@ hgraph_resolve_pin(
 	const hgraph_pin_description_t** pin_desc_out
 );
 
+HGRAPH_API bool
+hgraph_can_connect(
+	hgraph_t* graph,
+	hgraph_index_t from_pin,
+	hgraph_index_t to_pin
+);
+
 HGRAPH_API hgraph_index_t
 hgraph_connect(
 	hgraph_t* graph,

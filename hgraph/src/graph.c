@@ -291,6 +291,53 @@ hgraph_resolve_pin(
 	}
 }
 
+bool
+hgraph_can_connect(
+	hgraph_t* graph,
+	hgraph_index_t from_pin,
+	hgraph_index_t to_pin
+) {
+	if (!(HGRAPH_IS_VALID_INDEX(from_pin) && HGRAPH_IS_VALID_INDEX(to_pin))) {
+		return false;
+	}
+
+	bool is_output;
+	hgraph_index_t from_node_id, from_pin_index;
+	hgraph_decode_pin_id(from_pin, &from_node_id, &from_pin_index, &is_output);
+	if (!is_output) { return false; }
+
+	hgraph_index_t to_node_id, to_pin_index;
+	hgraph_decode_pin_id(to_pin, &to_node_id, &to_pin_index, &is_output);
+	if (is_output) { return false; }
+
+	hgraph_node_t* from_node = hgraph_find_node_by_id(graph, from_node_id);
+	hgraph_node_t* to_node = hgraph_find_node_by_id(graph, to_node_id);
+	if ((from_node == NULL) || (to_node == NULL) || (from_node == to_node)) {
+		return false;
+	}
+
+	const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
+		graph, from_node
+	);
+	const hgraph_node_type_t* from_type_def = from_type_info->definition;
+	if (from_pin_index >= from_type_info->num_output_pins) { return false; }
+
+	const hgraph_node_type_info_t* to_type_info = hgraph_get_node_type_internal(
+		graph, to_node
+	);
+	const hgraph_node_type_t* to_type_def = to_type_info->definition;
+	if (to_pin_index >= to_type_info->num_input_pins) { return false; }
+
+	const hgraph_data_type_t* from_data_type = from_type_def->output_pins[from_pin_index]->data_type;
+	const hgraph_data_type_t* to_data_type = to_type_def->input_pins[to_pin_index]->data_type;
+	if (from_data_type != to_data_type) { return false; }
+
+	hgraph_index_t* input_pin = (hgraph_index_t*)((char*)to_node + to_type_info->input_pins[to_pin_index].offset);
+	if (HGRAPH_IS_VALID_INDEX(*input_pin)) { return false; }
+
+	return true;
+}
+
 hgraph_index_t
 hgraph_connect(
 	hgraph_t* graph,
@@ -312,7 +359,9 @@ hgraph_connect(
 
 	hgraph_node_t* from_node = hgraph_find_node_by_id(graph, from_node_id);
 	hgraph_node_t* to_node = hgraph_find_node_by_id(graph, to_node_id);
-	if ((from_node == NULL) || (to_node == NULL)) { return HGRAPH_INVALID_INDEX; }
+	if ((from_node == NULL) || (to_node == NULL) || (from_node == to_node)) {
+		return false;
+	}
 
 	const hgraph_node_type_info_t* from_type_info = hgraph_get_node_type_internal(
 		graph, from_node

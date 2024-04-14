@@ -173,23 +173,47 @@ gui_draw_graph_node(
 	return true;
 }
 
-/*static bool*/
-/*gui_draw_graph_edge(*/
-	/*hgraph_index_t edge,*/
-	/*hgraph_index_t from_pin,*/
-	/*hgraph_index_t to_pin,*/
-	/*void* userdata*/
-/*) {*/
-	/*return true;*/
-/*}*/
+static bool
+gui_draw_graph_edge(
+	hgraph_index_t edge,
+	hgraph_index_t from_pin,
+	hgraph_index_t to_pin,
+	void* userdata
+) {
+	(void)userdata;
+
+	neLink(edge, from_pin, to_pin);
+	return true;
+}
 
 static void
 gui_draw_graph_editor(void) {
 	// Draw graph
 	hgraph_iterate_nodes(current_graph, gui_draw_graph_node, NULL);
-	/*hgraph_iterate_edges(current_graph, gui_draw_graph_edge, NULL);*/
+	hgraph_iterate_edges(current_graph, gui_draw_graph_edge, NULL);
 
 	// Edit graph
+	if (neBeginCreate()) {
+		hgraph_index_t from_pin, to_pin;
+		if (neQueryNewLink(&from_pin, &to_pin)) {
+			if (hgraph_can_connect(current_graph, from_pin, to_pin)) {
+				if (neAcceptNewItem((ImVec4){ 0.f, 1.f, 0.f, 1.f }, 1.f)) {
+					HED_CMD(HED_CMD_CREATE_EDGE, .create_edge_args = {
+						.from_pin = from_pin,
+						.to_pin = to_pin,
+					});
+				}
+			} else {
+				neRejectNewItem((ImVec4){ 1.f, 0.f, 0.f, 1.f }, 1.f);
+			}
+		}
+
+		if (neQueryNewNode(&from_pin)) {
+			neRejectNewItem((ImVec4){ 1.f, 0.f, 0.f, 1.f }, 1.f);
+		}
+	}
+	neEndCreate();
+
 	if (neBeginDelete()) {
 		hgraph_index_t node_id;
 		while (neQueryDeletedNode(&node_id)) {
@@ -198,8 +222,8 @@ gui_draw_graph_editor(void) {
 			}
 		}
 
-		neEndDelete();
 	}
+	neEndDelete();
 
 	// Menu
 
@@ -479,6 +503,22 @@ frame(void* userdata) {
 						cmd.create_node_args.node_type
 					);
 					neSetNodePosition(node_id, cmd.create_node_args.pos);
+				}
+				break;
+			case HED_CMD_CREATE_EDGE:
+				{
+					hgraph_index_t edge_id = hgraph_connect(
+						current_graph,
+						cmd.create_edge_args.from_pin,
+						cmd.create_edge_args.to_pin
+					);
+					if (HGRAPH_IS_VALID_INDEX(edge_id)) {
+						neLink(
+							edge_id,
+							cmd.create_edge_args.from_pin,
+							cmd.create_edge_args.to_pin
+						);
+					}
 				}
 				break;
 		}
