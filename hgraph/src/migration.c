@@ -27,7 +27,7 @@ hgraph_create_var_plans(
 		const hgraph_var_t* from_var = &from_vars[i];
 
 		hgraph_index_t new_index = HGRAPH_INVALID_INDEX;
-		for (hgraph_index_t j = 0; j < num_to_vars; ++i) {
+		for (hgraph_index_t j = 0; j < num_to_vars; ++j) {
 			const hgraph_var_t* to_var = &to_vars[j];
 
 			if (hgraph_str_equal(from_var->name, to_var->name)) {
