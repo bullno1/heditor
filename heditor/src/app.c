@@ -27,6 +27,8 @@
 #	define PLUGIN_SUFFIX ""
 #endif
 
+static const float NODE_BORDER_WIDTH = 1.5f;
+
 #ifdef NDEBUG
 REMODULE_VAR(bool, hed_debug) = false;
 #else
@@ -127,6 +129,7 @@ gui_draw_graph_node(
 	ImVec2 header_min, header_max;
 	ImVec2 attr_min, attr_max;
 	ImVec2 input_min, input_max;
+	ImVec2 output_min, output_max;
 	neBeginNode(node_id);
 	{
 		igBeginGroup();
@@ -139,15 +142,18 @@ gui_draw_graph_node(
 		igGetItemRectMax(&header_max);
 		float header_width = header_max.x - header_min.x;
 
-		igBeginGroup();
-		for (
-			const hgraph_attribute_description_t** itr = node_type->attributes;
-			itr != NULL && *itr != NULL;
-			++itr
-		) {
-			igText((*itr)->label.data);
+		if (node_type->attributes != NULL) {
+			igBeginGroup();
+			for (
+				const hgraph_attribute_description_t** itr = node_type->attributes;
+				itr != NULL && *itr != NULL;
+				++itr
+			) {
+				igText((*itr)->label.data);
+			}
+			igSpacing();
+			igEndGroup();
 		}
-		igEndGroup();
 		igGetItemRectMin(&attr_min);
 		igGetItemRectMax(&attr_max);
 		float attr_width = attr_max.x - attr_min.x;
@@ -228,6 +234,8 @@ gui_draw_graph_node(
 			neEndPin();
 		}
 		igEndGroup();
+		igGetItemRectMin(&output_min);
+		igGetItemRectMax(&output_max);
 	}
 	neEndNode();
 
@@ -235,16 +243,41 @@ gui_draw_graph_node(
 	ImVec2 node_min, node_max;
 	igGetItemRectMin(&node_min);
 	igGetItemRectMax(&node_max);
+
 	ImVec4 border_color;
 	neGetStyleColor(neStyleColor_NodeBorder, &border_color);
+	float half_border_width = NODE_BORDER_WIDTH * 0.5f;
+
 	ImDrawList* draw_list = neGetNodeBackgroundDrawList(node_id);
+	// Divide header and attribute
 	ImDrawList_AddLine(
 		draw_list,
-		(ImVec2){ node_min.x, header_max.y },
-		(ImVec2){ node_max.x, header_max.y },
+		(ImVec2){ node_min.x + half_border_width, header_max.y },
+		(ImVec2){ node_max.x - 1.f - NODE_BORDER_WIDTH * 0.5, header_max.y },
 		igColorConvertFloat4ToU32(border_color),
 		1.f
 	);
+	// Divide attribute and input/output
+	ImDrawList_AddLine(
+		draw_list,
+		(ImVec2){ node_min.x + half_border_width, attr_max.y },
+		(ImVec2){ node_max.x - 1.f - NODE_BORDER_WIDTH * 0.5, attr_max.y },
+		igColorConvertFloat4ToU32(border_color),
+		1.f
+	);
+	// Divide input and output
+	if (node_type->input_pins != NULL && node_type->output_pins != NULL) {
+		float io_gap = (node_max.x - node_min.x)
+			- (input_max.x - node_min.x)
+			- (node_max.x - output_min.x);
+		ImDrawList_AddLine(
+			draw_list,
+			(ImVec2){ input_max.x + io_gap * 0.5f, attr_max.y + half_border_width },
+			(ImVec2){ input_max.x + io_gap * 0.5f, node_max.y - 1.f - half_border_width },
+			igColorConvertFloat4ToU32(border_color),
+			1.f
+		);
+	}
 
 	return true;
 }
@@ -545,6 +578,7 @@ frame(void* userdata) {
 
 		int numStyleVars = 0;
 		nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
+		nePushStyleVarFloat(neStyleVar_NodeBorderWidth, NODE_BORDER_WIDTH); ++numStyleVars;
 		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 4.f, 4.f, 4.f, 4.f }); ++numStyleVars;
 
 		gui_draw_graph_editor();
