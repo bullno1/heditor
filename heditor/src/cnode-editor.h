@@ -5,33 +5,118 @@
 #include <imgui.h>
 #include <imgui_node_editor.h>
 
-typedef ax::NodeEditor::EditorContext neEditorContext_t;
+typedef ax::NodeEditor::EditorContext neEditorContext;
+typedef ax::NodeEditor::StyleColor neStyleColor;
+typedef ax::NodeEditor::StyleVar neStyleVar;
+
 #else
 
 #include <stdbool.h>
 #include <cimgui.h>
 
-typedef struct neEditorContext_s neEditorContext_t;
+typedef struct neEditorContext neEditorContext;
+
+typedef enum {
+	neStyleColor_Bg,
+	neStyleColor_Grid,
+	neStyleColor_NodeBg,
+	neStyleColor_NodeBorder,
+	neStyleColor_HovNodeBorder,
+	neStyleColor_SelNodeBorder,
+	neStyleColor_NodeSelRect,
+	neStyleColor_NodeSelRectBorder,
+	neStyleColor_HovLinkBorder,
+	neStyleColor_SelLinkBorder,
+	neStyleColor_HighlightLinkBorder,
+	neStyleColor_LinkSelRect,
+	neStyleColor_LinkSelRectBorder,
+	neStyleColor_PinRect,
+	neStyleColor_PinRectBorder,
+	neStyleColor_Flow,
+	neStyleColor_FlowMarker,
+	neStyleColor_GroupBg,
+	neStyleColor_GroupBorder,
+
+	neStyleColor_Count
+} neStyleColor ;
+
+typedef enum {
+    neStyleVar_NodePadding,
+    neStyleVar_NodeRounding,
+    neStyleVar_NodeBorderWidth,
+    neStyleVar_HoveredNodeBorderWidth,
+    neStyleVar_SelectedNodeBorderWidth,
+    neStyleVar_PinRounding,
+    neStyleVar_PinBorderWidth,
+    neStyleVar_LinkStrength,
+    neStyleVar_SourceDirection,
+    neStyleVar_TargetDirection,
+    neStyleVar_ScrollDuration,
+    neStyleVar_FlowMarkerDistance,
+    neStyleVar_FlowSpeed,
+    neStyleVar_FlowDuration,
+    neStyleVar_PivotAlignment,
+    neStyleVar_PivotSize,
+    neStyleVar_PivotScale,
+    neStyleVar_PinCorners,
+    neStyleVar_PinRadius,
+    neStyleVar_PinArrowSize,
+    neStyleVar_PinArrowWidth,
+    neStyleVar_GroupRounding,
+    neStyleVar_GroupBorderWidth,
+    neStyleVar_HighlightConnectedLinks,
+    neStyleVar_SnapLinkToPinDir,
+    neStyleVar_HoveredNodeBorderOffset,
+    neStyleVar_SelectedNodeBorderOffset,
+
+    neStyleVar_Count
+} neStyleVar;
+
 #endif
+
+typedef struct {
+	const char* SettingsFile;
+	int DragButtonIndex;
+	int SelectButtonIndex;
+	int NavigateButtonIndex;
+	int ContextMenuButtonIndex;
+	bool EnableSmoothZoom;
+	float SmoothZoomPower;
+} neConfig;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-neEditorContext_t*
-neCreateEditor(void);
+neConfig
+neConfigDefault(void);
+
+neEditorContext*
+neCreateEditor(const neConfig* config);
 
 void
-neDestroyEditor(neEditorContext_t* editor);
+neDestroyEditor(neEditorContext* editor);
 
 void
-neSetCurrentEditor(neEditorContext_t* editor);
+neSetCurrentEditor(neEditorContext* editor);
 
 void
 neBegin(const char* id, const ImVec2 size);
 
 void
+nePinRect(ImVec2 a, ImVec2 b);
+
+void
+nePinPivotRect(ImVec2 a, const ImVec2 b);
+
+void
+nePinPivotAlignment(ImVec2 alignment);
+
+void
 neEnd(void);
+
+ImDrawList*
+neGetNodeBackgroundDrawList(int32_t id);
 
 bool
 neShowBackgroundContextMenu(void);
@@ -95,6 +180,33 @@ neRejectDeletedItem(void);
 
 void
 neEndDelete(void);
+
+void
+nePushStyleColor(neStyleColor colorIndex, ImVec4 color);
+
+void
+nePopStyleColorN(int count);
+
+static inline void
+nePopStyleColor(void) { nePopStyleColorN(1); }
+
+void
+nePushStyleVarFloat(neStyleVar varIndex, float value);
+
+void
+nePushStyleVarVec2(neStyleVar varIndex, ImVec2 value);
+
+void
+nePushStyleVarVec4(neStyleVar varIndex, ImVec4 value);
+
+void
+nePopStyleVarN(int count);
+
+static inline void
+nePopStyleVar(void) { nePopStyleVarN(1); }
+
+void
+neGetStyleColor(neStyleColor colorIndex, ImVec4* color);
 
 #ifdef __cplusplus
 }

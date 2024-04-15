@@ -1,8 +1,7 @@
 #include "cnode-editor.h"
-#include <imgui_node_editor.h>
+#include "imgui_node_editor.h"
 
 namespace ne = ax::NodeEditor;
-typedef ne::EditorContext neEditorContext_t;
 
 enum IdKind {
 	Node = 1,  // So that the id will never be 0
@@ -40,18 +39,43 @@ int32_t IdToInt(IdT id) {
 
 extern "C" {
 
-neEditorContext_t*
-neCreateEditor(void) {
-	return ne::CreateEditor();
+neConfig
+neConfigDefault(void) {
+	ne::Config config;
+	neConfig cconfig;
+	cconfig.SettingsFile = NULL;
+	cconfig.DragButtonIndex = config.DragButtonIndex;
+	cconfig.SelectButtonIndex = config.DragButtonIndex;
+	cconfig.NavigateButtonIndex = config.NavigateButtonIndex;
+	cconfig.ContextMenuButtonIndex = config.ContextMenuButtonIndex;
+	cconfig.EnableSmoothZoom = config.EnableSmoothZoom;
+	cconfig.SmoothZoomPower = config.SmoothZoomPower;
+	return cconfig;
+}
+
+neEditorContext*
+neCreateEditor(const neConfig* cconfig) {
+	ne::Config config;
+	if (cconfig != NULL) {
+		config.SettingsFile = cconfig->SettingsFile;
+		config.DragButtonIndex = cconfig->DragButtonIndex;
+		config.SelectButtonIndex = cconfig->SelectButtonIndex;
+		config.NavigateButtonIndex = cconfig->NavigateButtonIndex;
+		config.ContextMenuButtonIndex = cconfig->ContextMenuButtonIndex;
+		config.EnableSmoothZoom = cconfig->EnableSmoothZoom;
+		config.SmoothZoomPower = cconfig->SmoothZoomPower;
+	}
+
+	return ne::CreateEditor(&config);
 }
 
 void
-neDestroyEditor(neEditorContext_t* editor) {
+neDestroyEditor(neEditorContext* editor) {
 	ne::DestroyEditor(editor);
 }
 
 void
-neSetCurrentEditor(neEditorContext_t* editor) {
+neSetCurrentEditor(neEditorContext* editor) {
 	ne::SetCurrentEditor(editor);
 }
 
@@ -63,6 +87,11 @@ neBegin(const char* id, const ImVec2 size) {
 void
 neEnd(void) {
 	ne::End();
+}
+
+ImDrawList*
+neGetNodeBackgroundDrawList(int32_t id) {
+	return ne::GetNodeBackgroundDrawList(IntToId<ne::NodeId>(id));
 }
 
 bool
@@ -96,6 +125,21 @@ neBeginPin(int32_t id, bool is_input) {
 		IntToId<ne::PinId>(id),
 		is_input ? ne::PinKind::Input : ne::PinKind::Output
 	);
+}
+
+void
+nePinRect(ImVec2 a, ImVec2 b) {
+	ne::PinRect(a, b);
+}
+
+void
+nePinPivotRect(ImVec2 a, const ImVec2 b) {
+	ne::PinPivotRect(a, b);
+}
+
+void
+nePinPivotAlignment(ImVec2 alignment) {
+	ne::PinPivotAlignment(alignment);
 }
 
 void
@@ -188,6 +232,41 @@ neRejectNewItem(ImVec4 color, float thickness) {
 void
 neEndCreate(void) {
 	ne::EndCreate();
+}
+
+void
+nePushStyleColor(neStyleColor colorIndex, ImVec4 color) {
+	ne::PushStyleColor(colorIndex, color);
+}
+
+void
+nePopStyleColorN(int count) {
+	ne::PopStyleColor(count);
+}
+
+void
+nePushStyleVarFloat(neStyleVar varIndex, float value) {
+	ne::PushStyleVar(varIndex, value);
+}
+
+void
+nePushStyleVarVec2(neStyleVar varIndex, ImVec2 value) {
+	ne::PushStyleVar(varIndex, value);
+}
+
+void
+nePushStyleVarVec4(neStyleVar varIndex, ImVec4 value) {
+	ne::PushStyleVar(varIndex, value);
+}
+
+void
+nePopStyleVarN(int count) {
+	ne::PopStyleVar(count);
+}
+
+void
+neGetStyleColor(neStyleColor colorIndex, ImVec4* color) {
+	*color = ne::GetStyle().Colors[colorIndex];
 }
 
 }

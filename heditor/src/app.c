@@ -18,6 +18,7 @@
 #include "node_type_menu.h"
 #include <string.h>
 #include <errno.h>
+#include <float.h>
 
 #define PLUGIN_PREFIX "lib"
 #ifndef NDEBUG
@@ -60,7 +61,7 @@ REMODULE_VAR(hgraph_t*, next_graph) = NULL;
 REMODULE_VAR(size_t, migration_size) = 0;
 REMODULE_VAR(hgraph_migration_t*, migration) = NULL;
 
-REMODULE_VAR(neEditorContext_t*, node_editor) = 0;
+REMODULE_VAR(neEditorContext*, node_editor) = 0;
 
 REMODULE_VAR(size_t, menu_size) = 0;
 REMODULE_VAR(node_type_menu_entry_t*, node_type_menu) = 0;
@@ -122,12 +123,23 @@ gui_draw_graph_node(
 	void* userdata
 ) {
 	(void)userdata;
-	(void)node_id;
 
+	ImVec2 header_min, header_max;
+	ImVec2 attr_min, attr_max;
+	ImVec2 input_min, input_max;
 	neBeginNode(node_id);
 	{
-		igText(node_type->label.data);
+		igBeginGroup();
+		{
+			igText(node_type->label.data);
+			igSpacing();
+		}
+		igEndGroup();
+		igGetItemRectMin(&header_min);
+		igGetItemRectMax(&header_max);
+		float header_width = header_max.x - header_min.x;
 
+		igBeginGroup();
 		for (
 			const hgraph_attribute_description_t** itr = node_type->attributes;
 			itr != NULL && *itr != NULL;
@@ -135,8 +147,13 @@ gui_draw_graph_node(
 		) {
 			igText((*itr)->label.data);
 		}
+		igEndGroup();
+		igGetItemRectMin(&attr_min);
+		igGetItemRectMax(&attr_max);
+		float attr_width = attr_max.x - attr_min.x;
 
 		igBeginGroup();
+		int numStyleVars = 0;
 		for (
 			const hgraph_pin_description_t** itr = node_type->input_pins;
 			itr != NULL && *itr != NULL;
@@ -145,13 +162,43 @@ gui_draw_graph_node(
 			hgraph_index_t pin_id = hgraph_get_pin_id(current_graph, node_id, *itr);
 			neBeginPin(pin_id, true);
 			{
-				igText((*itr)->label.data);
+				igText("> %s", (*itr)->label.data);
+				nePinPivotAlignment((ImVec2){ 0.f, 0.5f });
 			}
 			neEndPin();
 		}
+		nePopStyleVarN(numStyleVars); numStyleVars = 0;
 		igEndGroup();
+		igGetItemRectMin(&input_min);
+		igGetItemRectMax(&input_max);
+		float input_width = input_max.x - input_min.x;
 
-		igSameLine(0.f, -1.f);
+		float width = 0.f;
+		width = width > header_width ? width : header_width;
+		width = width > attr_width ? width : attr_width;
+		width = width > input_width ? width : input_width;
+		float output_block_size = 0.f;
+		for (
+			const hgraph_pin_description_t** itr = node_type->output_pins;
+			itr != NULL && *itr != NULL;
+			++itr
+		) {
+			ImVec2 text_size;
+			hgraph_str_t text = (*itr)->label;
+			igCalcTextSize(
+				&text_size,
+				text.data, text.data + text.length,
+				false,
+				FLT_MAX
+			);
+			output_block_size = text_size.x > output_block_size
+				? text_size.x : output_block_size;
+		}
+		if (input_width + output_block_size > width) {
+			igSameLine(0.f, -1.f);
+		} else {
+			igSameLine(width - output_block_size, -1.f);
+		}
 
 		igBeginGroup();
 		for (
@@ -163,12 +210,41 @@ gui_draw_graph_node(
 			neBeginPin(pin_id, false);
 			{
 				igText((*itr)->label.data);
+
+				ImVec2 text_size;
+				hgraph_str_t text = (*itr)->label;
+				igCalcTextSize(
+					&text_size,
+					text.data, text.data + text.length,
+					false,
+					FLT_MAX
+				);
+
+				igSameLine(0.f, output_block_size - text_size.x + 5.f);
+				igText(">");
+
+				nePinPivotAlignment((ImVec2){ 1.f, 0.5f });
 			}
 			neEndPin();
 		}
 		igEndGroup();
 	}
 	neEndNode();
+
+	// Extra decoration
+	ImVec2 node_min, node_max;
+	igGetItemRectMin(&node_min);
+	igGetItemRectMax(&node_max);
+	ImVec4 border_color;
+	neGetStyleColor(neStyleColor_NodeBorder, &border_color);
+	ImDrawList* draw_list = neGetNodeBackgroundDrawList(node_id);
+	ImDrawList_AddLine(
+		draw_list,
+		(ImVec2){ node_min.x, header_max.y },
+		(ImVec2){ node_max.x, header_max.y },
+		igColorConvertFloat4ToU32(border_color),
+		1.f
+	);
 
 	return true;
 }
@@ -327,7 +403,10 @@ init(void* userdata) {
 	hed_debug = hed_debug || is_debugger_attached();
 	igGetIO()->ConfigDebugIsDebuggerPresent = hed_debug;
 
-	node_editor = neCreateEditor();
+	neConfig config = neConfigDefault();
+	config.EnableSmoothZoom = true;
+	config.NavigateButtonIndex = 2;
+	node_editor = neCreateEditor(&config);
 	neSetCurrentEditor(node_editor);
 }
 
@@ -463,7 +542,15 @@ frame(void* userdata) {
 	igBegin("Main", NULL, main_window_flags);
 	{
 		neBegin("Editor", (ImVec2){ 0 });
+
+		int numStyleVars = 0;
+		nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
+		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 4.f, 4.f, 4.f, 4.f }); ++numStyleVars;
+
 		gui_draw_graph_editor();
+
+		nePopStyleVarN(numStyleVars);
+
 		neEnd();
 	}
 	igEnd();
