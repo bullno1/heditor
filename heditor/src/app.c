@@ -16,6 +16,8 @@
 #include "allocator/arena.h"
 #include "cnode-editor.h"
 #include "node_type_menu.h"
+#include <xincbin.h>
+#include "resources.h"
 #include <string.h>
 #include <errno.h>
 #include <float.h>
@@ -431,10 +433,35 @@ init(void* userdata) {
 			.free_fn = args->sokol_allocator.free_fn,
 			.user_data = args->sokol_allocator.user_data,
 		},
+		.no_default_font = true,
 	});
 
 	hed_debug = hed_debug || is_debugger_attached();
-	igGetIO()->ConfigDebugIsDebuggerPresent = hed_debug;
+	ImGuiIO* igIo = igGetIO();
+	igIo->ConfigDebugIsDebuggerPresent = hed_debug;
+
+	xincbin_data_t font_data = XINCBIN_GET(font);
+	ImFontAtlas_AddFontFromMemoryTTF(
+		igIo->Fonts,
+		(void*)font_data.data,
+		font_data.size,
+		16.f,
+		&(ImFontConfig){
+			.FontDataOwnedByAtlas = false,
+			.OversampleH = 2,
+			.OversampleV = 2,
+			.RasterizerMultiply = 1.5f,
+			.RasterizerDensity = 1.0f,
+			.GlyphMaxAdvanceX = FLT_MAX,
+			.EllipsisChar = (ImWchar)-1,
+		},
+		NULL
+	);
+
+	simgui_font_tex_desc_t font_texture_desc = { 0 };
+	font_texture_desc.min_filter = SG_FILTER_LINEAR;
+	font_texture_desc.mag_filter = SG_FILTER_LINEAR;
+	simgui_create_fonts_texture(&font_texture_desc);
 
 	neConfig config = neConfigDefault();
 	config.EnableSmoothZoom = true;

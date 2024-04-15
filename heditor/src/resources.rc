@@ -1,3 +1,4 @@
 #include <xincbin.h>
 
 XINCBIN(icon, "./assets/planning.qoi")
+XINCBIN(font, "./assets/Cuprum-Bold.ttf")
