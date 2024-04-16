@@ -64,6 +64,7 @@ set(HEDITOR_APP_SOURCES
 	./src/allocator/arena.c
 	./src/cnode-editor.cpp
 	./src/node_type_menu.c
+	./src/editor.c
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
