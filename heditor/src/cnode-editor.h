@@ -155,10 +155,16 @@ bool
 neQueryNewNode(int32_t* from_pin);
 
 bool
-neAcceptNewItem(ImVec4 color, float thickness);
+neAcceptNewItem(void);
+
+bool
+neAcceptNewItemEx(ImVec4 color, float thickness);
 
 void
-neRejectNewItem(ImVec4 color, float thickness);
+neRejectNewItem(void);
+
+void
+neRejectNewItemEx(ImVec4 color, float thickness);
 
 void
 neEndCreate(void);
@@ -185,10 +191,7 @@ void
 nePushStyleColor(neStyleColor colorIndex, ImVec4 color);
 
 void
-nePopStyleColorN(int count);
-
-static inline void
-nePopStyleColor(void) { nePopStyleColorN(1); }
+nePopStyleColor(int count);
 
 void
 nePushStyleVarFloat(neStyleVar varIndex, float value);
@@ -200,13 +203,19 @@ void
 nePushStyleVarVec4(neStyleVar varIndex, ImVec4 value);
 
 void
-nePopStyleVarN(int count);
-
-static inline void
-nePopStyleVar(void) { nePopStyleVarN(1); }
+nePopStyleVar(int count);
 
 void
 neGetStyleColor(neStyleColor colorIndex, ImVec4* color);
+
+void
+neGetStyleVarFloat(neStyleVar varIndex, float* out);
+
+void
+neGetStyleVarVec2(neStyleVar varIndex, ImVec2* out);
+
+void
+neGetStyleVarVec4(neStyleVar varIndex, ImVec4* out);
 
 #ifdef __cplusplus
 }

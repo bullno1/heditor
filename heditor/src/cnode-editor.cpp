@@ -37,6 +37,60 @@ int32_t IdToInt(IdT id) {
 	return id.Get() >> 2;
 }
 
+static const float*
+neGetVarFloatAddr(ne::StyleVar idx, const ne::Style& style) {
+	using namespace ne;
+
+    switch (idx) {
+        case StyleVar_NodeRounding:             return &style.NodeRounding;
+        case StyleVar_NodeBorderWidth:          return &style.NodeBorderWidth;
+        case StyleVar_HoveredNodeBorderWidth:   return &style.HoveredNodeBorderWidth;
+        case StyleVar_SelectedNodeBorderWidth:  return &style.SelectedNodeBorderWidth;
+        case StyleVar_PinRounding:              return &style.PinRounding;
+        case StyleVar_PinBorderWidth:           return &style.PinBorderWidth;
+        case StyleVar_LinkStrength:             return &style.LinkStrength;
+        case StyleVar_ScrollDuration:           return &style.ScrollDuration;
+        case StyleVar_FlowMarkerDistance:       return &style.FlowMarkerDistance;
+        case StyleVar_FlowSpeed:                return &style.FlowSpeed;
+        case StyleVar_FlowDuration:             return &style.FlowDuration;
+        case StyleVar_PinCorners:               return &style.PinCorners;
+        case StyleVar_PinRadius:                return &style.PinRadius;
+        case StyleVar_PinArrowSize:             return &style.PinArrowSize;
+        case StyleVar_PinArrowWidth:            return &style.PinArrowWidth;
+        case StyleVar_GroupRounding:            return &style.GroupRounding;
+        case StyleVar_GroupBorderWidth:         return &style.GroupBorderWidth;
+        case StyleVar_HighlightConnectedLinks:  return &style.HighlightConnectedLinks;
+        case StyleVar_SnapLinkToPinDir:         return &style.SnapLinkToPinDir;
+        case StyleVar_HoveredNodeBorderOffset:  return &style.HoverNodeBorderOffset;
+        case StyleVar_SelectedNodeBorderOffset: return &style.SelectedNodeBorderOffset;
+        default:                                return nullptr;
+    }
+}
+
+static const ImVec2*
+neGetVarVec2Addr(ne::StyleVar idx, const ne::Style& style) {
+	using namespace ne;
+
+    switch (idx) {
+        case StyleVar_SourceDirection:  return &style.SourceDirection;
+        case StyleVar_TargetDirection:  return &style.TargetDirection;
+        case StyleVar_PivotAlignment:   return &style.PivotAlignment;
+        case StyleVar_PivotSize:        return &style.PivotSize;
+        case StyleVar_PivotScale:       return &style.PivotScale;
+        default:                        return nullptr;
+    }
+}
+
+static const ImVec4*
+neGetVarVec4Addr(ne::StyleVar idx, const ne::Style& style) {
+	using namespace ne;
+
+    switch (idx) {
+        case StyleVar_NodePadding:  return &style.NodePadding;
+        default:                    return nullptr;
+    }
+}
+
 extern "C" {
 
 neConfig
@@ -220,12 +274,22 @@ neQueryNewNode(int32_t* from_pin) {
 }
 
 bool
-neAcceptNewItem(ImVec4 color, float thickness) {
+neAcceptNewItem(void) {
+	return ne::AcceptNewItem();
+}
+
+bool
+neAcceptNewItemEx(ImVec4 color, float thickness) {
 	return ne::AcceptNewItem(color, thickness);
 }
 
 void
-neRejectNewItem(ImVec4 color, float thickness) {
+neRejectNewItem(void) {
+	ne::RejectNewItem();
+}
+
+void
+neRejectNewItemEx(ImVec4 color, float thickness) {
 	ne::RejectNewItem(color, thickness);
 }
 
@@ -260,13 +324,43 @@ nePushStyleVarVec4(neStyleVar varIndex, ImVec4 value) {
 }
 
 void
-nePopStyleVarN(int count) {
+nePopStyleVar(int count) {
 	ne::PopStyleVar(count);
 }
 
 void
 neGetStyleColor(neStyleColor colorIndex, ImVec4* color) {
 	*color = ne::GetStyle().Colors[colorIndex];
+}
+
+void
+neGetStyleVarFloat(neStyleVar varIndex, float* out) {
+	const float* value = neGetVarFloatAddr(varIndex, ne::GetStyle());
+	if (value != NULL) {
+		*out = *value;
+	} else {
+		*out = 0.f;
+	}
+}
+
+void
+neGetStyleVarVec2(neStyleVar varIndex, ImVec2* out) {
+	const ImVec2* value = neGetVarVec2Addr(varIndex, ne::GetStyle());
+	if (value != NULL) {
+		*out = *value;
+	} else {
+		*out = { };
+	}
+}
+
+void
+neGetStyleVarVec4(neStyleVar varIndex, ImVec4* out) {
+	const ImVec4* value = neGetVarVec4Addr(varIndex, ne::GetStyle());
+	if (value != NULL) {
+		*out = *value;
+	} else {
+		*out = { };
+	}
 }
 
 }

@@ -29,8 +29,6 @@
 #	define PLUGIN_SUFFIX ""
 #endif
 
-static const float NODE_BORDER_WIDTH = 1.5f;
-
 #ifdef NDEBUG
 REMODULE_VAR(bool, hed_debug) = false;
 #else
@@ -128,12 +126,21 @@ gui_draw_graph_node(
 ) {
 	(void)userdata;
 
+	float node_border_width;
+	neGetStyleVarFloat(neStyleVar_NodeBorderWidth, &node_border_width);
+	float half_border_width = node_border_width * 0.5f;
+	ImVec4 node_padding;
+	neGetStyleVarVec4(neStyleVar_NodePadding, &node_padding);
+	const float pin_height = igGetTextLineHeight();
+
 	ImVec2 header_min, header_max;
 	ImVec2 attr_min, attr_max;
 	ImVec2 input_min, input_max;
 	ImVec2 output_min, output_max;
+	float io_gap;
 	neBeginNode(node_id);
 	{
+		// Header
 		igBeginGroup();
 		{
 			igText(node_type->label.data);
@@ -144,6 +151,7 @@ gui_draw_graph_node(
 		igGetItemRectMax(&header_max);
 		float header_width = header_max.x - header_min.x;
 
+		// Attributes
 		if (node_type->attributes != NULL) {
 			igBeginGroup();
 			for (
@@ -160,6 +168,7 @@ gui_draw_graph_node(
 		igGetItemRectMax(&attr_max);
 		float attr_width = attr_max.x - attr_min.x;
 
+		// Input pins
 		igBeginGroup();
 		int numStyleVars = 0;
 		for (
@@ -170,17 +179,26 @@ gui_draw_graph_node(
 			hgraph_index_t pin_id = hgraph_get_pin_id(current_graph, node_id, *itr);
 			neBeginPin(pin_id, true);
 			{
-				igText("> %s", (*itr)->label.data);
-				nePinPivotAlignment((ImVec2){ 0.f, 0.5f });
+				igDummy((ImVec2){ node_padding.x, pin_height });
+				ImVec2 min, max;
+				igGetItemRectMin(&min);
+				igGetItemRectMax(&max);
+				min.x -= node_padding.x + half_border_width;
+				nePinRect(min, max);
+
+				igSameLine(0.f, 0.f);
+
+				igText((*itr)->label.data);
 			}
 			neEndPin();
 		}
-		nePopStyleVarN(numStyleVars); numStyleVars = 0;
+		nePopStyleVar(numStyleVars); numStyleVars = 0;
 		igEndGroup();
 		igGetItemRectMin(&input_min);
 		igGetItemRectMax(&input_max);
 		float input_width = input_max.x - input_min.x;
 
+		// Decide on how to space output pins
 		float width = 0.f;
 		width = width > header_width ? width : header_width;
 		width = width > attr_width ? width : attr_width;
@@ -202,12 +220,17 @@ gui_draw_graph_node(
 			output_block_size = text_size.x > output_block_size
 				? text_size.x : output_block_size;
 		}
-		if (input_width + output_block_size > width) {
-			igSameLine(0.f, -1.f);
+		io_gap = node_padding.z + node_padding.x;  // Right of input, left of output
+		float extra_space = io_gap + node_padding.z; // Right of output
+		if (input_width + output_block_size + extra_space > width) {
+			// Let it grow automatically
+			igSameLine(input_width + io_gap, -1.f);
 		} else {
-			igSameLine(width - output_block_size, -1.f);
+			// Dictate width
+			igSameLine(width - output_block_size - node_padding.z, -1.f);
 		}
 
+		// Output pins
 		igBeginGroup();
 		for (
 			const hgraph_pin_description_t** itr = node_type->output_pins;
@@ -217,8 +240,6 @@ gui_draw_graph_node(
 			hgraph_index_t pin_id = hgraph_get_pin_id(current_graph, node_id, *itr);
 			neBeginPin(pin_id, false);
 			{
-				igText((*itr)->label.data);
-
 				ImVec2 text_size;
 				hgraph_str_t text = (*itr)->label;
 				igCalcTextSize(
@@ -228,10 +249,17 @@ gui_draw_graph_node(
 					FLT_MAX
 				);
 
-				igSameLine(0.f, output_block_size - text_size.x + 5.f);
-				igText(">");
-
-				nePinPivotAlignment((ImVec2){ 1.f, 0.5f });
+				// Padding to right align label
+				igDummy((ImVec2){ output_block_size - text_size.x, 0.f });
+				igSameLine(0.f, 0.f);
+				igText((*itr)->label.data);
+				igSameLine(0.f, 0.f);
+				igDummy((ImVec2){ node_padding.z, pin_height });
+				ImVec2 min, max;
+				igGetItemRectMin(&min);
+				igGetItemRectMax(&max);
+				max.x += node_padding.z - half_border_width;
+				nePinRect(min, max);
 			}
 			neEndPin();
 		}
@@ -242,43 +270,41 @@ gui_draw_graph_node(
 	neEndNode();
 
 	// Extra decoration
-	ImVec2 node_min, node_max;
-	igGetItemRectMin(&node_min);
-	igGetItemRectMax(&node_max);
+	if (igIsItemVisible()) {
+		ImVec2 node_min, node_max;
+		igGetItemRectMin(&node_min);
+		igGetItemRectMax(&node_max);
 
-	ImVec4 border_color;
-	neGetStyleColor(neStyleColor_NodeBorder, &border_color);
-	float half_border_width = NODE_BORDER_WIDTH * 0.5f;
+		ImVec4 border_color;
+		neGetStyleColor(neStyleColor_NodeBorder, &border_color);
 
-	ImDrawList* draw_list = neGetNodeBackgroundDrawList(node_id);
-	// Divide header and attribute
-	ImDrawList_AddLine(
-		draw_list,
-		(ImVec2){ node_min.x + half_border_width, header_max.y },
-		(ImVec2){ node_max.x - 1.f - NODE_BORDER_WIDTH * 0.5, header_max.y },
-		igColorConvertFloat4ToU32(border_color),
-		1.f
-	);
-	// Divide attribute and input/output
-	ImDrawList_AddLine(
-		draw_list,
-		(ImVec2){ node_min.x + half_border_width, attr_max.y },
-		(ImVec2){ node_max.x - 1.f - NODE_BORDER_WIDTH * 0.5, attr_max.y },
-		igColorConvertFloat4ToU32(border_color),
-		1.f
-	);
-	// Divide input and output
-	if (node_type->input_pins != NULL && node_type->output_pins != NULL) {
-		float io_gap = (node_max.x - node_min.x)
-			- (input_max.x - node_min.x)
-			- (node_max.x - output_min.x);
+		ImDrawList* draw_list = neGetNodeBackgroundDrawList(node_id);
+		// Divide header and attribute
 		ImDrawList_AddLine(
 			draw_list,
-			(ImVec2){ input_max.x + io_gap * 0.5f, attr_max.y + half_border_width },
-			(ImVec2){ input_max.x + io_gap * 0.5f, node_max.y - 1.f - half_border_width },
+			(ImVec2){ node_min.x + half_border_width, header_max.y },
+			(ImVec2){ node_max.x - 1.f - half_border_width, header_max.y },
 			igColorConvertFloat4ToU32(border_color),
 			1.f
 		);
+		// Divide attribute and input/output
+		ImDrawList_AddLine(
+			draw_list,
+			(ImVec2){ node_min.x + half_border_width, attr_max.y },
+			(ImVec2){ node_max.x - 1.f - half_border_width, attr_max.y },
+			igColorConvertFloat4ToU32(border_color),
+			1.f
+		);
+		// Divide input and output
+		if (node_type->input_pins != NULL && node_type->output_pins != NULL) {
+			ImDrawList_AddLine(
+				draw_list,
+				(ImVec2){ input_max.x + io_gap * 0.5f, attr_max.y + half_border_width },
+				(ImVec2){ input_max.x + io_gap * 0.5f, node_max.y - half_border_width },
+				igColorConvertFloat4ToU32(border_color),
+				1.f
+			);
+		}
 	}
 
 	return true;
@@ -302,25 +328,23 @@ gui_draw_graph_editor(void) {
 	// Draw graph
 	hgraph_iterate_nodes(current_graph, gui_draw_graph_node, NULL);
 	hgraph_iterate_edges(current_graph, gui_draw_graph_edge, NULL);
+	const ImVec4 accept_color = { 0.f, 1.f, 0.f, 1.f };
+	const ImVec4 reject_color = { 1.f, 0.f, 0.f, 1.f };
 
 	// Edit graph
 	if (neBeginCreate()) {
 		hgraph_index_t from_pin, to_pin;
 		if (neQueryNewLink(&from_pin, &to_pin)) {
 			if (hgraph_can_connect(current_graph, from_pin, to_pin)) {
-				if (neAcceptNewItem((ImVec4){ 0.f, 1.f, 0.f, 1.f }, 1.f)) {
+				if (neAcceptNewItemEx(accept_color, 1.f)) {
 					HED_CMD(HED_CMD_CREATE_EDGE, .create_edge_args = {
 						.from_pin = from_pin,
 						.to_pin = to_pin,
 					});
 				}
 			} else {
-				neRejectNewItem((ImVec4){ 1.f, 0.f, 0.f, 1.f }, 1.f);
+				neRejectNewItemEx(reject_color, 1.f);
 			}
-		}
-
-		if (neQueryNewNode(&from_pin)) {
-			neRejectNewItem((ImVec4){ 1.f, 0.f, 0.f, 1.f }, 1.f);
 		}
 	}
 	neEndCreate();
@@ -605,12 +629,11 @@ frame(void* userdata) {
 
 		int numStyleVars = 0;
 		nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
-		nePushStyleVarFloat(neStyleVar_NodeBorderWidth, NODE_BORDER_WIDTH); ++numStyleVars;
-		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 4.f, 4.f, 4.f, 4.f }); ++numStyleVars;
+		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
 
 		gui_draw_graph_editor();
 
-		nePopStyleVarN(numStyleVars);
+		nePopStyleVar(numStyleVars);
 
 		neEnd();
 	}
