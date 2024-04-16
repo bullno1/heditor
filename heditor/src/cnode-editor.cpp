@@ -304,7 +304,7 @@ nePushStyleColor(neStyleColor colorIndex, ImVec4 color) {
 }
 
 void
-nePopStyleColorN(int count) {
+nePopStyleColor(int count) {
 	ne::PopStyleColor(count);
 }
 

@@ -17,14 +17,21 @@ typedef struct {
 	hgraph_t* graph;
 } draw_graph_ctx_t;
 
-static bool
-gui_draw_graph_node(
+typedef struct pin_ctx_s {
+	ImVec2 min;
+	ImVec2 max;
+
+	bool is_input;
+	struct pin_ctx_s* next;
+} pin_info_t;
+
+static void
+gui_draw_graph_node_impl(
+	hed_arena_t* arena,
 	hgraph_index_t node_id,
 	const hgraph_node_type_t* node_type,
-	void* userdata
+	hgraph_t* graph
 ) {
-	draw_graph_ctx_t* ctx = userdata;
-
 	float node_border_width;
 	neGetStyleVarFloat(neStyleVar_NodeBorderWidth, &node_border_width);
 	float half_border_width = node_border_width * 0.5f;
@@ -37,6 +44,7 @@ gui_draw_graph_node(
 	ImVec2 input_min, input_max;
 	ImVec2 output_min, output_max;
 	float io_gap;
+	pin_info_t* pins = NULL;
 	neBeginNode(node_id);
 	{
 		// Header
@@ -75,19 +83,30 @@ gui_draw_graph_node(
 			itr != NULL && *itr != NULL;
 			++itr
 		) {
-			hgraph_index_t pin_id = hgraph_get_pin_id(ctx->graph, node_id, *itr);
+			hgraph_index_t pin_id = hgraph_get_pin_id(graph, node_id, *itr);
 			neBeginPin(pin_id, true);
 			{
 				igDummy((ImVec2){ node_padding.x, pin_height });
 				ImVec2 min, max;
 				igGetItemRectMin(&min);
 				igGetItemRectMax(&max);
-				min.x -= node_padding.x + half_border_width;
+				min.x -= node_padding.x - half_border_width;
+				min.y += node_border_width;
+				max.x -= node_border_width * 2;
+				max.y -= node_border_width;
 				nePinRect(min, max);
 
 				igSameLine(0.f, 0.f);
 
 				igText((*itr)->label.data);
+
+				// Record coordinates so we can draw them later
+				pin_info_t* pin_info = HED_ARENA_ALLOC_TYPE(arena, pin_info_t);
+				pin_info->min = min;
+				pin_info->max = max;
+				pin_info->is_input = true;
+				pin_info->next = pins;
+				pins = pin_info;
 			}
 			neEndPin();
 		}
@@ -136,7 +155,7 @@ gui_draw_graph_node(
 			itr != NULL && *itr != NULL;
 			++itr
 		) {
-			hgraph_index_t pin_id = hgraph_get_pin_id(ctx->graph, node_id, *itr);
+			hgraph_index_t pin_id = hgraph_get_pin_id(graph, node_id, *itr);
 			neBeginPin(pin_id, false);
 			{
 				ImVec2 text_size;
@@ -157,8 +176,19 @@ gui_draw_graph_node(
 				ImVec2 min, max;
 				igGetItemRectMin(&min);
 				igGetItemRectMax(&max);
+				min.x += node_border_width * 2.f;
+				min.y += node_border_width;
 				max.x += node_padding.z - half_border_width;
+				max.y -= node_border_width;
 				nePinRect(min, max);
+
+				// Record coordinates so we can draw them later
+				pin_info_t* pin_info = HED_ARENA_ALLOC_TYPE(arena, pin_info_t);
+				pin_info->min = min;
+				pin_info->max = max;
+				pin_info->is_input = false;
+				pin_info->next = pins;
+				pins = pin_info;
 			}
 			neEndPin();
 		}
@@ -182,7 +212,7 @@ gui_draw_graph_node(
 		ImDrawList_AddLine(
 			draw_list,
 			(ImVec2){ node_min.x + half_border_width, header_max.y },
-			(ImVec2){ node_max.x - 1.f - half_border_width, header_max.y },
+			(ImVec2){ node_max.x - node_border_width, header_max.y },
 			igColorConvertFloat4ToU32(border_color),
 			1.f
 		);
@@ -191,7 +221,7 @@ gui_draw_graph_node(
 		ImDrawList_AddLine(
 			draw_list,
 			(ImVec2){ node_min.x + half_border_width, attr_max.y },
-			(ImVec2){ node_max.x - 1.f - half_border_width, attr_max.y },
+			(ImVec2){ node_max.x - node_border_width, attr_max.y },
 			igColorConvertFloat4ToU32(border_color),
 			1.f
 		);
@@ -207,7 +237,39 @@ gui_draw_graph_node(
 			);
 		}
 
-		// Input pin box
+		// Pin boxes
+		ImVec4 pin_color = { 1.f, 1.f, 1.f, 1.f };
+		float pin_rounding;
+		neGetStyleVarFloat(neStyleVar_PinRounding, &pin_rounding);
+		for (
+			pin_info_t* pin_info = pins;
+			pin_info != NULL;
+			pin_info = pin_info->next
+		) {
+			ImDrawList_AddRect(
+				draw_list,
+				pin_info->min,
+				pin_info->max,
+				igColorConvertFloat4ToU32(pin_color),
+				pin_rounding,
+				pin_info->is_input
+					?  ImDrawFlags_RoundCornersRight
+					: ImDrawFlags_RoundCornersLeft,
+				node_border_width
+			);
+		}
+	}
+}
+
+static bool
+gui_draw_graph_node(
+	hgraph_index_t node_id,
+	const hgraph_node_type_t* node_type,
+	void* userdata
+) {
+	draw_graph_ctx_t* ctx = userdata;
+	HED_WITH_ARENA(ctx->arena) {
+		gui_draw_graph_node_impl(ctx->arena, node_id, node_type, ctx->graph);
 	}
 
 	return true;

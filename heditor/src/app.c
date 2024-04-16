@@ -312,12 +312,15 @@ frame(void* userdata) {
 	{
 		neBegin("Editor", (ImVec2){ 0 });
 		int numStyleVars = 0;
+		int numStyleColors = 0;
+		nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
 		nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
 		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
 		{
 			draw_editor(&frame_arena, node_type_menu, current_graph);
 		}
 		nePopStyleVar(numStyleVars); numStyleVars = 0;
+		nePopStyleColor(numStyleColors); numStyleColors = 0;
 		neEnd();
 	}
 	igEnd();
