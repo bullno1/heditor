@@ -647,6 +647,39 @@ hgraph_iterate_edges_from(
 	}
 }
 
+bool
+hgraph_is_pin_connected(
+	const hgraph_t* graph,
+	hgraph_index_t pin_id
+) {
+	hgraph_index_t node_id, pin_index;
+	bool is_output;
+	hgraph_decode_pin_id(pin_id, &node_id, &pin_index, &is_output);
+
+	hgraph_node_t* node = hgraph_find_node_by_id(graph, node_id);
+	if (node == NULL) {
+		return false;
+	}
+
+	const hgraph_node_type_info_t* type_info = hgraph_get_node_type_internal(
+		graph, node
+	);
+
+	if (is_output) {
+		if (pin_index >= type_info->num_output_pins) { return false; }
+
+		const hgraph_var_t* var = &type_info->output_pins[pin_index];
+		hgraph_edge_link_t* output_pin = (hgraph_edge_link_t*)((char*)node + var->offset);
+		return HGRAPH_IS_VALID_INDEX(output_pin->next);
+	} else {
+		if (pin_index >= type_info->num_input_pins) { return false; }
+
+		const hgraph_var_t* var = &type_info->input_pins[pin_index];
+		hgraph_index_t* input_pin = (hgraph_index_t*)((char*)node + var->offset);
+		return HGRAPH_IS_VALID_INDEX(*input_pin);
+	}
+}
+
 hgraph_info_t
 hgraph_get_info(const hgraph_t* graph) {
 	return (hgraph_info_t){

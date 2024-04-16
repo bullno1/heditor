@@ -245,6 +245,12 @@ hgraph_iterate_edges_from(
 	void* userdata
 );
 
+HGRAPH_API bool
+hgraph_is_pin_connected(
+	const hgraph_t* graph,
+	hgraph_index_t pin_id
+);
+
 HGRAPH_API size_t
 hgraph_migration_init(
 	hgraph_migration_t* migration,

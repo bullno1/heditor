@@ -22,6 +22,8 @@ typedef struct pin_ctx_s {
 	ImVec2 max;
 
 	bool is_input;
+	bool is_connected;
+
 	struct pin_ctx_s* next;
 } pin_info_t;
 
@@ -106,6 +108,7 @@ gui_draw_graph_node_impl(
 				pin_info->max = max;
 				pin_info->is_input = true;
 				pin_info->next = pins;
+				pin_info->is_connected = hgraph_is_pin_connected(graph, pin_id);
 				pins = pin_info;
 			}
 			neEndPin();
@@ -188,6 +191,7 @@ gui_draw_graph_node_impl(
 				pin_info->max = max;
 				pin_info->is_input = false;
 				pin_info->next = pins;
+				pin_info->is_connected = hgraph_is_pin_connected(graph, pin_id);
 				pins = pin_info;
 			}
 			neEndPin();
@@ -246,17 +250,30 @@ gui_draw_graph_node_impl(
 			pin_info != NULL;
 			pin_info = pin_info->next
 		) {
-			ImDrawList_AddRect(
-				draw_list,
-				pin_info->min,
-				pin_info->max,
-				igColorConvertFloat4ToU32(pin_color),
-				pin_rounding,
-				pin_info->is_input
-					?  ImDrawFlags_RoundCornersRight
-					: ImDrawFlags_RoundCornersLeft,
-				node_border_width
-			);
+			if (pin_info->is_connected) {
+				ImDrawList_AddRectFilled(
+					draw_list,
+					pin_info->min,
+					pin_info->max,
+					igColorConvertFloat4ToU32(pin_color),
+					pin_rounding,
+					pin_info->is_input
+						?  ImDrawFlags_RoundCornersRight
+						: ImDrawFlags_RoundCornersLeft
+				);
+			} else {
+				ImDrawList_AddRect(
+					draw_list,
+					pin_info->min,
+					pin_info->max,
+					igColorConvertFloat4ToU32(pin_color),
+					pin_rounding,
+					pin_info->is_input
+						?  ImDrawFlags_RoundCornersRight
+						: ImDrawFlags_RoundCornersLeft,
+					node_border_width
+				);
+			}
 		}
 	}
 }
