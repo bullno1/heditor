@@ -5,6 +5,7 @@
 #include "utils.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cnode-editor.h"
+#include <float.h>
 
 typedef struct {
 	hgraph_in_t in;
@@ -17,7 +18,13 @@ typedef struct {
 	neEditorContext* editor;
 	std_file_t file;
 	hgraph_io_status_t status;
+	ImVec2 origin;
 } graph_io_ctx_t;
+
+typedef struct {
+	ImVec2 min;
+	ImVec2 max;
+} graph_bound_ctx_t;
 
 static size_t
 write_file(
@@ -64,9 +71,30 @@ save_node_position(
 
 	ImVec2 pos;
 	neGetNodePosition(node_id, &pos);
+	pos.x -= ctx->origin.x;
+	pos.y -= ctx->origin.y;
 	ctx->status = write_imvec2(pos, &ctx->file.out);
 
 	return ctx->status == HGRAPH_IO_OK;
+}
+
+static bool
+find_graph_bound(
+	hgraph_index_t node_id,
+	const hgraph_node_type_t* node_type,
+	void* userdata
+) {
+	(void)node_type;
+	graph_bound_ctx_t* ctx = userdata;
+
+	ImVec2 pos;
+	neGetNodePosition(node_id, &pos);
+	ctx->min.x = HED_MIN(ctx->min.x, pos.x);
+	ctx->min.y = HED_MIN(ctx->min.y, pos.y);
+	ctx->max.x = HED_MAX(ctx->max.x, pos.x);
+	ctx->max.y = HED_MAX(ctx->max.y, pos.y);
+
+	return true;
 }
 
 static bool
@@ -100,10 +128,19 @@ save_graph(
 	HGRAPH_CHECK_IO(hgraph_write_graph(graph, out));
 
 	// Save position info
+	graph_bound_ctx_t bound_ctx = {
+		.min = { FLT_MAX, FLT_MAX },
+		.max = { -FLT_MAX, -FLT_MAX },
+	};
+	hgraph_iterate_nodes(graph, find_graph_bound, &bound_ctx);
 	graph_io_ctx_t io_ctx = {
 		.graph = graph,
 		.file = std_file,
 		.status = HGRAPH_IO_OK,
+		.origin = {
+			.x = bound_ctx.min.x * 0.5f + bound_ctx.max.x * 0.5f,
+			.y = bound_ctx.min.y * 0.5f + bound_ctx.max.y * 0.5f,
+		},
 	};
 	hgraph_iterate_nodes(graph, save_node_position, &io_ctx);
 	HGRAPH_CHECK_IO(io_ctx.status);

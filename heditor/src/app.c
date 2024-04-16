@@ -386,7 +386,6 @@ frame(void* userdata) {
 						.filter = "*.hed",
 						.extension = "hed",
 					});
-					log_trace("%s", path);
 
 					if (path == NULL) {
 						const char* error = sfd_get_error();
