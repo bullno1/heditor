@@ -17,6 +17,7 @@
 #include "cnode-editor.h"
 #include "node_type_menu.h"
 #include "resources.h"
+#include "io.h"
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
@@ -274,7 +275,7 @@ frame(void* userdata) {
 			}
 
 			if (igMenuItem_Bool("Save", NULL, false, true)) {
-				log_trace("Save");
+				HED_CMD(HED_CMD_SAVE);
 			}
 
 			igSeparator();
@@ -344,18 +345,47 @@ frame(void* userdata) {
 			case HED_CMD_OPEN:
 				{
 					errno = 0;
+					// TODO: set project root
 					const char* path = sfd_open_dialog(&(sfd_Options){
 						.title = "Open a graph file",
 						.filter_name = "Graph file",
 						.filter = "*.hed",
 					});
-					log_trace("File: %s", path != NULL ? path : "<no file>");
 
 					if (path == NULL) {
 						const char* error = sfd_get_error();
 						if (error) {
 							log_error("%s (%d)", error, strerror(errno));
 						}
+					} else {
+						hgraph_config_t config = graph_config;
+						config.registry = current_registry;
+						hgraph_init(current_graph, &config);
+						FILE* file = fopen(path, "rb");
+						load_graph(current_graph, file);
+						fclose(file);
+					}
+				}
+				break;
+			case HED_CMD_SAVE:
+				{
+					errno = 0;
+					const char* path = sfd_save_dialog(&(sfd_Options){
+						.title = "Save the graph",
+						.filter_name = "Graph file",
+						.extension = "hed",
+						.filter = "*.hed",
+					});
+
+					if (path == NULL) {
+						const char* error = sfd_get_error();
+						if (error) {
+							log_error("%s (%d)", error, strerror(errno));
+						}
+					} else {
+						FILE* file = fopen(path, "wb");
+						save_graph(current_graph, file);
+						fclose(file);
 					}
 				}
 				break;

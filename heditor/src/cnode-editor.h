@@ -145,6 +145,9 @@ neLink(int32_t linkd_id, int32_t from_pin_id, int32_t to_pin_id);
 void
 neSetNodePosition(int32_t id, ImVec2 pos);
 
+void
+neGetNodePosition(int32_t id, ImVec2* pos);
+
 bool
 neBeginCreate(void);
 

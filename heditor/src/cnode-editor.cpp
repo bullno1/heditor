@@ -206,6 +206,11 @@ neSetNodePosition(int32_t id, ImVec2 pos) {
 	ne::SetNodePosition(IntToId<ne::NodeId>(id), pos);
 }
 
+void
+neGetNodePosition(int32_t id, ImVec2* pos) {
+	*pos = ne::GetNodePosition(IntToId<ne::NodeId>(id));
+}
+
 bool
 neLink(int32_t link_id, int32_t from_pin, int32_t to_pin) {
 	return ne::Link(
