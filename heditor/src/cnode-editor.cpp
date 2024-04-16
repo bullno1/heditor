@@ -304,6 +304,11 @@ neEndCreate(void) {
 }
 
 void
+neNavigateToContent(float direction) {
+	ne::NavigateToContent(direction);
+}
+
+void
 nePushStyleColor(neStyleColor colorIndex, ImVec4 color) {
 	ne::PushStyleColor(colorIndex, color);
 }

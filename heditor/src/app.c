@@ -336,6 +336,12 @@ frame(void* userdata) {
 		igShowDemoWindow(&show_imgui_demo);
 	}
 
+	static bool should_navigate_to_content = false;
+	if (should_navigate_to_content) {
+		neNavigateToContent(-1.f);
+		should_navigate_to_content = false;
+	}
+
 	hed_command_t cmd;
 	while (hed_next_cmd(&cmd)) {
 		switch (cmd.type) {
@@ -362,8 +368,12 @@ frame(void* userdata) {
 						config.registry = current_registry;
 						hgraph_init(current_graph, &config);
 						FILE* file = fopen(path, "rb");
-						load_graph(current_graph, file);
+						hgraph_io_status_t status = load_graph(current_graph, file);
 						fclose(file);
+
+						if (status == HGRAPH_IO_OK) {
+							should_navigate_to_content = true;
+						}
 					}
 				}
 				break;
@@ -373,9 +383,10 @@ frame(void* userdata) {
 					const char* path = sfd_save_dialog(&(sfd_Options){
 						.title = "Save the graph",
 						.filter_name = "Graph file",
-						.extension = "hed",
 						.filter = "*.hed",
+						.extension = "hed",
 					});
+					log_trace("%s", path);
 
 					if (path == NULL) {
 						const char* error = sfd_get_error();

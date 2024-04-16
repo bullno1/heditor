@@ -233,12 +233,19 @@ static const char* file_dialog(sfd_Options *opt, int save) {
   }
 
   len = fread(result_buf, 1, sizeof(result_buf) - 1, fp);
+  len -= 1; // Exclude new line
   pclose(fp);
 
   if (len > 0) {
-    result_buf[len - 1] = '\0';
-    if (save && opt->extension && !strstr(result_buf, opt->extension)) {
-      sprintf(&result_buf[len - 1], ".%s", opt->extension);
+    result_buf[len] = '\0';
+    if (save && opt->extension) {
+      size_t ext_len = strlen(opt->extension);
+      if (!((size_t)len > ext_len
+           && strcmp(&result_buf[len - ext_len], opt->extension) == 0
+           && result_buf[len - ext_len - 1] == '.'
+      )) {
+        sprintf(&result_buf[len], ".%s", opt->extension);
+      }
     }
     return result_buf;
   }

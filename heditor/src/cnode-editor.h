@@ -220,6 +220,9 @@ neGetStyleVarVec2(neStyleVar varIndex, ImVec2* out);
 void
 neGetStyleVarVec4(neStyleVar varIndex, ImVec4* out);
 
+void
+neNavigateToContent(float duration);
+
 #ifdef __cplusplus
 }
 #endif
