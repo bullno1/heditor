@@ -179,7 +179,7 @@ render_label(
 static bool
 render_enum_input(
 	hed_gui_t* ctx,
-	int* value,
+	int32_t* value,
 	const hed_enum_input_opts_t* opts
 ) {
 	if (begin_popup(ctx, opts->labels[*value])) {

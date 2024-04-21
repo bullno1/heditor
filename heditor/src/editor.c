@@ -9,6 +9,7 @@
 #include <float.h>
 #include "command.h"
 #include "plugin_api_impl.h"
+#include "utils.h"
 
 typedef struct {
 	node_type_menu_entry_t* first_entry;
@@ -68,6 +69,23 @@ gui_draw_graph_node_impl(
 
 		// Attributes
 		if (node_type->attributes != NULL) {
+			float input_label_size = 0.f;
+			for (
+				const hgraph_attribute_description_t** itr = node_type->attributes;
+				itr != NULL && *itr != NULL;
+				++itr
+			) {
+				ImVec2 text_size;
+				hgraph_str_t text = (*itr)->label;
+				igCalcTextSize(
+					&text_size,
+					text.data, text.data + text.length,
+					false,
+					FLT_MAX
+				);
+				input_label_size = HED_MAX(text_size.x,  input_label_size);
+			}
+
 			igPushID_Str("attributes");
 			igBeginGroup();
 			for (
@@ -85,18 +103,27 @@ gui_draw_graph_node_impl(
 				igBeginGroup();
 				{
 					if (render != NULL) { igSpacing(); }
+					ImVec2 label_min, label_max;
 					igText((*itr)->label.data);
+					igGetItemRectMin(&label_min);
+					igGetItemRectMax(&label_max);
+					igSameLine(0.f, -1.f);
+					igDummy((ImVec2){
+						.x = input_label_size - (label_max.x - label_min.x),
+					});
 				}
 				igEndGroup();
 
 				if (render != NULL) {
 					igSameLine(0.f, -1.f);
 					igPushID_Int(itr - node_type->attributes);
+					igBeginGroup();
 					{
 						hed_plugin_api_impl_t impl;
 						void* attr = hgraph_get_node_attribute(ctx->graph, node_id, *itr);
 						render(attr, hed_gui_init(&impl, &popup_info, false, igGetCurrentContext()));
 					}
+					igEndGroup();
 					igPopID();
 
 					if (
@@ -119,7 +146,6 @@ gui_draw_graph_node_impl(
 
 		// Input pins
 		igBeginGroup();
-		int numStyleVars = 0;
 		for (
 			const hgraph_pin_description_t** itr = node_type->input_pins;
 			itr != NULL && *itr != NULL;
@@ -153,7 +179,6 @@ gui_draw_graph_node_impl(
 			}
 			neEndPin();
 		}
-		nePopStyleVar(numStyleVars); numStyleVars = 0;
 		igEndGroup();
 		igGetItemRectMin(&input_min);
 		igGetItemRectMax(&input_max);
@@ -178,8 +203,7 @@ gui_draw_graph_node_impl(
 				false,
 				FLT_MAX
 			);
-			output_block_size = text_size.x > output_block_size
-				? text_size.x : output_block_size;
+			output_block_size = HED_MAX(text_size.x,  output_block_size);
 		}
 		io_gap = node_padding.z + node_padding.x;  // Right of input, left of output
 		float extra_space = io_gap + node_padding.z; // Right of output
@@ -272,10 +296,11 @@ gui_draw_graph_node_impl(
 
 		// Divide input and output
 		if (node_type->input_pins != NULL && node_type->output_pins != NULL) {
+			float gap = output_min.x - input_max.x;
 			ImDrawList_AddLine(
 				draw_list,
-				(ImVec2){ input_max.x + io_gap * 0.5f, attr_max.y + half_border_width },
-				(ImVec2){ input_max.x + io_gap * 0.5f, node_max.y - half_border_width },
+				(ImVec2){ input_max.x + gap * 0.5f, attr_max.y + half_border_width },
+				(ImVec2){ input_max.x + gap * 0.5f, node_max.y - half_border_width },
 				igColorConvertFloat4ToU32(border_color),
 				1.f
 			);
@@ -463,7 +488,6 @@ draw_editor(
 			igEndPopup();
 		}
 
-		// TODO: reset on plugin reload?
 		static hgraph_index_t popup_node = HGRAPH_INVALID_INDEX;
 		static const hgraph_attribute_description_t* popup_attribute = NULL;
 		static hed_gui_popup_info_t popup_info = { 0 };
@@ -474,7 +498,30 @@ draw_editor(
 			popup_info = draw_ctx.popup_info;
 		}
 
-		if (igBeginPopup("Edit attribute", ImGuiWindowFlags_None)) {
+		// Revalidate popup in case of reload
+		const hgraph_node_type_t* node_type = hgraph_get_node_type(graph, popup_node);
+		bool is_attribute_valid = false;
+		if (node_type != NULL) {
+			for (
+				const hgraph_attribute_description_t** itr = node_type->attributes;
+				itr != NULL && *itr != NULL;
+				++itr
+			) {
+				if (*itr == popup_attribute) {
+					is_attribute_valid = true;
+					break;
+				}
+			}
+		}
+		if (!is_attribute_valid) {
+			popup_node = HGRAPH_INVALID_INDEX;
+			popup_attribute = NULL;
+		}
+
+		if (
+			popup_attribute != NULL
+			&& igBeginPopup("Edit attribute", ImGuiWindowFlags_None)
+		) {
 			hgraph_data_render_callback_t render = NULL;
 			if (popup_attribute->render != NULL) {
 				render = popup_attribute->render;
@@ -482,9 +529,11 @@ draw_editor(
 				render = popup_attribute->data_type->render;
 			}
 
-			hed_plugin_api_impl_t impl;
-			void* attr = hgraph_get_node_attribute(graph, popup_node, popup_attribute);
-			render(attr, hed_gui_init(&impl, &popup_info, true, igGetCurrentContext()));
+			if (render) {
+				hed_plugin_api_impl_t impl;
+				void* attr = hgraph_get_node_attribute(graph, popup_node, popup_attribute);
+				render(attr, hed_gui_init(&impl, &popup_info, true, igGetCurrentContext()));
+			}
 
 			igEndPopup();
 		}

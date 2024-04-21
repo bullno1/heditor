@@ -81,7 +81,7 @@ typedef struct hed_gui_s {
 	);
 	bool (*render_enum_input)(
 		struct hed_gui_s* ctx,
-		int* value,
+		int32_t* value,
 		const hed_enum_input_opts_t* opts
 	);
 	bool (*render_label)(
@@ -146,7 +146,7 @@ hed_gui_render_string_input(
 static inline bool
 hed_gui_render_enum_input(
 	struct hed_gui_s* ctx,
-	int* value,
+	int32_t* value,
 	const hed_enum_input_opts_t* options
 ) {
 	return ctx->render_enum_input(ctx, value, options);
