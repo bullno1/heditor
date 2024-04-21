@@ -53,7 +53,7 @@ hgraph_core_render_i32(void* value, void* gui) {
 		gui,
 		value,
 		&(hed_scalar_input_opts_t){
-			.type = HED_SCALAR_INPUT_SLIDER,
+			.type = HED_SCALAR_INPUT_TEXT_BOX,
 			.min.i32 = INT32_MIN,
 			.max.i32 = INT32_MAX,
 			.step.i32 = 1,
@@ -88,7 +88,7 @@ hgraph_core_render_fixed_str(void* value, void* gui) {
 	bool changed = hed_gui_render_string_input(
 		gui,
 		&gui_str,
-		&(hed_text_input_opts_t){ .type = HED_TEXT_INPUT_LINE }
+		&(hed_text_input_opts_t){ .type = HED_TEXT_INPUT_AREA }
 	);
 	if (changed) {
 		fixed_str->len = gui_str.len;

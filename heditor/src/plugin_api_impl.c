@@ -24,6 +24,41 @@ end_widget(hed_gui_t* ctx) {
 }
 
 static bool
+begin_popup(hed_gui_t* ctx, hed_ref_str_t label) {
+	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
+	int widget_index = ++impl->widget_index;
+
+	if (impl->is_popup) {
+		if (widget_index == impl->widget_index) {
+			// Begin a nested inline context
+			impl->saved_widget_index = impl->widget_index;
+			impl->widget_index = 0;
+			impl->is_popup = false;
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		igPushID_Int(widget_index);
+		bool popup_requested = igButton(label.chars, (ImVec2){ 0.f, 0.f });
+		igPopID();
+
+		if (popup_requested && impl->popup_info->widget_index == 0) {
+			impl->popup_info->widget_index = widget_index;
+		}
+
+		return false;
+	}
+}
+
+static void
+end_popup(hed_gui_t* ctx) {
+	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
+	impl->is_popup = true;
+	impl->widget_index = impl->saved_widget_index;
+}
+
+static bool
 render_scalar_input(
 	hed_gui_t* ctx,
 	hed_scalar_t* value,
@@ -88,69 +123,76 @@ render_scalar_input(
 }
 
 static bool
-render_text_input(
+render_text_input_line(
 	struct hed_gui_s* ctx,
 	hed_editable_str_t* value,
 	const hed_text_input_opts_t* options
 ) {
+	(void)options;
 	if (!begin_widget(ctx)) { return false; }
 
-	// TODO: File picker
-
-	bool updated;
 	igSetNextItemWidth(256.f);
-	updated = igInputTextEx(
-		"", NULL,
-		value->chars, (int)value->capacity,
-		(ImVec2) { 0 },
-		options->type == HED_TEXT_INPUT_AREA
-			? ImGuiInputTextFlags_Multiline
-			: ImGuiInputTextFlags_None,
-		NULL,
-		NULL
+	bool updated = igInputText(
+		"",
+		value->chars, value->capacity,
+		ImGuiInputTextFlags_None,
+		NULL, NULL
 	);
-
-	if (updated) {
-		value->len = strlen(value->chars);
-	}
 
 	end_widget(ctx);
 	return updated;
 }
 
 static bool
-begin_popup(hed_gui_t* ctx, hed_ref_str_t label) {
-	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
-	int widget_index = ++impl->widget_index;
-
-	if (impl->is_popup) {
-		if (widget_index == impl->widget_index) {
-			// Begin a nested inline context
-			impl->saved_widget_index = impl->widget_index;
-			impl->widget_index = 0;
-			impl->is_popup = false;
-			return true;
-		} else {
-			return false;
-		}
+render_text_input_area(
+	struct hed_gui_s* ctx,
+	hed_editable_str_t* value,
+	const hed_text_input_opts_t* options
+) {
+	(void)options;
+	hed_ref_str_t label = {
+		.chars = value->chars,
+		.len = value->len
+	};
+	if (begin_popup(ctx, label)) {
+		bool updated = igInputTextMultiline(
+			"##Text",
+			value->chars, value->capacity,
+			(ImVec2){ 0.f, 0.f },
+			ImGuiInputTextFlags_None,
+			NULL, NULL
+		);
+		end_popup(ctx);
+		return updated;
 	} else {
-		igPushID_Int(widget_index);
-		bool popup_requested = igButton(label.chars, (ImVec2){ 0.f, 0.f });
-		igPopID();
-
-		if (popup_requested && impl->popup_info->widget_index == 0) {
-			impl->popup_info->widget_index = widget_index;
-		}
-
 		return false;
 	}
 }
 
-static void
-end_popup(hed_gui_t* ctx) {
-	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
-	impl->is_popup = true;
-	impl->widget_index = impl->saved_widget_index;
+static bool
+render_text_input(
+	struct hed_gui_s* ctx,
+	hed_editable_str_t* value,
+	const hed_text_input_opts_t* options
+) {
+	bool updated;
+	switch (options->type) {
+		case HED_TEXT_INPUT_LINE:
+			updated = render_text_input_line(ctx, value, options);
+			break;
+		case HED_TEXT_INPUT_AREA:
+			updated = render_text_input_area(ctx, value, options);
+			break;
+		case HED_TEXT_INPUT_FILE_PICKER:
+			updated = false;
+			break;
+	}
+
+	if (updated) {
+		value->len = strlen(value->chars);
+	}
+
+	return updated;
 }
 
 static bool
