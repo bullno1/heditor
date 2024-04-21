@@ -522,7 +522,7 @@ hgraph_set_node_attribute(
 	}
 }
 
-const void*
+void*
 hgraph_get_node_attribute(
 	const hgraph_t* graph,
 	hgraph_index_t node_id,

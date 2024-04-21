@@ -45,6 +45,9 @@ if (NOT MSVC)
 	)
 endif()
 
+add_library(heditor_plugin INTERFACE)
+target_include_directories(heditor_plugin INTERFACE "include")
+
 if (MSVC)
 	set(HEDITOR_RC ./src/resources.rc)
 else()
@@ -66,11 +69,13 @@ set(HEDITOR_APP_SOURCES
 	./src/node_type_menu.c
 	./src/editor.c
 	./src/io.c
+	./src/plugin_api_impl.c
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")
 target_link_libraries(heditor_app PRIVATE
 	heditor_libs
+	heditor_plugin
 	hgraph_runtime
 	bullno1-libs
 	inih
@@ -80,9 +85,6 @@ target_include_directories(heditor_app PRIVATE
 	../deps/cimgui/imgui
 )
 set_target_properties(heditor_app PROPERTIES PREFIX "")
-
-add_library(heditor_plugin INTERFACE)
-target_include_directories(heditor_plugin INTERFACE "include")
 
 add_executable(heditor
 	./src/main.c

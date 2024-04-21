@@ -17,11 +17,11 @@ hgraph_core_deserialize_f32(void* value, hgraph_in_t* in) {
 
 static inline void
 hgraph_core_render_f32(void* value, void* gui) {
-	hed_gui_render_f32(
+	hed_gui_render_f32_input(
 		gui,
 		value,
 		&(hed_scalar_input_opts_t){
-			.type = HED_SCALAR_INPUT_TEXT,
+			.type = HED_SCALAR_INPUT_TEXT_BOX,
 			.min.f32 = -FLT_MAX,
 			.max.f32 = FLT_MAX,
 			.step.f32 = 1.f,
@@ -49,11 +49,11 @@ hgraph_core_deserialize_i32(void* value, hgraph_in_t* in) {
 
 static inline void
 hgraph_core_render_i32(void* value, void* gui) {
-	hed_gui_render_i32(
+	hed_gui_render_i32_input(
 		gui,
 		value,
 		&(hed_scalar_input_opts_t){
-			.type = HED_SCALAR_INPUT_TEXT,
+			.type = HED_SCALAR_INPUT_SLIDER,
 			.min.i32 = INT32_MIN,
 			.max.i32 = INT32_MAX,
 			.step.i32 = 1,
@@ -80,12 +80,12 @@ hgraph_core_deserialize_fixed_str(void* value, hgraph_in_t* in) {
 static inline void
 hgraph_core_render_fixed_str(void* value, void* gui) {
 	hgraph_core_fixed_str_t* fixed_str = value;
-	hed_gui_str_t gui_str = {
+	hed_editable_str_t gui_str = {
 		.capacity = HGRAPH_CORE_FIXED_STR_LEN,
 		.len = fixed_str->len,
-		.storage = fixed_str->data,
+		.chars = fixed_str->data,
 	};
-	bool changed = hed_gui_render_text(
+	bool changed = hed_gui_render_string_input(
 		gui,
 		&gui_str,
 		&(hed_text_input_opts_t){ .type = HED_TEXT_INPUT_LINE }
@@ -107,12 +107,6 @@ hgraph_core_deserialize_var_str(void* value, hgraph_in_t* in) {
 	char buf;
 	size_t len = 0;
 	return hgraph_io_read_str(&buf, &len, in);
-}
-
-static inline void
-hgraph_core_render_var_str(void* value, void* gui) {
-	(void)value;
-	(void)gui;
 }
 
 const hgraph_data_type_t hgraph_core_f32 = {
@@ -156,5 +150,4 @@ const hgraph_data_type_t hgraph_core_var_str = {
 	.alignment = _Alignof(hgraph_str_t),
 	.serialize = hgraph_core_serialize_var_str,
 	.deserialize = hgraph_core_deserialize_var_str,
-	.render = hgraph_core_render_var_str,
 };

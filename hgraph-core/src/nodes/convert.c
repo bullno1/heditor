@@ -115,10 +115,13 @@ hgraph_core_f32_to_i32_execute(const hgraph_node_api_t* api) {
 
 static void
 hgraph_core_f32_to_i32_attr_rounding_mode_render(void* value, void* gui) {
-	hed_gui_render_enum(gui, value, 3, (const char*[]){
-		"Nearest",
-		"Floor",
-		"Ceiling"
+	hed_gui_render_enum_input(gui, value, &(hed_enum_input_opts_t){
+		.count = 3,
+		.labels = (hed_ref_str_t[]){
+			HED_REF_STR("Nearest"),
+			HED_REF_STR("Floor"),
+			HED_REF_STR("Ceiling")
+		},
 	});
 }
 

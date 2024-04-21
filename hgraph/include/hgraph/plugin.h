@@ -27,6 +27,7 @@ typedef enum hgraph_flow_type_e {
 } hgraph_flow_type_t;
 
 typedef void (*hgraph_data_lifecycle_callback_t)(void* value);
+typedef void (*hgraph_data_render_callback_t)(void* value, void* render_ctx);
 
 typedef struct hgraph_data_type_s {
 	hgraph_str_t name;
@@ -49,7 +50,7 @@ typedef struct hgraph_data_type_s {
 
 	hgraph_io_status_t (*serialize)(const void* value, hgraph_out_t* output);
 	hgraph_io_status_t (*deserialize)(void* value, hgraph_in_t* input);
-	void (*render)(void* value, void* render_ctx);
+	hgraph_data_render_callback_t render;
 } hgraph_data_type_t;
 
 typedef struct hgraph_pin_description_s {
@@ -73,7 +74,7 @@ typedef struct hgraph_attribute_description_s {
 	// Attribute just have different defaults from data types and the same
 	// reasoning applies.
 
-	void (*render)(void* value, void* render_ctx);
+	hgraph_data_render_callback_t render;
 } hgraph_attribute_description_t;
 
 typedef struct hgraph_node_type_s {

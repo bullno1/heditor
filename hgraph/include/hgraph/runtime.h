@@ -205,7 +205,7 @@ hgraph_set_node_attribute(
 	const void* value
 );
 
-HGRAPH_API const void*
+HGRAPH_API void*
 hgraph_get_node_attribute(
 	const hgraph_t* graph,
 	hgraph_index_t node,
