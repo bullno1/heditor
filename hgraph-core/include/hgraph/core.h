@@ -55,6 +55,8 @@ HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_f32_out_
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_i32_out_attr_value;
 HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_fixed_str_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_fixed_str_out_attr_value;
+HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_path_out;
+HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_path_out_attr_path;
 HGRAPH_CORE_API extern const hgraph_node_type_t hgraph_core_var_str_out;
 HGRAPH_CORE_API extern const hgraph_attribute_description_t hgraph_core_var_str_out_attr_value;
 
@@ -120,6 +122,13 @@ hgraph_core_set_str_out_value(
 			graph,
 			node,
 			&hgraph_core_var_str_out_attr_value,
+			&value
+		);
+	} else if (type == &hgraph_core_path_out) {
+		hgraph_set_node_attribute(
+			graph,
+			node,
+			&hgraph_core_path_out_attr_path,
 			&value
 		);
 	}

@@ -2,8 +2,11 @@
 #include "utils.h"
 #include <heditor/plugin.h>
 #include <string.h>
+#include "sfd/sfd.h"
+#include "pico_log.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
+#include <errno.h>
 
 static bool
 begin_widget(hed_gui_t* ctx) {
@@ -56,6 +59,29 @@ end_popup(hed_gui_t* ctx) {
 	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
 	impl->is_popup = true;
 	impl->widget_index = impl->saved_widget_index;
+}
+
+static bool
+render_label(
+	hed_gui_t* ctx,
+	hed_ref_str_t label,
+	const hed_label_opts_t* options
+) {
+	if (!begin_widget(ctx)) { return false; }
+
+	bool result = false;
+	if (options->selectable) {
+		result = igButton(label.chars, (ImVec2){ 0.f, 0.f });
+	} else {
+		igText("%.*s", (int)label.len, label.chars);
+	}
+
+	if (!options->line_break) {
+		igSameLine(0.f, -1.f);
+	}
+
+	end_widget(ctx);
+	return result;
 }
 
 static bool
@@ -170,6 +196,44 @@ render_text_input_area(
 }
 
 static bool
+render_text_input_file_picker(
+	struct hed_gui_s* ctx,
+	hed_editable_str_t* value,
+	const hed_text_input_opts_t* options
+) {
+	(void)options;
+
+	hed_ref_str_t label = {
+		.chars = value->chars,
+		.len = value->len
+	};
+
+	bool updated = false;
+	if (render_label(ctx, label, &(hed_label_opts_t){ .selectable = true })) {
+		// TODO: set project root
+		const char* path = sfd_open_dialog(&(sfd_Options){
+			.title = "Choose a file",
+		});
+
+		if (path == NULL) {
+			const char* error = sfd_get_error();
+			if (error) {
+				log_error("%s (%d)", error, strerror(errno));
+			}
+		} else {
+			size_t len = strlen(path);
+			if (len <= value->capacity) {
+				memcpy(value->chars, path, len);
+				value->chars[len] = '\0';
+				updated = true;
+			}
+		}
+	}
+
+	return updated;
+}
+
+static bool
 render_text_input(
 	struct hed_gui_s* ctx,
 	hed_editable_str_t* value,
@@ -184,7 +248,7 @@ render_text_input(
 			updated = render_text_input_area(ctx, value, options);
 			break;
 		case HED_TEXT_INPUT_FILE_PICKER:
-			updated = false;
+			updated = render_text_input_file_picker(ctx, value, options);
 			break;
 	}
 
@@ -193,29 +257,6 @@ render_text_input(
 	}
 
 	return updated;
-}
-
-static bool
-render_label(
-	hed_gui_t* ctx,
-	hed_ref_str_t label,
-	const hed_label_opts_t* options
-) {
-	if (!begin_widget(ctx)) { return false; }
-
-	bool result = false;
-	if (options->selectable) {
-		igText("%.*s", (int)label.len, label.chars);
-	} else {
-		result = igSelectable_Bool(label.chars, false, ImGuiSelectableFlags_None, (ImVec2){ 0.f, 0.f });
-	}
-
-	if (!options->line_break) {
-		igSameLine(0.f, -1.f);
-	}
-
-	end_widget(ctx);
-	return result;
 }
 
 static bool
