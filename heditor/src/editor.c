@@ -121,7 +121,18 @@ gui_draw_graph_node_impl(
 					{
 						hed_plugin_api_impl_t impl;
 						void* attr = hgraph_get_node_attribute(ctx->graph, node_id, *itr);
-						render(attr, hed_gui_init(&impl, &popup_info, false, igGetCurrentContext()));
+						HED_WITH_ARENA(ctx->arena) {
+							render(
+								attr,
+								hed_gui_init(
+									&impl,
+									&popup_info,
+									false,
+									ctx->arena,
+									igGetCurrentContext()
+								)
+							);
+						}
 					}
 					igEndGroup();
 					igPopID();
@@ -532,7 +543,19 @@ draw_editor(
 			if (render) {
 				hed_plugin_api_impl_t impl;
 				void* attr = hgraph_get_node_attribute(graph, popup_node, popup_attribute);
-				render(attr, hed_gui_init(&impl, &popup_info, true, igGetCurrentContext()));
+
+				HED_WITH_ARENA(arena) {
+					render(
+						attr,
+						hed_gui_init(
+							&impl,
+							&popup_info,
+							true,
+							arena,
+							igGetCurrentContext()
+						)
+					);
+				}
 			}
 
 			igEndPopup();

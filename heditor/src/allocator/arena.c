@@ -80,6 +80,8 @@ hed_arena_cleanup(hed_arena_t* arena) {
 
 void*
 hed_arena_alloc(hed_arena_t* arena, size_t size, size_t alignment) {
+	if (size == 0) { return NULL; }
+
 	hed_arena_chunk_t* current_chunk = arena->current_chunk;
 
 	void* result = hed_arena_alloc_from_chunk(current_chunk, size, alignment);

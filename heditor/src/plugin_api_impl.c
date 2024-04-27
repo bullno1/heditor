@@ -1,6 +1,7 @@
 #include "plugin_api_impl.h"
 #include "utils.h"
 #include "app.h"
+#include "allocator/arena.h"
 #include <heditor/plugin.h>
 #include <string.h>
 #include "pico_log.h"
@@ -201,7 +202,7 @@ render_text_input_file_picker(
 	hed_editable_str_t* value,
 	const hed_text_input_opts_t* options
 ) {
-	(void)options;
+	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
 
 	hed_ref_str_t label = {
 		.chars = value->chars,
@@ -211,8 +212,20 @@ render_text_input_file_picker(
 	bool updated = false;
 	if (render_label(ctx, label, &(hed_label_opts_t){ .selectable = true })) {
 		char* path;
+		nfdnfilteritem_t* filters = HED_ARENA_ALLOC_ARRAY(
+			impl->arena,
+			nfdu8filteritem_t,
+			options->file_picker_opts.num_filters
+		);
+		for (int32_t i = 0; i < options->file_picker_opts.num_filters; ++i) {
+			filters[i] = (nfdfilteritem_t){
+				.name = options->file_picker_opts.filters[i].name.chars,
+				.spec = options->file_picker_opts.filters[i].extension.chars,
+			};
+		}
+
 		nfdresult_t result = NFD_OpenDialogU8(
-			&path, NULL, 0, hed_path_as_str(project_root)
+			&path, filters, options->file_picker_opts.num_filters, hed_path_as_str(project_root)
 		);
 
 		if (result == NFD_OKAY) {
@@ -221,6 +234,8 @@ render_text_input_file_picker(
 				memcpy(value->chars, path, len);
 				value->chars[len] = '\0';
 				updated = true;
+			} else {
+				log_warn("Path is too long");
 			}
 		} else if (result == NFD_ERROR) {
 			log_error("Could not open dialog: %s", NFD_GetError());
@@ -289,6 +304,7 @@ hed_gui_init(
 	hed_plugin_api_impl_t* impl,
 	hed_gui_popup_info_t* popup_info,
 	bool is_popup,
+	hed_arena_t* arena,
 	struct ImGuiContext* imgui_ctx
 ) {
 	*impl = (hed_plugin_api_impl_t){
@@ -302,7 +318,8 @@ hed_gui_init(
 			.end_popup = end_popup,
 		},
 		.popup_info = popup_info,
-		.is_popup = is_popup
+		.arena = arena,
+		.is_popup = is_popup,
 	};
 
 	return &impl->impl;

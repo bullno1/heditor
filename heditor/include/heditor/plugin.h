@@ -52,12 +52,24 @@ typedef struct hed_ref_str_s {
 	const char* chars;
 } hed_ref_str_t;
 
+typedef struct hed_file_filter_s {
+	hed_ref_str_t name;
+	hed_ref_str_t extension;
+} hed_file_filter_t;
+
 typedef struct hed_text_input_opts_s {
 	hed_text_input_type_t type;
+
+	union {
+		struct {
+			int32_t num_filters;
+			const hed_file_filter_t* filters;
+		} file_picker_opts;
+	};
 } hed_text_input_opts_t;
 
 typedef struct hed_enum_input_opts_s {
-	int count;
+	int32_t count;
 	hed_ref_str_t* labels;
 } hed_enum_input_opts_t;
 
