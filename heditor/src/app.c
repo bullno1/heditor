@@ -344,6 +344,10 @@ frame(void* userdata) {
 		HED_CMD(HED_CMD_OPEN);
 	}
 
+	if (igIsKeyChordPressed_Nil(ImGuiKey_S | ImGuiMod_Ctrl)) {
+		HED_CMD(HED_CMD_SAVE);
+	}
+
 	// Handle GUI commands
 	if (show_imgui_demo) {
 		igShowDemoWindow(&show_imgui_demo);
@@ -406,6 +410,7 @@ frame(void* userdata) {
 					if (result == NFD_OKAY) {
 						FILE* file = fopen(path, "wb");
 						if (file != NULL) {
+							log_debug("Saving %s", path);
 							save_graph(current_graph, file);
 							fclose(file);
 						} else {
