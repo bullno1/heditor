@@ -55,7 +55,6 @@ else()
 endif()
 set(HEDITOR_APP_SOURCES
 	./src/app.c
-	./src/sfd/sfd.c
 	./src/command.c
 	./src/detect_debugger.c
 	./src/resources.c
@@ -79,6 +78,7 @@ target_link_libraries(heditor_app PRIVATE
 	hgraph_runtime
 	bullno1-libs
 	inih
+	nfd
 )
 target_include_directories(heditor_app PRIVATE
 	./src

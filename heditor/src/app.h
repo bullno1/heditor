@@ -22,4 +22,6 @@ struct plugin_entry_s {
 	struct plugin_entry_s* next;
 };
 
+extern hed_path_t* project_root;
+
 #endif

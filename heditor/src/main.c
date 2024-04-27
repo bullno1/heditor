@@ -176,13 +176,11 @@ sokol_main(int argc, char* argv[]) {
 
 const char*
 __lsan_default_suppressions(void) {
-	// NVidia driver always leak
-	return "leak:_sapp_glx_create_context";
-}
-
-const char*
-__asan_default_options(void) {
-	return "fast_unwind_on_malloc=0";
+	return
+		"leak:_sapp_glx_create_context\n"  // Nvidia driver
+		"leak:libfontconfig\n"
+		"leak:libglib-2.0\n"
+		"leak:libdbus-1\n";
 }
 
 #endif

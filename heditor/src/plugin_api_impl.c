@@ -1,12 +1,12 @@
 #include "plugin_api_impl.h"
 #include "utils.h"
+#include "app.h"
 #include <heditor/plugin.h>
 #include <string.h>
-#include "sfd/sfd.h"
 #include "pico_log.h"
+#include <nfd.h>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
-#include <errno.h>
 
 static bool
 begin_widget(hed_gui_t* ctx) {
@@ -210,23 +210,20 @@ render_text_input_file_picker(
 
 	bool updated = false;
 	if (render_label(ctx, label, &(hed_label_opts_t){ .selectable = true })) {
-		// TODO: set project root
-		const char* path = sfd_open_dialog(&(sfd_Options){
-			.title = "Choose a file",
-		});
+		char* path;
+		nfdresult_t result = NFD_OpenDialogU8(
+			&path, NULL, 0, hed_path_as_str(project_root)
+		);
 
-		if (path == NULL) {
-			const char* error = sfd_get_error();
-			if (error) {
-				log_error("%s (%d)", error, strerror(errno));
-			}
-		} else {
+		if (result == NFD_OKAY) {
 			size_t len = strlen(path);
 			if (len <= value->capacity) {
 				memcpy(value->chars, path, len);
 				value->chars[len] = '\0';
 				updated = true;
 			}
+		} else if (result == NFD_ERROR) {
+			log_error("Could not open dialog: %s", NFD_GetError());
 		}
 	}
 

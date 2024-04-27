@@ -7,7 +7,7 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 #include <util/sokol_imgui.h>
-#include "sfd/sfd.h"
+#include <nfd.h>
 #include "pico_log.h"
 #include "command.h"
 #include "detect_debugger.h"
@@ -63,6 +63,17 @@ REMODULE_VAR(neEditorContext*, node_editor) = 0;
 
 REMODULE_VAR(size_t, menu_size) = 0;
 REMODULE_VAR(node_type_menu_entry_t*, node_type_menu) = 0;
+
+REMODULE_VAR(hed_path_t*, project_root) = NULL;
+
+static const nfdu8filteritem_t FILE_FILTERS[] = {
+	{
+		.name = "Graph file",
+		.spec = "hed"
+	}
+};
+static const nfdfiltersize_t NUM_FILE_FILTERS =
+	sizeof(FILE_FILTERS) / sizeof(FILE_FILTERS[0]);
 
 extern sapp_icon_desc
 load_app_icon(hed_arena_t* arena);
@@ -132,6 +143,8 @@ init(void* userdata) {
 			.user_data = args->sokol_allocator.user_data,
 		},
 	});
+
+	NFD_Init();
 
 	simgui_setup(&(simgui_desc_t){
 		.logger = {
@@ -274,7 +287,7 @@ frame(void* userdata) {
 				HED_CMD(HED_CMD_OPEN);
 			}
 
-			if (igMenuItem_Bool("Save", NULL, false, true)) {
+			if (igMenuItem_Bool("Save", "Ctrl+S", false, true)) {
 				HED_CMD(HED_CMD_SAVE);
 			}
 
@@ -350,52 +363,57 @@ frame(void* userdata) {
 				break;
 			case HED_CMD_OPEN:
 				{
-					errno = 0;
-					// TODO: set project root
-					const char* path = sfd_open_dialog(&(sfd_Options){
-						.title = "Open a graph file",
-						.filter_name = "Graph file",
-						.filter = "*.hed",
-					});
+					char* path;
 
-					if (path == NULL) {
-						const char* error = sfd_get_error();
-						if (error) {
-							log_error("%s (%d)", error, strerror(errno));
-						}
-					} else {
-						hgraph_config_t config = graph_config;
-						config.registry = current_registry;
-						hgraph_init(current_graph, &config);
+					nfdresult_t result = NFD_OpenDialogU8(
+						&path,
+						FILE_FILTERS, NUM_FILE_FILTERS,
+						hed_path_as_str(project_root)
+					);
+
+					if (result == NFD_OKAY) {
 						FILE* file = fopen(path, "rb");
-						hgraph_io_status_t status = load_graph(current_graph, file);
-						fclose(file);
+						if (file != NULL) {
+							hgraph_config_t config = graph_config;
+							config.registry = current_registry;
+							hgraph_init(current_graph, &config);
+							hgraph_io_status_t status = load_graph(current_graph, file);
+							fclose(file);
 
-						if (status == HGRAPH_IO_OK) {
-							should_navigate_to_content = true;
+							if (status == HGRAPH_IO_OK) {
+								should_navigate_to_content = true;
+							}
+						} else {
+							log_error("Could not open %s: %s", path, strerror(errno));
 						}
+						NFD_FreePathU8(path);
+					} else if (result == NFD_ERROR) {
+						log_error("Could not open dialog: %s", NFD_GetError());
 					}
 				}
 				break;
 			case HED_CMD_SAVE:
 				{
-					errno = 0;
-					const char* path = sfd_save_dialog(&(sfd_Options){
-						.title = "Save the graph",
-						.filter_name = "Graph file",
-						.filter = "*.hed",
-						.extension = "hed",
-					});
+					char* path = NULL;
 
-					if (path == NULL) {
-						const char* error = sfd_get_error();
-						if (error) {
-							log_error("%s (%d)", error, strerror(errno));
-						}
-					} else {
+					nfdresult_t result = NFD_SaveDialogU8(
+						&path,
+						FILE_FILTERS, NUM_FILE_FILTERS,
+						hed_path_as_str(project_root),
+						NULL
+					);
+
+					if (result == NFD_OKAY) {
 						FILE* file = fopen(path, "wb");
-						save_graph(current_graph, file);
-						fclose(file);
+						if (file != NULL) {
+							save_graph(current_graph, file);
+							fclose(file);
+						} else {
+							log_error("Could not open %s: %s", path, strerror(errno));
+						}
+						NFD_FreePathU8(path);
+					} else if (result == NFD_ERROR) {
+						log_error("Could not open dialog: %s", NFD_GetError());
 					}
 				}
 				break;
@@ -448,6 +466,7 @@ static void
 cleanup(void* userdata) {
 	entry_args_t* args = userdata;
 
+	hed_free(project_root, args->allocator);
 	hed_free(node_type_menu, args->allocator);
 
 	neDestroyEditor(node_editor);
@@ -468,6 +487,7 @@ cleanup(void* userdata) {
 	hed_free(registry_builder, args->allocator);
 
 	simgui_shutdown();
+	NFD_Quit();
 	sg_shutdown();
 
 	hed_arena_cleanup(&frame_arena);
@@ -490,6 +510,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 
 				registry_config = config->registry_config;
 				graph_config = config->graph_config;
+				project_root = hed_path_dup(args->allocator, config->project_root);
 
 				size_t registry_builder_size = hgraph_registry_builder_init(
 					NULL, &registry_config
