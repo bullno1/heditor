@@ -49,6 +49,7 @@ typedef struct {
 	size_t next_graph_size;
 	hgraph_t* next_graph;
 
+	hed_path_t* path;
 	neEditorContext* node_editor;
 } document_t;
 
@@ -307,8 +308,8 @@ frame(void* userdata) {
 	// Main menu
 	if (igBeginMainMenuBar()) {
 		if (igBeginMenu("File", true)) {
-			if (igMenuItem_Bool("New", NULL, false, true)) {
-				log_trace("New");
+			if (igMenuItem_Bool("New", "Ctr+N", false, num_documents < editor_config.max_documents)) {
+				HED_CMD(HED_CMD_NEW);
 			}
 
 			if (igMenuItem_Bool("Open", "Ctrl+O", false, true)) {
@@ -356,11 +357,19 @@ frame(void* userdata) {
 		if (igBeginTabBar("Documents", ImGuiTabBarFlags_None)) {
 			for (int i = 0; i < num_documents; ++i) {
 				HED_WITH_ARENA(&frame_arena) {
+					document_t* document = &documents[i];
 					hed_allocator_t* alloc = hed_arena_as_allocator(&frame_arena);
-					hed_str_t tab_name = hed_str_format(alloc, "Tab %d", i);
-					if (igBeginTabItem(tab_name.data, NULL, ImGuiTabItemFlags_None)) {
+					hed_str_t tab_name = hed_str_format(
+						alloc,
+						"%s###%p",
+						document->path != NULL
+							? hed_path_basename(alloc, document->path)
+							: "Untitled",
+						(void*)document->node_editor
+					);
+					bool tab_open = true;
+					if (igBeginTabItem(tab_name.data, &tab_open, ImGuiTabItemFlags_None)) {
 						active_document_index = i;
-						document_t* document = &documents[i];
 						neSetCurrentEditor(document->node_editor);
 						neBegin("Editor", (ImVec2){ 0 });
 						int numStyleVars = 0;
@@ -390,6 +399,10 @@ frame(void* userdata) {
 	igEnd();
 
 	// Hot keys
+	if (igIsKeyChordPressed_Nil(ImGuiKey_N | ImGuiMod_Ctrl) && num_documents < editor_config.max_documents) {
+		HED_CMD(HED_CMD_NEW);
+	}
+
 	if (igIsKeyChordPressed_Nil(ImGuiKey_O | ImGuiMod_Ctrl)) {
 		HED_CMD(HED_CMD_OPEN);
 	}
@@ -418,6 +431,13 @@ frame(void* userdata) {
 			case HED_CMD_EXIT:
 				sapp_request_quit();
 				break;
+			case HED_CMD_NEW:
+				{
+					int new_doc_index = new_document(args->allocator);
+					if (new_doc_index < 0) { continue; }
+					active_document_index = new_doc_index;
+				}
+				break;
 			case HED_CMD_OPEN:
 				{
 					char* path;
@@ -439,6 +459,8 @@ frame(void* userdata) {
 
 							if (status == HGRAPH_IO_OK) {
 								should_navigate_to_content = true;
+								hed_free(active_document->path, args->allocator);
+								active_document->path = hed_path_resolve(args->allocator, path);
 							}
 						} else {
 							log_error("Could not open %s: %s", path, strerror(errno));
@@ -529,6 +551,7 @@ cleanup(void* userdata) {
 	for (int i = 0; i < editor_config.max_documents; ++i) {
 		hed_free(documents[i].current_graph, args->allocator);
 		hed_free(documents[i].next_graph, args->allocator);
+		hed_free(documents[i].path, args->allocator);
 		if (documents[i].node_editor != NULL) {
 			neDestroyEditor(documents[i].node_editor);
 		}
