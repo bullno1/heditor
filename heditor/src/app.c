@@ -30,41 +30,60 @@
 #	define PLUGIN_SUFFIX ""
 #endif
 
+#define SWAP(TYPE, A, B) \
+	do { \
+		TYPE tmp = A; \
+		A = B; \
+		B = tmp; \
+	} while (0)
+
 #ifdef NDEBUG
 REMODULE_VAR(bool, hed_debug) = false;
 #else
 REMODULE_VAR(bool, hed_debug) = true;
 #endif
 
+typedef struct {
+	size_t current_graph_size;
+	hgraph_t* current_graph;
+	size_t next_graph_size;
+	hgraph_t* next_graph;
+
+	neEditorContext* node_editor;
+} document_t;
+
+// Globals
 REMODULE_VAR(bool, show_imgui_demo) = false;
 REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 
+// Plugins
 REMODULE_VAR(int, num_plugins) = 0;
 REMODULE_VAR(remodule_t**, plugins) = NULL;
 REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
 
+// Registry
 REMODULE_VAR(hgraph_registry_config_t, registry_config) = { 0 };
 REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
 REMODULE_VAR(size_t, current_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, current_registry) = NULL;
 REMODULE_VAR(size_t, next_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, next_registry) = NULL;
-
-REMODULE_VAR(hgraph_config_t, graph_config) = { 0 };
-REMODULE_VAR(size_t, current_graph_size) = 0;
-REMODULE_VAR(hgraph_t*, current_graph) = NULL;
-REMODULE_VAR(size_t, next_graph_size) = 0;
-REMODULE_VAR(hgraph_t*, next_graph) = NULL;
-
 REMODULE_VAR(size_t, migration_size) = 0;
 REMODULE_VAR(hgraph_migration_t*, migration) = NULL;
 
-REMODULE_VAR(neEditorContext*, node_editor) = 0;
-
+// Node menu
 REMODULE_VAR(size_t, menu_size) = 0;
 REMODULE_VAR(node_type_menu_entry_t*, node_type_menu) = 0;
 
+// Shared doc config
+REMODULE_VAR(hgraph_config_t, graph_config) = { 0 };
 REMODULE_VAR(hed_path_t*, project_root) = NULL;
+REMODULE_VAR(editor_config_t, editor_config) = DEFAULT_EDITOR_CONFIG;
+
+// Document properties
+REMODULE_VAR(int, num_documents) = 0;
+REMODULE_VAR(int, active_document_index) = 0;
+REMODULE_VAR(document_t*, documents) = NULL;
 
 static const nfdu8filteritem_t FILE_FILTERS[] = {
 	{
@@ -127,6 +146,24 @@ build_graph(
 	hgraph_init(graph, &config);
 }
 
+static int
+new_document(hed_allocator_t* alloc) {
+	if (num_documents >= editor_config.max_documents) { return -1; }
+
+	int new_doc_index = num_documents++;
+
+	document_t* document = &documents[new_doc_index];
+	if (document->node_editor == NULL) {
+		neConfig config = neConfigDefault();
+		config.EnableSmoothZoom = true;
+		config.NavigateButtonIndex = 2;
+		document->node_editor = neCreateEditor(&config);
+	}
+	build_graph(alloc, current_registry, &document->current_graph_size, &document->current_graph);
+
+	return new_doc_index;
+}
+
 static void
 init(void* userdata) {
 	entry_args_t* args = userdata;
@@ -185,12 +222,6 @@ init(void* userdata) {
 	font_texture_desc.min_filter = SG_FILTER_LINEAR;
 	font_texture_desc.mag_filter = SG_FILTER_LINEAR;
 	simgui_create_fonts_texture(&font_texture_desc);
-
-	neConfig config = neConfigDefault();
-	config.EnableSmoothZoom = true;
-	config.NavigateButtonIndex = 2;
-	node_editor = neCreateEditor(&config);
-	neSetCurrentEditor(node_editor);
 }
 
 static void
@@ -217,9 +248,8 @@ frame(void* userdata) {
 			remodule_reload(plugins[i]);
 		}
 
+		// Migrate graphs
 		build_registry(args->allocator, &next_registry_size, &next_registry);
-		build_graph(args->allocator, next_registry, &next_graph_size, &next_graph);
-
 		size_t required_migration_size = hgraph_migration_init(
 			NULL, current_registry, next_registry
 		);
@@ -230,30 +260,28 @@ frame(void* userdata) {
 			migration_size = required_migration_size;
 		}
 		hgraph_migration_init(migration, current_registry, next_registry);
-		hgraph_migration_execute(migration, current_graph, next_graph);
 
-		// Swap next and current
-		{
-			size_t tmp_size = current_registry_size;
-			current_registry_size = next_registry_size;
-			next_registry_size = tmp_size;
+		for (int i = 0; i < num_documents; ++i) {
+			document_t* document = &documents[i];
 
-			hgraph_registry_t* tmp_reg = current_registry;
-			current_registry = next_registry;
-			next_registry = tmp_reg;
+			build_graph(
+				args->allocator,
+				next_registry,
+				&document->next_graph_size, &document->next_graph
+			);
+			hgraph_migration_execute(
+				migration, document->current_graph, document->next_graph
+			);
+
+			SWAP(size_t, document->current_graph_size, document->next_graph_size);
+			SWAP(hgraph_t*, document->current_graph, document->next_graph);
 		}
 
-		{
-			size_t tmp_size = current_graph_size;
-			current_graph_size = next_graph_size;
-			next_graph_size = tmp_size;
+		// Swap registry
+		SWAP(size_t, current_registry_size, next_registry_size);
+		SWAP(hgraph_registry_t*, current_registry, next_registry);
 
-			hgraph_t* tmp_graph = current_graph;
-			current_graph = next_graph;
-			next_graph = tmp_graph;
-		}
-
-		// Build node menu
+		// Rebuild node menu
 		size_t required_menu_size = node_type_menu_init(
 			NULL, current_registry, &frame_arena
 		);
@@ -322,20 +350,42 @@ frame(void* userdata) {
 	ImGuiViewport* viewport = igGetMainViewport();
 	igSetNextWindowPos(viewport->WorkPos, ImGuiCond_None, (ImVec2){ 0 });
 	igSetNextWindowSize(viewport->WorkSize, ImGuiCond_None);
+
 	igBegin("Main", NULL, main_window_flags);
 	{
-		neBegin("Editor", (ImVec2){ 0 });
-		int numStyleVars = 0;
-		int numStyleColors = 0;
-		nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
-		nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
-		nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
-		{
-			draw_editor(&frame_arena, node_type_menu, current_graph);
+		if (igBeginTabBar("Documents", ImGuiTabBarFlags_None)) {
+			for (int i = 0; i < num_documents; ++i) {
+				HED_WITH_ARENA(&frame_arena) {
+					hed_allocator_t* alloc = hed_arena_as_allocator(&frame_arena);
+					hed_str_t tab_name = hed_str_format(alloc, "Tab %d", i);
+					if (igBeginTabItem(tab_name.data, NULL, ImGuiTabItemFlags_None)) {
+						active_document_index = i;
+						document_t* document = &documents[i];
+						neSetCurrentEditor(document->node_editor);
+						neBegin("Editor", (ImVec2){ 0 });
+						int numStyleVars = 0;
+						int numStyleColors = 0;
+						nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
+						nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
+						nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
+						{
+							draw_editor(
+								&frame_arena,
+								node_type_menu,
+								document->current_graph
+							);
+						}
+						nePopStyleVar(numStyleVars); numStyleVars = 0;
+						nePopStyleColor(numStyleColors); numStyleColors = 0;
+						neEnd();
+
+						igEndTabItem();
+					}
+				}
+			}
+			neSetCurrentEditor(NULL);
+			igEndTabBar();
 		}
-		nePopStyleVar(numStyleVars); numStyleVars = 0;
-		nePopStyleColor(numStyleColors); numStyleColors = 0;
-		neEnd();
 	}
 	igEnd();
 
@@ -352,6 +402,9 @@ frame(void* userdata) {
 	if (show_imgui_demo) {
 		igShowDemoWindow(&show_imgui_demo);
 	}
+
+	document_t* active_document = &documents[active_document_index];
+	neSetCurrentEditor(active_document->node_editor);
 
 	static bool should_navigate_to_content = false;
 	if (should_navigate_to_content) {
@@ -380,8 +433,8 @@ frame(void* userdata) {
 						if (file != NULL) {
 							hgraph_config_t config = graph_config;
 							config.registry = current_registry;
-							hgraph_init(current_graph, &config);
-							hgraph_io_status_t status = load_graph(current_graph, file);
+							hgraph_init(active_document->current_graph, &config);
+							hgraph_io_status_t status = load_graph(active_document->current_graph, file);
 							fclose(file);
 
 							if (status == HGRAPH_IO_OK) {
@@ -411,7 +464,7 @@ frame(void* userdata) {
 						FILE* file = fopen(path, "wb");
 						if (file != NULL) {
 							log_debug("Saving %s", path);
-							save_graph(current_graph, file);
+							save_graph(active_document->current_graph, file);
 							fclose(file);
 						} else {
 							log_error("Could not open %s: %s", path, strerror(errno));
@@ -425,7 +478,7 @@ frame(void* userdata) {
 			case HED_CMD_CREATE_NODE:
 				{
 					hgraph_index_t node_id = hgraph_create_node(
-						current_graph,
+						active_document->current_graph,
 						cmd.create_node_args.node_type
 					);
 					neSetNodePosition(node_id, cmd.create_node_args.pos);
@@ -434,7 +487,7 @@ frame(void* userdata) {
 			case HED_CMD_CREATE_EDGE:
 				{
 					hgraph_index_t edge_id = hgraph_connect(
-						current_graph,
+						active_document->current_graph,
 						cmd.create_edge_args.from_pin,
 						cmd.create_edge_args.to_pin
 					);
@@ -449,6 +502,8 @@ frame(void* userdata) {
 				break;
 		}
 	}
+
+	neSetCurrentEditor(NULL);
 
 	// Render
 	sg_begin_pass(&(sg_pass){
@@ -471,14 +526,19 @@ static void
 cleanup(void* userdata) {
 	entry_args_t* args = userdata;
 
+	for (int i = 0; i < editor_config.max_documents; ++i) {
+		hed_free(documents[i].current_graph, args->allocator);
+		hed_free(documents[i].next_graph, args->allocator);
+		if (documents[i].node_editor != NULL) {
+			neDestroyEditor(documents[i].node_editor);
+		}
+	}
+	hed_free(documents, args->allocator);
+
 	hed_free(project_root, args->allocator);
 	hed_free(node_type_menu, args->allocator);
 
-	neDestroyEditor(node_editor);
-
 	hed_free(migration, args->allocator);
-	hed_free(current_graph, args->allocator);
-	hed_free(next_graph, args->allocator);
 	hed_free(current_registry, args->allocator);
 	hed_free(next_registry, args->allocator);
 
@@ -516,6 +576,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				registry_config = config->registry_config;
 				graph_config = config->graph_config;
 				project_root = hed_path_dup(args->allocator, config->project_root);
+				editor_config = config->editor_config;
 
 				size_t registry_builder_size = hgraph_registry_builder_init(
 					NULL, &registry_config
@@ -579,13 +640,14 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			node_type_menu_init(
 				node_type_menu, current_registry, &frame_arena
 			);
-
-			build_graph(
-				args->allocator,
-				current_registry,
-				&current_graph_size, &current_graph
-			);
 		}
+
+		documents = hed_malloc(
+			sizeof(document_t) * editor_config.max_documents,
+			args->allocator
+		);
+		memset(documents, 0, sizeof(document_t) * editor_config.max_documents);
+		active_document_index = new_document(args->allocator);
 	}
 
 	if (op == REMODULE_OP_LOAD || op == REMODULE_OP_AFTER_RELOAD) {
@@ -604,9 +666,5 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.logger = args->sokol_logger,
 			.allocator = args->sokol_allocator,
 		};
-	}
-
-	if (op == REMODULE_OP_AFTER_RELOAD && node_editor != NULL) {
-		neSetCurrentEditor(node_editor);
 	}
 }

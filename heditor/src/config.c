@@ -99,6 +99,12 @@ parse_app_config(
 		} else {
 			return 0;
 		}
+	} else if (strcmp(section, "editor") == 0) {
+		if (strcmp(name, "max_documents") == 0) {
+			return parse_count(value, &config->editor_config.max_documents);
+		} else {
+			return 0;
+		}
 	} else {
 		return 0;
 	}
@@ -141,7 +147,8 @@ load_app_config(hed_arena_t* arena) {
 				},
 				.pipeline_config = {
 					.max_scratch_memory = 33554432,
-				}
+				},
+				.editor_config = DEFAULT_EDITOR_CONFIG,
 			};
 			config_load_ctx_t ctx = {
 				.alloc = alloc,

@@ -354,6 +354,9 @@ void log_display_function(log_appender_t id, bool enabled);
  * instead.
  */
 PICO_LOG_API
+#ifdef __GNUC__
+__attribute__((format(printf, 5, 6)))
+#endif
 void log_write(log_level_t level,
                const char* file,
                unsigned line,
