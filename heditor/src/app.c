@@ -49,6 +49,7 @@ typedef struct {
 	size_t next_graph_size;
 	hgraph_t* next_graph;
 
+	int navigate_to_content;
 	hed_path_t* path;
 	neEditorContext* node_editor;
 } document_t;
@@ -411,6 +412,13 @@ frame(void* userdata) {
 							);
 							nePopStyleVar(numStyleVars); numStyleVars = 0;
 							nePopStyleColor(numStyleColors); numStyleColors = 0;
+
+							if (
+									document->navigate_to_content > 0
+									&& --document->navigate_to_content == 0
+							) {
+								neNavigateToContent(-1.f);
+							}
 						}
 						neEnd();
 						neSetCurrentEditor(NULL);
@@ -461,12 +469,6 @@ frame(void* userdata) {
 	document_t* active_document = &documents[active_document_index];
 	neSetCurrentEditor(active_document->node_editor);
 
-	static bool should_navigate_to_content = false;
-	if (should_navigate_to_content) {
-		neNavigateToContent(-1.f);
-		should_navigate_to_content = false;
-	}
-
 	hed_command_t cmd;
 	while (hed_next_cmd(&cmd)) {
 		switch (cmd.type) {
@@ -508,21 +510,29 @@ frame(void* userdata) {
 							active_document_index = existing_tab;
 							should_switch_tab = true;
 						} else {
-							FILE* file = fopen(path, "rb");
-							if (file != NULL) {
-								hgraph_config_t config = graph_config;
-								config.registry = current_registry;
-								hgraph_init(active_document->current_graph, &config);
-								hgraph_io_status_t status = load_graph(active_document->current_graph, file);
-								fclose(file);
+							int new_doc_index = new_document(args->allocator);
+							if (new_doc_index >= 0) {
+								active_document_index = new_doc_index;
+								should_switch_tab = true;
+								document_t* new_doc = &documents[new_doc_index];
 
-								if (status == HGRAPH_IO_OK) {
-									should_navigate_to_content = true;
-									hed_free(active_document->path, args->allocator);
-									active_document->path = hed_path_resolve(args->allocator, path);
+								FILE* file = fopen(path, "rb");
+								if (file != NULL) {
+									neSetCurrentEditor(new_doc->node_editor);
+									hgraph_config_t config = graph_config;
+									config.registry = current_registry;
+									hgraph_init(new_doc->current_graph, &config);
+									hgraph_io_status_t status = load_graph(new_doc->current_graph, file);
+									fclose(file);
+
+									if (status == HGRAPH_IO_OK) {
+										new_doc->navigate_to_content = 2;  // Delay nav for 2 frames
+										hed_free(new_doc->path, args->allocator);
+										new_doc->path = hed_path_resolve(args->allocator, path);
+									}
+								} else {
+									log_error("Could not open %s: %s", path, strerror(errno));
 								}
-							} else {
-								log_error("Could not open %s: %s", path, strerror(errno));
 							}
 						}
 
