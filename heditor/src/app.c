@@ -307,10 +307,12 @@ frame(void* userdata) {
 		.dpi_scale = sapp_dpi_scale(),
 	});
 
+	bool can_create_new_document = num_documents < editor_config.max_documents;
+
 	// Main menu
 	if (igBeginMainMenuBar()) {
 		if (igBeginMenu("File", true)) {
-			if (igMenuItem_Bool("New", "Ctr+N", false, num_documents < editor_config.max_documents)) {
+			if (igMenuItem_Bool("New", "Ctr+N", false, can_create_new_document)) {
 				HED_CMD(HED_CMD_NEW);
 			}
 
@@ -391,21 +393,22 @@ frame(void* userdata) {
 						active_document_index = i;
 						neSetCurrentEditor(document->node_editor);
 						neBegin("Editor", (ImVec2){ 0 });
-						int numStyleVars = 0;
-						int numStyleColors = 0;
-						nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
-						nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
-						nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
 						{
+							int numStyleVars = 0;
+							int numStyleColors = 0;
+							nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
+							nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
+							nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
 							draw_editor(
 								&frame_arena,
 								node_type_menu,
 								document->current_graph
 							);
+							nePopStyleVar(numStyleVars); numStyleVars = 0;
+							nePopStyleColor(numStyleColors); numStyleColors = 0;
 						}
-						nePopStyleVar(numStyleVars); numStyleVars = 0;
-						nePopStyleColor(numStyleColors); numStyleColors = 0;
 						neEnd();
+						neSetCurrentEditor(NULL);
 
 						igEndTabItem();
 					}
@@ -418,14 +421,21 @@ frame(void* userdata) {
 					}
 				}
 			}
-			neSetCurrentEditor(NULL);
+
+			if (
+				can_create_new_document
+				&& igTabItemButton("+", ImGuiTabItemFlags_Trailing)
+			) {
+				HED_CMD(HED_CMD_NEW);
+			}
+
 			igEndTabBar();
 		}
 	}
 	igEnd();
 
 	// Hot keys
-	if (igIsKeyChordPressed_Nil(ImGuiKey_N | ImGuiMod_Ctrl) && num_documents < editor_config.max_documents) {
+	if (igIsKeyChordPressed_Nil(ImGuiKey_N | ImGuiMod_Ctrl) && can_create_new_document) {
 		HED_CMD(HED_CMD_NEW);
 	}
 
