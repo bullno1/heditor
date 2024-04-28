@@ -356,7 +356,10 @@ frame(void* userdata) {
 
 	igBegin("Main", NULL, main_window_flags);
 	{
-		if (igBeginTabBar("Documents", ImGuiTabBarFlags_None)) {
+		ImGuiTabBarFlags tab_bar_flags =
+			ImGuiTabBarFlags_AutoSelectNewTabs |
+			ImGuiTabBarFlags_Reorderable;
+		if (igBeginTabBar("Documents", tab_bar_flags)) {
 			for (int i = 0; i < num_documents;) {
 				HED_WITH_ARENA(&frame_arena) {
 					document_t* document = &documents[i];
@@ -370,13 +373,21 @@ frame(void* userdata) {
 						(void*)document->node_editor
 					);
 					bool tab_open = true;
+					bool tab_is_active = igBeginTabItem(
+						tab_name.data,
+						num_documents > 1 ? &tab_open : NULL,
+						ImGuiTabItemFlags_None
+					);
 					if (
-						igBeginTabItem(
-							tab_name.data,
-							num_documents > 1 ? &tab_open : NULL,
-							ImGuiTabItemFlags_None
+						document->path != NULL
+						&& igIsItemHovered(
+							ImGuiHoveredFlags_ForTooltip
+							| ImGuiHoveredFlags_DelayShort
 						)
 					) {
+						igSetTooltip(hed_path_as_str(document->path));
+					}
+					if (tab_is_active) {
 						active_document_index = i;
 						neSetCurrentEditor(document->node_editor);
 						neBegin("Editor", (ImVec2){ 0 });
