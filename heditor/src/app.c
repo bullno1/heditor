@@ -154,6 +154,8 @@ new_document(hed_allocator_t* alloc) {
 	int new_doc_index = num_documents++;
 
 	document_t* document = &documents[new_doc_index];
+	hed_free(document->path, alloc);
+	document->path = NULL;
 	if (document->node_editor == NULL) {
 		neConfig config = neConfigDefault();
 		config.EnableSmoothZoom = true;
@@ -355,7 +357,7 @@ frame(void* userdata) {
 	igBegin("Main", NULL, main_window_flags);
 	{
 		if (igBeginTabBar("Documents", ImGuiTabBarFlags_None)) {
-			for (int i = 0; i < num_documents; ++i) {
+			for (int i = 0; i < num_documents;) {
 				HED_WITH_ARENA(&frame_arena) {
 					document_t* document = &documents[i];
 					hed_allocator_t* alloc = hed_arena_as_allocator(&frame_arena);
@@ -368,7 +370,13 @@ frame(void* userdata) {
 						(void*)document->node_editor
 					);
 					bool tab_open = true;
-					if (igBeginTabItem(tab_name.data, &tab_open, ImGuiTabItemFlags_None)) {
+					if (
+						igBeginTabItem(
+							tab_name.data,
+							num_documents > 1 ? &tab_open : NULL,
+							ImGuiTabItemFlags_None
+						)
+					) {
 						active_document_index = i;
 						neSetCurrentEditor(document->node_editor);
 						neBegin("Editor", (ImVec2){ 0 });
@@ -389,6 +397,13 @@ frame(void* userdata) {
 						neEnd();
 
 						igEndTabItem();
+					}
+
+					if (tab_open) {
+						++i;
+					} else {
+						--num_documents;
+						SWAP(document_t, documents[i], documents[num_documents]);
 					}
 				}
 			}
