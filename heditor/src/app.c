@@ -356,10 +356,10 @@ frame(void* userdata) {
 	igSetNextWindowPos(viewport->WorkPos, ImGuiCond_None, (ImVec2){ 0 });
 	igSetNextWindowSize(viewport->WorkSize, ImGuiCond_None);
 
+	static bool should_switch_tab = false;
 	igBegin("Main", NULL, main_window_flags);
 	{
 		ImGuiTabBarFlags tab_bar_flags =
-			ImGuiTabBarFlags_AutoSelectNewTabs |
 			ImGuiTabBarFlags_Reorderable;
 		if (igBeginTabBar("Documents", tab_bar_flags)) {
 			for (int i = 0; i < num_documents;) {
@@ -374,11 +374,15 @@ frame(void* userdata) {
 							: "Untitled",
 						(void*)document->node_editor
 					);
+					ImGuiTabItemFlags tab_item_flags = ImGuiTabItemFlags_None;
+					if (should_switch_tab && i == active_document_index) {
+						tab_item_flags |= ImGuiTabItemFlags_SetSelected;
+					}
 					bool tab_open = true;
 					bool tab_is_active = igBeginTabItem(
 						tab_name.data,
 						num_documents > 1 ? &tab_open : NULL,
-						ImGuiTabItemFlags_None
+						tab_item_flags
 					);
 					if (
 						document->path != NULL
@@ -390,7 +394,8 @@ frame(void* userdata) {
 						igSetTooltip(hed_path_as_str(document->path));
 					}
 					if (tab_is_active) {
-						active_document_index = i;
+						if (!should_switch_tab) { active_document_index = i; }
+
 						neSetCurrentEditor(document->node_editor);
 						neBegin("Editor", (ImVec2){ 0 });
 						{
@@ -431,6 +436,7 @@ frame(void* userdata) {
 
 			igEndTabBar();
 		}
+		should_switch_tab = false;
 	}
 	igEnd();
 
@@ -472,6 +478,7 @@ frame(void* userdata) {
 					int new_doc_index = new_document(args->allocator);
 					if (new_doc_index < 0) { continue; }
 					active_document_index = new_doc_index;
+					should_switch_tab = true;
 				}
 				break;
 			case HED_CMD_OPEN:
@@ -485,22 +492,40 @@ frame(void* userdata) {
 					);
 
 					if (result == NFD_OKAY) {
-						FILE* file = fopen(path, "rb");
-						if (file != NULL) {
-							hgraph_config_t config = graph_config;
-							config.registry = current_registry;
-							hgraph_init(active_document->current_graph, &config);
-							hgraph_io_status_t status = load_graph(active_document->current_graph, file);
-							fclose(file);
-
-							if (status == HGRAPH_IO_OK) {
-								should_navigate_to_content = true;
-								hed_free(active_document->path, args->allocator);
-								active_document->path = hed_path_resolve(args->allocator, path);
+						int existing_tab = -1;
+						for (int i = 0; i < num_documents; ++i) {
+							document_t* document = &documents[i];
+							if (
+								document->path != NULL
+								&& strcmp(path, hed_path_as_str(document->path)) == 0
+							) {
+								existing_tab = i;
+								break;
 							}
-						} else {
-							log_error("Could not open %s: %s", path, strerror(errno));
 						}
+
+						if (existing_tab >= 0) {
+							active_document_index = existing_tab;
+							should_switch_tab = true;
+						} else {
+							FILE* file = fopen(path, "rb");
+							if (file != NULL) {
+								hgraph_config_t config = graph_config;
+								config.registry = current_registry;
+								hgraph_init(active_document->current_graph, &config);
+								hgraph_io_status_t status = load_graph(active_document->current_graph, file);
+								fclose(file);
+
+								if (status == HGRAPH_IO_OK) {
+									should_navigate_to_content = true;
+									hed_free(active_document->path, args->allocator);
+									active_document->path = hed_path_resolve(args->allocator, path);
+								}
+							} else {
+								log_error("Could not open %s: %s", path, strerror(errno));
+							}
+						}
+
 						NFD_FreePathU8(path);
 					} else if (result == NFD_ERROR) {
 						log_error("Could not open dialog: %s", NFD_GetError());
