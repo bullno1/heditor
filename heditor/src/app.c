@@ -50,6 +50,8 @@ typedef struct {
 	hgraph_t* next_graph;
 
 	int navigate_to_content;
+	bool is_dirty;
+
 	hed_path_t* path;
 	neEditorContext* node_editor;
 } document_t;
@@ -102,7 +104,7 @@ load_app_icon(hed_arena_t* arena);
 extern app_config_t*
 load_app_config(hed_arena_t* arena);
 
-extern void
+extern bool
 draw_editor(
 	hed_arena_t* arena,
 	node_type_menu_entry_t* node_type_menu,
@@ -157,6 +159,8 @@ new_document(hed_allocator_t* alloc) {
 	document_t* document = &documents[new_doc_index];
 	hed_free(document->path, alloc);
 	document->path = NULL;
+	document->navigate_to_content = 0;
+	document->is_dirty = false;
 	if (document->node_editor == NULL) {
 		neConfig config = neConfigDefault();
 		config.EnableSmoothZoom = true;
@@ -367,6 +371,7 @@ frame(void* userdata) {
 				HED_WITH_ARENA(&frame_arena) {
 					document_t* document = &documents[i];
 					hed_allocator_t* alloc = hed_arena_as_allocator(&frame_arena);
+
 					hed_str_t tab_name = hed_str_format(
 						alloc,
 						"%s###%p",
@@ -375,10 +380,15 @@ frame(void* userdata) {
 							: "Untitled",
 						(void*)document->node_editor
 					);
+
 					ImGuiTabItemFlags tab_item_flags = ImGuiTabItemFlags_None;
 					if (should_switch_tab && i == active_document_index) {
 						tab_item_flags |= ImGuiTabItemFlags_SetSelected;
 					}
+					if (document->is_dirty) {
+						tab_item_flags |= ImGuiTabItemFlags_UnsavedDocument;
+					}
+
 					bool tab_open = true;
 					bool tab_is_active = igBeginTabItem(
 						tab_name.data,
@@ -405,13 +415,14 @@ frame(void* userdata) {
 							nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
 							nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
 							nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
-							draw_editor(
+							bool updated = draw_editor(
 								&frame_arena,
 								node_type_menu,
 								document->current_graph
 							);
 							nePopStyleVar(numStyleVars); numStyleVars = 0;
 							nePopStyleColor(numStyleColors); numStyleColors = 0;
+							document->is_dirty = document->is_dirty || updated;
 
 							if (
 									document->navigate_to_content > 0
@@ -575,6 +586,7 @@ frame(void* userdata) {
 						cmd.create_node_args.node_type
 					);
 					neSetNodePosition(node_id, cmd.create_node_args.pos);
+					active_document->is_dirty = true;
 				}
 				break;
 			case HED_CMD_CREATE_EDGE:
@@ -590,6 +602,7 @@ frame(void* userdata) {
 							cmd.create_edge_args.from_pin,
 							cmd.create_edge_args.to_pin
 						);
+						active_document->is_dirty = true;
 					}
 				}
 				break;

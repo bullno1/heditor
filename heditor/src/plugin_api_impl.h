@@ -17,6 +17,7 @@ typedef struct hed_plugin_api_impl_s {
 	int saved_widget_index;
 	hed_gui_popup_info_t* popup_info;
 	bool is_popup;
+	bool updated;
 } hed_plugin_api_impl_t;
 
 hed_gui_t*

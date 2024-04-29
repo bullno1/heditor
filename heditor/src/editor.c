@@ -22,6 +22,7 @@ typedef struct {
 	hgraph_index_t popup_node;
 	const hgraph_attribute_description_t* popup_attribute;
 	hed_gui_popup_info_t popup_info;
+	bool updated;
 } draw_graph_ctx_t;
 
 typedef struct pin_ctx_s {
@@ -133,6 +134,7 @@ gui_draw_graph_node_impl(
 								)
 							);
 						}
+						ctx->updated = ctx->updated || impl.updated;
 					}
 					igEndGroup();
 					igPopID();
@@ -427,17 +429,21 @@ show_create_node_menu(
 	}
 }
 
-void
+bool
 draw_editor(
 	hed_arena_t* arena,
 	node_type_menu_entry_t* node_type_menu,
 	hgraph_t* graph
 ) {
+	bool updated = false;
+
 	draw_graph_ctx_t draw_ctx = {
 		.arena = arena,
 		.graph = graph,
 	};
 	hgraph_iterate_nodes(graph, gui_draw_graph_node, &draw_ctx);
+	updated = updated || draw_ctx.updated;
+
 	hgraph_iterate_edges(graph, gui_draw_graph_edge, NULL);
 	const ImVec4 accept_color = { 0.f, 1.f, 0.f, 1.f };
 	const ImVec4 reject_color = { 1.f, 0.f, 0.f, 1.f };
@@ -452,6 +458,7 @@ draw_editor(
 						.from_pin = from_pin,
 						.to_pin = to_pin,
 					});
+					updated = true;
 				}
 			} else {
 				neRejectNewItemEx(reject_color, 1.f);
@@ -465,6 +472,7 @@ draw_editor(
 		while (neQueryDeletedNode(&node_id)) {
 			if (neAcceptDeletedItem(true)) {
 				hgraph_destroy_node(graph, node_id);
+				updated = true;
 			}
 		}
 
@@ -472,6 +480,7 @@ draw_editor(
 		while (neQueryDeletedLink(&edge_id)) {
 			if (neAcceptDeletedItem(true)) {
 				hgraph_disconnect(graph, edge_id);
+				updated = true;
 			}
 		}
 	}
@@ -556,10 +565,14 @@ draw_editor(
 						)
 					);
 				}
+
+				updated = updated || impl.updated;
 			}
 
 			igEndPopup();
 		}
 	}
 	neResume();
+
+	return updated;
 }

@@ -28,6 +28,13 @@ end_widget(hed_gui_t* ctx) {
 }
 
 static bool
+update_dirty_status(hed_gui_t* ctx, bool updated) {
+	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
+	impl->updated = impl->updated || updated;
+	return updated;
+}
+
+static bool
 begin_popup(hed_gui_t* ctx, hed_ref_str_t label) {
 	hed_plugin_api_impl_t* impl = HED_CONTAINER_OF(ctx, hed_plugin_api_impl_t, impl);
 	int widget_index = ++impl->widget_index;
@@ -82,7 +89,7 @@ render_label(
 	}
 
 	end_widget(ctx);
-	return result;
+	return update_dirty_status(ctx, result);
 }
 
 static bool
@@ -146,7 +153,7 @@ render_scalar_input(
 	}
 
 	end_widget(ctx);
-	return updated;
+	return update_dirty_status(ctx, updated);
 }
 
 static bool
@@ -167,7 +174,7 @@ render_text_input_line(
 	);
 
 	end_widget(ctx);
-	return updated;
+	return update_dirty_status(ctx, updated);
 }
 
 static bool
@@ -190,7 +197,7 @@ render_text_input_area(
 			NULL, NULL
 		);
 		end_popup(ctx);
-		return updated;
+		return update_dirty_status(ctx, updated);
 	} else {
 		return false;
 	}
@@ -242,7 +249,7 @@ render_text_input_file_picker(
 		}
 	}
 
-	return updated;
+	return update_dirty_status(ctx, updated);
 }
 
 static bool
@@ -268,7 +275,7 @@ render_text_input(
 		value->len = strlen(value->chars);
 	}
 
-	return updated;
+	return update_dirty_status(ctx, updated);
 }
 
 static bool
@@ -287,13 +294,13 @@ render_enum_input(
 				ImGuiSliderFlags_None,
 				(ImVec2){ 0.f, 0.f }
 			)) {
-				*value = i;
 				updated = true;
+				*value = i;
 			}
 		}
 
 		end_popup(ctx);
-		return updated;
+		return update_dirty_status(ctx, updated);
 	} else {
 		return false;
 	}
