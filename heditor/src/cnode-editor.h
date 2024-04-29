@@ -100,6 +100,9 @@ neDestroyEditor(neEditorContext* editor);
 void
 neSetCurrentEditor(neEditorContext* editor);
 
+neEditorContext*
+neGetCurrentEditor(void);
+
 void
 neBegin(const char* id, const ImVec2 size);
 

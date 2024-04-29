@@ -13,6 +13,7 @@ typedef enum hed_command_type_e {
 	HED_CMD_NEW,
 	HED_CMD_OPEN,
 	HED_CMD_SAVE,
+	HED_CMD_SAVE_AS,
 	HED_CMD_CREATE_NODE,
 	HED_CMD_CREATE_EDGE,
 } hed_command_type_t;

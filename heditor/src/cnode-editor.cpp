@@ -133,6 +133,11 @@ neSetCurrentEditor(neEditorContext* editor) {
 	ne::SetCurrentEditor(editor);
 }
 
+neEditorContext*
+neGetCurrentEditor(void) {
+	return ne::GetCurrentEditor();
+}
+
 void
 neBegin(const char* id, const ImVec2 size) {
 	ne::Begin(id, size);

@@ -172,12 +172,23 @@ new_document(hed_allocator_t* alloc) {
 	return new_doc_index;
 }
 
+static void
+close_document(int index) {
+	if (0 <= index && index < num_documents) {
+		--num_documents;
+		SWAP(document_t, documents[index], documents[num_documents]);
+	}
+}
+
 static bool
 save_document_at(document_t* document, const char* path) {
 	FILE* file = fopen(path, "wb");
 	if (file != NULL) {
 		log_debug("Saving %s", path);
+		neEditorContext* editor = neGetCurrentEditor();
+		neSetCurrentEditor(document->node_editor);
 		hgraph_io_status_t status = save_graph(document->current_graph, file);
+		neSetCurrentEditor(editor);
 		fclose(file);
 		if (status == HGRAPH_IO_OK) {
 			document->is_dirty = false;
@@ -187,6 +198,41 @@ save_document_at(document_t* document, const char* path) {
 	} else {
 		log_error("Could not open %s: %s", path, strerror(errno));
 		return false;
+	}
+}
+
+static bool
+hed_cmd_save_as(document_t* document, hed_allocator_t* alloc) {
+	bool saved = false;
+	char* path = NULL;
+
+	nfdresult_t result = NFD_SaveDialogU8(
+		&path,
+		FILE_FILTERS, NUM_FILE_FILTERS,
+		hed_path_as_str(project_root),
+		NULL
+	);
+
+	if (result == NFD_OKAY) {
+		if (save_document_at(document, path)) {
+			hed_free(document->path, alloc);
+			document->path = hed_path_resolve(alloc, path);
+			saved = true;
+		}
+		NFD_FreePathU8(path);
+	} else if (result == NFD_ERROR) {
+		log_error("Could not open dialog: %s", NFD_GetError());
+	}
+
+	return saved;
+}
+
+static bool
+hed_cmd_save(document_t* document, hed_allocator_t* alloc) {
+	if (document->path == NULL) {
+		return hed_cmd_save_as(document, alloc);
+	} else {
+		return save_document_at(document, hed_path_as_str(document->path));
 	}
 }
 
@@ -343,8 +389,14 @@ frame(void* userdata) {
 				HED_CMD(HED_CMD_OPEN);
 			}
 
+			igSeparator();
+
 			if (igMenuItem_Bool("Save", "Ctrl+S", false, true)) {
 				HED_CMD(HED_CMD_SAVE);
+			}
+
+			if (igMenuItem_Bool("Save as", "Ctrl+Shift+S", false, true)) {
+				HED_CMD(HED_CMD_SAVE_AS);
 			}
 
 			igSeparator();
@@ -380,6 +432,7 @@ frame(void* userdata) {
 	igSetNextWindowSize(viewport->WorkSize, ImGuiCond_None);
 
 	static bool should_switch_tab = false;
+	static int dirty_doc_index = -1;
 	igBegin("Main", NULL, main_window_flags);
 	{
 		ImGuiTabBarFlags tab_bar_flags =
@@ -457,9 +510,10 @@ frame(void* userdata) {
 
 					if (tab_open) {
 						++i;
+					} else if (!document->is_dirty) {
+						close_document(i);
 					} else {
-						--num_documents;
-						SWAP(document_t, documents[i], documents[num_documents]);
+						dirty_doc_index = i;
 					}
 				}
 			}
@@ -490,9 +544,69 @@ frame(void* userdata) {
 		HED_CMD(HED_CMD_SAVE);
 	}
 
+	if (igIsKeyChordPressed_Nil(ImGuiKey_S | ImGuiMod_Ctrl | ImGuiMod_Shift)) {
+		HED_CMD(HED_CMD_SAVE_AS);
+	}
+
 	// Handle GUI commands
 	if (show_imgui_demo) {
 		igShowDemoWindow(&show_imgui_demo);
+	}
+
+	if (dirty_doc_index >= 0) {
+		if (!igIsPopupOpen_Str("Save?", ImGuiPopupFlags_None)) {
+			igOpenPopup_Str("Save?", ImGuiPopupFlags_None);
+			active_document_index = dirty_doc_index;
+			should_switch_tab = true;
+		}
+
+		if (igBeginPopupModal("Save?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+			document_t* document = &documents[dirty_doc_index];
+
+			HED_WITH_ARENA(&frame_arena) {
+				if (document->path == NULL) {
+					igText(
+						"This document has been modified.\n"
+						"\n"
+						"Do you want to save it?"
+					);
+				} else {
+					igText(
+						"The document '%s' has been modified.\n"
+						"\n"
+						"Do you want to save it?",
+						hed_path_basename(hed_arena_as_allocator(&frame_arena), document->path)
+					);
+				}
+			}
+
+			bool can_close_popup = false;
+			if (igButton("Yes", (ImVec2){ 0 })) {
+				if (hed_cmd_save(document, args->allocator)) {
+					close_document(dirty_doc_index);
+					can_close_popup = true;
+				}
+			}
+			igSameLine(0.f, -1.f);
+
+			if (igButton("No", (ImVec2){ 0 })) {
+				close_document(dirty_doc_index);
+				can_close_popup = true;
+			}
+			igSameLine(0.f, -1.f);
+
+			if (igButton("Cancel", (ImVec2){ 0 })) {
+				can_close_popup = true;
+			}
+			igSameLine(0.f, -1.f);
+
+			if (can_close_popup) {
+				dirty_doc_index = -1;
+				igCloseCurrentPopup();
+			}
+
+			igEndPopup();
+		}
 	}
 
 	document_t* active_document = &documents[active_document_index];
@@ -547,12 +661,17 @@ frame(void* userdata) {
 
 								FILE* file = fopen(path, "rb");
 								if (file != NULL) {
+									hgraph_io_status_t status;
+									neEditorContext* editor = neGetCurrentEditor();
 									neSetCurrentEditor(new_doc->node_editor);
-									hgraph_config_t config = graph_config;
-									config.registry = current_registry;
-									hgraph_init(new_doc->current_graph, &config);
-									hgraph_io_status_t status = load_graph(new_doc->current_graph, file);
-									fclose(file);
+									{
+										hgraph_config_t config = graph_config;
+										config.registry = current_registry;
+										hgraph_init(new_doc->current_graph, &config);
+										status = load_graph(new_doc->current_graph, file);
+										fclose(file);
+									}
+									neSetCurrentEditor(editor);
 
 									if (status == HGRAPH_IO_OK) {
 										new_doc->navigate_to_content = 2;  // Delay nav for 2 frames
@@ -572,29 +691,10 @@ frame(void* userdata) {
 				}
 				break;
 			case HED_CMD_SAVE:
-				{
-					if (active_document->path == NULL) {
-						char* path = NULL;
-
-						nfdresult_t result = NFD_SaveDialogU8(
-							&path,
-							FILE_FILTERS, NUM_FILE_FILTERS,
-							hed_path_as_str(project_root),
-							NULL
-						);
-
-						if (result == NFD_OKAY) {
-							if (save_document_at(active_document, path)) {
-								active_document->path = hed_path_resolve(args->allocator, path);
-							}
-							NFD_FreePathU8(path);
-						} else if (result == NFD_ERROR) {
-							log_error("Could not open dialog: %s", NFD_GetError());
-						}
-					} else {
-						save_document_at(active_document, hed_path_as_str(active_document->path));
-					}
-				}
+				hed_cmd_save(active_document, args->allocator);
+				break;
+			case HED_CMD_SAVE_AS:
+				hed_cmd_save_as(active_document, args->allocator);
 				break;
 			case HED_CMD_CREATE_NODE:
 				{
