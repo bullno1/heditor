@@ -236,6 +236,17 @@ hed_cmd_save(document_t* document, hed_allocator_t* alloc) {
 	}
 }
 
+static bool
+should_confirm_exit(void) {
+	for (int i = 0; i < num_documents; ++i) {
+		if (documents[i].is_dirty) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static void
 init(void* userdata) {
 	entry_args_t* args = userdata;
@@ -298,6 +309,13 @@ init(void* userdata) {
 
 static void
 event(const sapp_event* ev) {
+	if (ev->type == SAPP_EVENTTYPE_QUIT_REQUESTED) {
+		if (should_confirm_exit()) {
+			sapp_cancel_quit();
+			HED_CMD(HED_CMD_EXIT);
+		}
+	}
+
 	simgui_handle_event(ev);
 }
 
@@ -463,7 +481,7 @@ frame(void* userdata) {
 					bool tab_open = true;
 					bool tab_is_active = igBeginTabItem(
 						tab_name.data,
-						num_documents > 1 ? &tab_open : NULL,
+						&tab_open,
 						tab_item_flags
 					);
 					if (
@@ -609,6 +627,25 @@ frame(void* userdata) {
 		}
 	}
 
+	if (igBeginPopupModal("Exit?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		igText(
+			"You have unsaved changes.\n"
+			"\n"
+			"Are you sure you want to exit?"
+		);
+
+		if (igButton("Yes", (ImVec2){ 0 })) {
+			sapp_quit();
+		}
+		igSameLine(0.f, -1.f);
+
+		if (igButton("No", (ImVec2){ 0 })) {
+			igCloseCurrentPopup();
+		}
+
+		igEndPopup();
+	}
+
 	document_t* active_document = &documents[active_document_index];
 	neSetCurrentEditor(active_document->node_editor);
 
@@ -616,7 +653,13 @@ frame(void* userdata) {
 	while (hed_next_cmd(&cmd)) {
 		switch (cmd.type) {
 			case HED_CMD_EXIT:
-				sapp_request_quit();
+				{
+					if (should_confirm_exit()) {
+						igOpenPopup_Str("Exit?", ImGuiPopupFlags_None);
+					} else {
+						sapp_quit();
+					}
+				}
 				break;
 			case HED_CMD_NEW:
 				{
