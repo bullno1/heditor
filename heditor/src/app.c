@@ -172,6 +172,24 @@ new_document(hed_allocator_t* alloc) {
 	return new_doc_index;
 }
 
+static bool
+save_document_at(document_t* document, const char* path) {
+	FILE* file = fopen(path, "wb");
+	if (file != NULL) {
+		log_debug("Saving %s", path);
+		hgraph_io_status_t status = save_graph(document->current_graph, file);
+		fclose(file);
+		if (status == HGRAPH_IO_OK) {
+			document->is_dirty = false;
+		}
+
+		return status == HGRAPH_IO_OK;
+	} else {
+		log_error("Could not open %s: %s", path, strerror(errno));
+		return false;
+	}
+}
+
 static void
 init(void* userdata) {
 	entry_args_t* args = userdata;
@@ -555,27 +573,26 @@ frame(void* userdata) {
 				break;
 			case HED_CMD_SAVE:
 				{
-					char* path = NULL;
+					if (active_document->path == NULL) {
+						char* path = NULL;
 
-					nfdresult_t result = NFD_SaveDialogU8(
-						&path,
-						FILE_FILTERS, NUM_FILE_FILTERS,
-						hed_path_as_str(project_root),
-						NULL
-					);
+						nfdresult_t result = NFD_SaveDialogU8(
+							&path,
+							FILE_FILTERS, NUM_FILE_FILTERS,
+							hed_path_as_str(project_root),
+							NULL
+						);
 
-					if (result == NFD_OKAY) {
-						FILE* file = fopen(path, "wb");
-						if (file != NULL) {
-							log_debug("Saving %s", path);
-							save_graph(active_document->current_graph, file);
-							fclose(file);
-						} else {
-							log_error("Could not open %s: %s", path, strerror(errno));
+						if (result == NFD_OKAY) {
+							if (save_document_at(active_document, path)) {
+								active_document->path = hed_path_resolve(args->allocator, path);
+							}
+							NFD_FreePathU8(path);
+						} else if (result == NFD_ERROR) {
+							log_error("Could not open dialog: %s", NFD_GetError());
 						}
-						NFD_FreePathU8(path);
-					} else if (result == NFD_ERROR) {
-						log_error("Could not open dialog: %s", NFD_GetError());
+					} else {
+						save_document_at(active_document, hed_path_as_str(active_document->path));
 					}
 				}
 				break;
