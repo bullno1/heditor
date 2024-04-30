@@ -17,10 +17,10 @@ TEST_SETUP(migration) {
 		.max_node_types = 64,
 	};
 
-	size_t mem_size = hgraph_registry_builder_init(NULL, &registry_config);
+	size_t mem_size = hgraph_registry_builder_init(NULL, 0, &registry_config);
 	fixture.builder = arena_alloc(&fixture.base.arena, mem_size);
 
-	hgraph_registry_builder_init(fixture.builder, &registry_config);
+	hgraph_registry_builder_init(fixture.builder, mem_size, &registry_config);
 }
 
 TEST_TEARDOWN(migration) {
@@ -33,22 +33,22 @@ TEST(migration, missing_type) {
 	plugin1_entry(
 		hgraph_registry_builder_as_plugin_api(builder)
 	);
-	size_t reg_size = hgraph_registry_init(NULL, builder);
+	size_t reg_size = hgraph_registry_init(NULL, 0, builder);
 	hgraph_registry_t* new_reg = arena_alloc(&fixture.base.arena, reg_size);
-	hgraph_registry_init(new_reg, builder);
+	hgraph_registry_init(new_reg, reg_size, builder);
 
-	size_t migration_size = hgraph_migration_init(NULL, fixture.base.registry, new_reg);
+	size_t migration_size = hgraph_migration_init(NULL, 0, fixture.base.registry, new_reg);
 	hgraph_migration_t* migration = arena_alloc(&fixture.base.arena, migration_size);
-	hgraph_migration_init(migration, fixture.base.registry, new_reg);
+	hgraph_migration_init(migration, migration_size, fixture.base.registry, new_reg);
 
 	hgraph_config_t new_graph_config = {
 		.registry = new_reg,
 		.max_nodes = 64,
 		.max_name_length = 64,
 	};
-	size_t new_graph_size = hgraph_init(NULL, &new_graph_config);
+	size_t new_graph_size = hgraph_init(NULL, 0, &new_graph_config);
 	hgraph_t* new_graph = arena_alloc(&fixture.base.arena, new_graph_size);
-	hgraph_init(new_graph, &new_graph_config);
+	hgraph_init(new_graph, new_graph_size, &new_graph_config);
 
 	hgraph_migration_execute(migration, fixture.base.graph, new_graph);
 
@@ -80,18 +80,18 @@ TEST(migration, identical) {
 	create_start_mid_end_graph(graph);
 
 	// Migrate
-	size_t migration_size = hgraph_migration_init(NULL, fixture.base.registry, fixture.base.registry);
+	size_t migration_size = hgraph_migration_init(NULL, 0, fixture.base.registry, fixture.base.registry);
 	hgraph_migration_t* migration = arena_alloc(&fixture.base.arena, migration_size);
-	hgraph_migration_init(migration, fixture.base.registry, fixture.base.registry);
+	hgraph_migration_init(migration, migration_size, fixture.base.registry, fixture.base.registry);
 
 	hgraph_config_t new_graph_config = {
 		.registry = fixture.base.registry,
 		.max_nodes = 64,
 		.max_name_length = 64,
 	};
-	size_t new_graph_size = hgraph_init(NULL, &new_graph_config);
+	size_t new_graph_size = hgraph_init(NULL, 0, &new_graph_config);
 	hgraph_t* new_graph = arena_alloc(&fixture.base.arena, new_graph_size);
-	hgraph_init(new_graph, &new_graph_config);
+	hgraph_init(new_graph, new_graph_size, &new_graph_config);
 
 	// The id must be identical
 	hgraph_migration_execute(migration, fixture.base.graph, new_graph);

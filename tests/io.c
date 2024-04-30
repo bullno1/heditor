@@ -93,9 +93,9 @@ TEST(io, read_write_same) {
 	ASSERT_EQ(hgraph_read_graph_config(&header, &graph_config, &mem_io->in), HGRAPH_IO_OK);
 	graph_config.registry = fixture.base.registry;
 
-	size_t mem_size = hgraph_init(NULL, &graph_config);
+	size_t mem_size = hgraph_init(NULL, 0, &graph_config);
 	hgraph_t* graph = arena_alloc(&fixture.base.arena, mem_size);
-	hgraph_init(graph, &graph_config);
+	hgraph_init(graph, mem_size, &graph_config);
 	ASSERT_EQ(hgraph_read_graph(&header, graph, &mem_io->in), HGRAPH_IO_OK);
 	ASSERT_TRUE(mem_io->pos == mem_io->end);
 
@@ -125,23 +125,23 @@ TEST(io, slip) {
 		.max_data_types = 1,
 		.max_node_types = 1,
 	};
-	size_t mem_size = hgraph_registry_builder_init(NULL, &registry_config);
+	size_t mem_size = hgraph_registry_builder_init(NULL, 0, &registry_config);
 	hgraph_registry_builder_t* builder = arena_alloc(&fixture.base.arena, mem_size);
-	hgraph_registry_builder_init(builder, &registry_config);
+	hgraph_registry_builder_init(builder, mem_size, &registry_config);
 
 	hgraph_registry_builder_add(builder, &node_type);
-	mem_size = hgraph_registry_init(NULL, builder);
+	mem_size = hgraph_registry_init(NULL, 0, builder);
 	hgraph_registry_t* registry = arena_alloc(&fixture.base.arena, mem_size);
-	hgraph_registry_init(registry, builder);
+	hgraph_registry_init(registry, mem_size, builder);
 
 	hgraph_config_t graph_config = {
 		.max_name_length = 1,
 		.max_nodes = 1,
 		.registry = registry,
 	};
-	mem_size = hgraph_init(NULL, &graph_config);
+	mem_size = hgraph_init(NULL, 0, &graph_config);
 	hgraph_t* graph = arena_alloc(&fixture.base.arena, mem_size);
-	hgraph_init(graph, &graph_config);
+	hgraph_init(graph, mem_size, &graph_config);
 	hgraph_create_node(graph, &node_type);
 
 	memory_io* mem_io = &fixture.mem_io;
@@ -156,7 +156,7 @@ TEST(io, slip) {
 	ASSERT_EQ(hgraph_read_graph_config(&header, &graph_config, &mem_io->in), HGRAPH_IO_OK);
 	graph_config.registry = registry;
 
-	hgraph_init(graph, &graph_config);
+	hgraph_init(graph, mem_size, &graph_config);
 	ASSERT_EQ(hgraph_read_graph(&header, graph, &mem_io->in), HGRAPH_IO_OK);
 	ASSERT_TRUE(mem_io->pos == mem_io->end);
 

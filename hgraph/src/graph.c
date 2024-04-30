@@ -74,7 +74,7 @@ hgraph_resolve_edge(
 }
 
 size_t
-hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
+hgraph_init(hgraph_t* graph, size_t size, const hgraph_config_t* config) {
 	mem_layout_t layout = { 0 };
 	mem_layout_reserve(
 		&layout,
@@ -107,7 +107,7 @@ hgraph_init(hgraph_t* graph, const hgraph_config_t* config) {
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (graph == NULL) { return required_size; }
+	if (graph == NULL || size < required_size) { return required_size; }
 
 	*graph = (hgraph_t){
 		.registry = registry,

@@ -18,6 +18,7 @@ struct hed_arena_s;
 size_t
 node_type_menu_init(
 	node_type_menu_entry_t* menu,
+	size_t size,
 	struct hgraph_registry_s* registry,
 	struct hed_arena_s* arena
 );

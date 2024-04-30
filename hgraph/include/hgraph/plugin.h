@@ -15,11 +15,6 @@ typedef enum hgraph_lifetime_e {
 	HGRAPH_LIFETIME_EXECUTION,
 } hgraph_lifetime_t;
 
-typedef enum hgraph_node_part_e {
-	HGRAPH_NODE_HEADER,
-	HGRAPH_NODE_FOOTER,
-} hgraph_node_part_t;
-
 typedef enum hgraph_flow_type_e {
 	HGRAPH_FLOW_ONCE,
 	HGRAPH_FLOW_OPTIONAL,
@@ -101,11 +96,7 @@ typedef struct hgraph_node_type_s {
 
 	void (*transfer)(void* dst, void* src);
 
-	void (*render)(
-		hgraph_node_part_t part,
-		const void* last_status,
-		void* render_ctx
-	);
+	void (*render)(const void* last_status, void* render_ctx);
 } hgraph_node_type_t;
 
 struct hgraph_node_api_s {

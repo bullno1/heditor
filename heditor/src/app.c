@@ -68,6 +68,7 @@ REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
 // Registry
 REMODULE_VAR(hgraph_registry_config_t, registry_config) = { 0 };
 REMODULE_VAR(hgraph_registry_builder_t*, registry_builder) = NULL;
+REMODULE_VAR(size_t, registry_builder_size) = 0;
 REMODULE_VAR(size_t, current_registry_size) = 0;
 REMODULE_VAR(hgraph_registry_t*, current_registry) = NULL;
 REMODULE_VAR(size_t, next_registry_size) = 0;
@@ -117,16 +118,17 @@ build_registry(
 	size_t* size_ptr,
 	hgraph_registry_t** registry_ptr
 ) {
-	size_t required_size = hgraph_registry_init(NULL, registry_builder);
-
 	hgraph_registry_t* registry = *registry_ptr;
-	if (required_size > *size_ptr) {
-		registry = hed_realloc(registry, required_size, alloc);
-		*size_ptr = required_size;
-		*registry_ptr = registry;
-	}
+	size_t size = *size_ptr;
+	size_t required_size = hgraph_registry_init(registry, size, registry_builder);
 
-	hgraph_registry_init(registry, registry_builder);
+	if (required_size > size) {
+		size = required_size;
+		registry = hed_realloc(registry, required_size, alloc);
+		hgraph_registry_init(registry, size, registry_builder);
+		*registry_ptr = registry;
+		*size_ptr = required_size;
+	}
 }
 
 static void
@@ -138,16 +140,19 @@ build_graph(
 ) {
 	hgraph_config_t config = graph_config;
 	config.registry = registry;
-	size_t required_size = hgraph_init(NULL, &config);
 
 	hgraph_t* graph = *graph_ptr;
-	if (required_size > *size_ptr) {
+	size_t size = *size_ptr;
+	size_t required_size = hgraph_init(graph, size, &config);
+
+	if (required_size > size) {
+		size = required_size;
 		graph = hed_realloc(graph, required_size, alloc);
+		hgraph_init(graph, size, &config);
 		*size_ptr = required_size;
 		*graph_ptr = graph;
 	}
 
-	hgraph_init(graph, &config);
 }
 
 static int
@@ -333,7 +338,7 @@ frame(void* userdata) {
 		}
 	}
 	if (should_reload_plugins) {
-		hgraph_registry_builder_init(registry_builder, &registry_config);
+		hgraph_registry_builder_init(registry_builder, registry_builder_size, &registry_config);
 		for (int i = 0; i < num_plugins; ++i) {
 			remodule_reload(plugins[i]);
 		}
@@ -341,15 +346,17 @@ frame(void* userdata) {
 		// Migrate graphs
 		build_registry(args->allocator, &next_registry_size, &next_registry);
 		size_t required_migration_size = hgraph_migration_init(
-			NULL, current_registry, next_registry
+			migration, migration_size, current_registry, next_registry
 		);
 		if (required_migration_size > migration_size) {
 			migration = hed_realloc(
 				migration, required_migration_size, args->allocator
 			);
 			migration_size = required_migration_size;
+			hgraph_migration_init(
+				migration, migration_size, current_registry, next_registry
+			);
 		}
-		hgraph_migration_init(migration, current_registry, next_registry);
 
 		for (int i = 0; i < num_documents; ++i) {
 			document_t* document = &documents[i];
@@ -373,17 +380,17 @@ frame(void* userdata) {
 
 		// Rebuild node menu
 		size_t required_menu_size = node_type_menu_init(
-			NULL, current_registry, &frame_arena
+			node_type_menu, menu_size, current_registry, &frame_arena
 		);
 		if (required_menu_size > menu_size) {
 			node_type_menu = hed_realloc(
 				node_type_menu, required_menu_size, args->allocator
 			);
 			menu_size = required_menu_size;
+			node_type_menu_init(
+				node_type_menu, menu_size, current_registry, &frame_arena
+			);
 		}
-		node_type_menu_init(
-			node_type_menu, current_registry, &frame_arena
-		);
 	}
 
 	// GUI
@@ -710,7 +717,7 @@ frame(void* userdata) {
 									{
 										hgraph_config_t config = graph_config;
 										config.registry = current_registry;
-										hgraph_init(new_doc->current_graph, &config);
+										hgraph_init(new_doc->current_graph, new_doc->current_graph_size, &config);
 										status = load_graph(new_doc->current_graph, file);
 										fclose(file);
 									}
@@ -845,12 +852,12 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				project_root = hed_path_dup(args->allocator, config->project_root);
 				editor_config = config->editor_config;
 
-				size_t registry_builder_size = hgraph_registry_builder_init(
-					NULL, &registry_config
+				registry_builder_size = hgraph_registry_builder_init(
+					NULL, 0, &registry_config
 				);
 				log_debug("Registry builder size: %zu", registry_builder_size);
 				registry_builder = hed_malloc(registry_builder_size, args->allocator);
-				hgraph_registry_builder_init(registry_builder, &registry_config);
+				hgraph_registry_builder_init(registry_builder, registry_builder_size, &registry_config);
 				hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(
 					registry_builder
 				);
@@ -896,17 +903,17 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			log_debug("Number of node types: %d", reg_info.num_node_types);
 
 			size_t required_menu_size = node_type_menu_init(
-				NULL, current_registry, &frame_arena
+				node_type_menu, menu_size, current_registry, &frame_arena
 			);
 			if (required_menu_size > menu_size) {
 				node_type_menu = hed_realloc(
 					node_type_menu, required_menu_size, args->allocator
 				);
 				menu_size = required_menu_size;
+				node_type_menu_init(
+					node_type_menu, menu_size, current_registry, &frame_arena
+				);
 			}
-			node_type_menu_init(
-				node_type_menu, current_registry, &frame_arena
-			);
 		}
 
 		documents = hed_malloc(

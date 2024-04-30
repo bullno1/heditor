@@ -20,9 +20,9 @@ TEST_SETUP(pipeline) {
 		.graph = graph,
 		.max_scratch_memory = 4096,
 	};
-	size_t mem_required = hgraph_pipeline_init(NULL, &pipeline_config);
+	size_t mem_required = hgraph_pipeline_init(NULL, 0, &pipeline_config);
 	fixture.pipeline = arena_alloc(&fixture.base.arena, mem_required);
-	hgraph_pipeline_init(fixture.pipeline, &pipeline_config);
+	hgraph_pipeline_init(fixture.pipeline, mem_required, &pipeline_config);
 }
 
 TEST_TEARDOWN(pipeline) {
@@ -85,11 +85,11 @@ TEST(pipeline, transfer) {
 		.max_scratch_memory = 4096,
 		.previous_pipeline = pipeline,
 	};
-	size_t mem_required = hgraph_pipeline_init(NULL, &pipeline_config);
+	size_t mem_required = hgraph_pipeline_init(NULL, 0, &pipeline_config);
 
 	// Transfer data from the old pipeline
 	hgraph_pipeline_t* new_pipeline = arena_alloc(&fixture.base.arena, mem_required);
-	hgraph_pipeline_init(new_pipeline, &pipeline_config);
+	hgraph_pipeline_init(new_pipeline, mem_required, &pipeline_config);
 
 	status = hgraph_pipeline_execute(new_pipeline, NULL, NULL);
 	ASSERT_EQ(status, HGRAPH_PIPELINE_EXEC_FINISHED);

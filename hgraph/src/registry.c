@@ -67,6 +67,7 @@ hgraph_registry_add_type(
 size_t
 hgraph_registry_builder_init(
 	hgraph_registry_builder_t* builder,
+	size_t size,
 	const hgraph_registry_config_t* config
 ) {
 	mem_layout_t layout = { 0 };
@@ -91,7 +92,7 @@ hgraph_registry_builder_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (builder == NULL) { return required_size; }
+	if (builder == NULL || size < required_size) { return required_size; }
 
 	memset(builder, 0, required_size);
 	*builder = (hgraph_registry_builder_t){
@@ -157,6 +158,7 @@ hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder) {
 size_t
 hgraph_registry_init(
 	hgraph_registry_t* registry,
+	size_t size,
 	const hgraph_registry_builder_t* builder
 ) {
 	size_t string_table_size = 0;
@@ -245,7 +247,7 @@ hgraph_registry_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (registry == NULL) { return required_size; }
+	if (registry == NULL || size < required_size) { return required_size; }
 
 	*registry = (hgraph_registry_t){
 		.num_data_types = builder->num_data_types,

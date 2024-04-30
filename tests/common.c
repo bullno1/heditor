@@ -17,26 +17,26 @@ fixture_init(fixture_t* fixture) {
 		.max_data_types = 32,
 		.max_node_types = 32,
 	};
-	size_t mem_required = hgraph_registry_builder_init(NULL, &reg_config);
+	size_t mem_required = hgraph_registry_builder_init(NULL, 0, &reg_config);
 	hgraph_registry_builder_t* builder = arena_alloc(&arena, mem_required);
-	hgraph_registry_builder_init(builder, &reg_config);
+	hgraph_registry_builder_init(builder, mem_required, &reg_config);
 
 	hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(builder);
 	plugin1_entry(plugin_api);
 	plugin2_entry(plugin_api);
 
-	mem_required = hgraph_registry_init(NULL, builder);
+	mem_required = hgraph_registry_init(NULL, 0, builder);
 	hgraph_registry_t* registry = arena_alloc(&arena, mem_required);
-	hgraph_registry_init(registry, builder);
+	hgraph_registry_init(registry, mem_required, builder);
 
 	hgraph_config_t graph_config = {
 		.registry = registry,
 		.max_nodes = 32,
 		.max_name_length = 64,
 	};
-	mem_required = hgraph_init(NULL, &graph_config);
+	mem_required = hgraph_init(NULL, 0, &graph_config);
 	hgraph_t* graph = arena_alloc(&arena, mem_required);
-	hgraph_init(graph, &graph_config);
+	hgraph_init(graph, mem_required, &graph_config);
 
 	*fixture = (fixture_t){
 		.arena = arena,

@@ -116,6 +116,7 @@ extern "C" {
 HGRAPH_API size_t
 hgraph_registry_builder_init(
 	hgraph_registry_builder_t* builder,
+	size_t size,
 	const hgraph_registry_config_t* config
 );
 
@@ -131,6 +132,7 @@ hgraph_registry_builder_as_plugin_api(hgraph_registry_builder_t* builder);
 HGRAPH_API size_t
 hgraph_registry_init(
 	hgraph_registry_t* registry,
+	size_t size,
 	const hgraph_registry_builder_t* builder
 );
 
@@ -145,7 +147,7 @@ HGRAPH_API hgraph_registry_info_t
 hgraph_registry_info(const hgraph_registry_t* registry);
 
 HGRAPH_API size_t
-hgraph_init(hgraph_t* graph, const hgraph_config_t* config);
+hgraph_init(hgraph_t* graph, size_t size, const hgraph_config_t* config);
 
 HGRAPH_API hgraph_index_t
 hgraph_create_node(hgraph_t* graph, const hgraph_node_type_t* type);
@@ -254,6 +256,7 @@ hgraph_is_pin_connected(
 HGRAPH_API size_t
 hgraph_migration_init(
 	hgraph_migration_t* migration,
+	size_t size,
 	const hgraph_registry_t* from_registry,
 	const hgraph_registry_t* to_registry
 );
@@ -268,6 +271,7 @@ hgraph_migration_execute(
 HGRAPH_API size_t
 hgraph_pipeline_init(
 	hgraph_pipeline_t* pipeline,
+	size_t size,
 	const hgraph_pipeline_config_t* config
 );
 

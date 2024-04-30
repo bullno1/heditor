@@ -35,18 +35,18 @@ TEST(registry, reg) {
 		.max_data_types = 32,
 		.max_node_types = 32,
 	};
-	size_t mem_required = hgraph_registry_builder_init(NULL, &config);
+	size_t mem_required = hgraph_registry_builder_init(NULL, 0, &config);
 
 	hgraph_registry_builder_t* builder = malloc(mem_required);
-	hgraph_registry_builder_init(builder, &config);
+	hgraph_registry_builder_init(builder, mem_required, &config);
 
 	hgraph_plugin_api_t* plugin_api = hgraph_registry_builder_as_plugin_api(builder);
 	plugin1_entry(plugin_api);
 	plugin2_entry(plugin_api);
 
-	mem_required = hgraph_registry_init(NULL, builder);
+	mem_required = hgraph_registry_init(NULL, 0, builder);
 	hgraph_registry_t* registry = malloc(mem_required);
-	hgraph_registry_init(registry, builder);
+	hgraph_registry_init(registry, mem_required, builder);
 
 	iterator_state i = { 0 };
 	hgraph_registry_iterate(

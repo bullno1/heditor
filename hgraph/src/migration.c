@@ -54,6 +54,7 @@ hgraph_create_var_plans(
 size_t
 hgraph_migration_init(
 	hgraph_migration_t* migration,
+	size_t size,
 	const hgraph_registry_t* from_registry,
 	const hgraph_registry_t* to_registry
 ) {
@@ -84,7 +85,7 @@ hgraph_migration_init(
 	);
 
 	size_t required_size = mem_layout_size(&layout);
-	if (migration == NULL) { return required_size; }
+	if (migration == NULL || size < required_size) { return required_size; }
 
 	*migration = (hgraph_migration_t){
 		.node_plans = mem_layout_locate(migration, node_plans_offset),

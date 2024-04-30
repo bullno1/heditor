@@ -121,6 +121,7 @@ flatten_menu_tree(
 size_t
 node_type_menu_init(
 	node_type_menu_entry_t* menu,
+	size_t size,
 	struct hgraph_registry_s* registry,
 	struct hed_arena_s* arena
 ) {
@@ -138,7 +139,7 @@ node_type_menu_init(
 		required_size =
 			sizeof(node_type_menu_entry_t) * (build_ctx.num_nodes + 1)  // Include root
 			+ build_ctx.string_size;
-		if (menu != NULL) {
+		if (menu != NULL && size >= required_size) {
 			flatten_menu_tree_ctx_t flatten_ctx = {
 				.node_pool = menu,
 				.str_pool = (char*)menu + sizeof(node_type_menu_entry_t) * (build_ctx.num_nodes + 1),

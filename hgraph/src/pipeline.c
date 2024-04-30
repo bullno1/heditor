@@ -258,6 +258,7 @@ hgraph_pipeline_is_node_ready(
 size_t
 hgraph_pipeline_init(
 	hgraph_pipeline_t* pipeline,
+	size_t size,
 	const hgraph_pipeline_config_t* config
 ) {
 	mem_layout_t layout = { 0 };
@@ -303,7 +304,7 @@ hgraph_pipeline_init(
 	}
 
 	size_t required_size = mem_layout_size(&layout);
-	if (pipeline == NULL) { return required_size; }
+	if (pipeline == NULL || size < required_size) { return required_size; }
 
 	*pipeline = (hgraph_pipeline_t){
 		.graph = graph,
