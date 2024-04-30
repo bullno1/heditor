@@ -89,7 +89,7 @@ render_label(
 	}
 
 	end_widget(ctx);
-	return update_dirty_status(ctx, result);
+	return result;
 }
 
 static bool
