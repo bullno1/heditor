@@ -184,7 +184,7 @@ hgraph_core_alloc_str_output(
 	char* tmp = hgraph_node_allocate(node_api, HGRAPH_LIFETIME_EXECUTION, length + 1);
 	if (tmp == NULL) { return (hgraph_str_t) { 0 }; }
 
-	memcpy(tmp, data, length);
+	if (data != NULL) { memcpy(tmp, data, length); }
 	tmp[length] = '\0';
 	return (hgraph_str_t){ .length = length, .data = data };
 }

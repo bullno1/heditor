@@ -88,7 +88,7 @@ hgraph_pipeline_node_data(const hgraph_node_api_t* api) {
 	return node_meta->data;
 }
 
-HGRAPH_PRIVATE void
+HGRAPH_PRIVATE bool
 hgraph_pipeline_node_report_status(const hgraph_node_api_t* api, const void* status) {
 	hgraph_pipeline_node_ctx_t* ctx = HGRAPH_CONTAINER_OF(api, hgraph_pipeline_node_ctx_t, impl);
 	hgraph_pipeline_t* pipeline = ctx->pipeline;
@@ -103,7 +103,10 @@ hgraph_pipeline_node_report_status(const hgraph_node_api_t* api, const void* sta
 		ctx->watcher_data
 	)) {
 		ctx->termination_reason = HGRAPH_PIPELINE_EXEC_ABORTED;
+		return false;
 	}
+
+	return true;
 }
 
 HGRAPH_PRIVATE const void*

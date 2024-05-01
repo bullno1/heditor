@@ -79,7 +79,7 @@ render_label(
 
 	bool result = false;
 	if (options->selectable) {
-		result = igButton(label.chars, (ImVec2){ 0.f, 0.f });
+		result = igButton(label.chars, (ImVec2){ options->width, 0.f });
 	} else {
 		igText("%.*s", (int)label.len, label.chars);
 	}

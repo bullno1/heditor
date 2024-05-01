@@ -18,6 +18,7 @@
 #include "node_type_menu.h"
 #include "resources.h"
 #include "io.h"
+#include "pipeline_runner.h"
 #include <xincbin.h>
 #include <string.h>
 #include <errno.h>
@@ -64,6 +65,7 @@ REMODULE_VAR(hed_arena_t, frame_arena) = { 0 };
 REMODULE_VAR(int, num_plugins) = 0;
 REMODULE_VAR(remodule_t**, plugins) = NULL;
 REMODULE_VAR(remodule_monitor_t**, plugin_monitors) = NULL;
+REMODULE_VAR(bool, should_reload_plugins) = false;
 
 // Registry
 REMODULE_VAR(hgraph_registry_config_t, registry_config) = { 0 };
@@ -90,6 +92,15 @@ REMODULE_VAR(int, num_documents) = 0;
 REMODULE_VAR(int, active_document_index) = 0;
 REMODULE_VAR(document_t*, documents) = NULL;
 
+// Pipeline
+REMODULE_VAR(hgraph_pipeline_config_t, pipeline_config) = { 0 };
+REMODULE_VAR(size_t, current_pipeline_size) = 0;
+REMODULE_VAR(hgraph_pipeline_t*, current_pipeline) = NULL;
+REMODULE_VAR(size_t, next_pipeline_size) = 0;
+REMODULE_VAR(hgraph_pipeline_t*, next_pipeline) = NULL;
+static pipeline_runner_t pipeline_runner;
+static hgraph_t* pipeline_bound_graph = NULL;
+
 static const nfdu8filteritem_t FILE_FILTERS[] = {
 	{
 		.name = "Graph file",
@@ -108,6 +119,7 @@ load_app_config(hed_arena_t* arena);
 extern bool
 draw_editor(
 	hed_arena_t* arena,
+	bool editable,
 	node_type_menu_entry_t* node_type_menu,
 	hgraph_t* graph
 );
@@ -152,7 +164,6 @@ build_graph(
 		*size_ptr = required_size;
 		*graph_ptr = graph;
 	}
-
 }
 
 static int
@@ -284,9 +295,8 @@ init(void* userdata) {
 		.no_default_font = true,
 	});
 
-	hed_debug = hed_debug || is_debugger_attached();
 	ImGuiIO* igIo = igGetIO();
-	igIo->ConfigDebugIsDebuggerPresent = hed_debug;
+	igIo->ConfigDebugIsDebuggerPresent = is_debugger_attached();
 
 	xincbin_data_t font_data = XINCBIN_GET(font);
 	ImFontAtlas_AddFontFromMemoryTTF(
@@ -310,6 +320,8 @@ init(void* userdata) {
 	font_texture_desc.min_filter = SG_FILTER_LINEAR;
 	font_texture_desc.mag_filter = SG_FILTER_LINEAR;
 	simgui_create_fonts_texture(&font_texture_desc);
+
+	pipeline_runner_init(&pipeline_runner);
 }
 
 static void
@@ -329,7 +341,6 @@ frame(void* userdata) {
 	entry_args_t* args = userdata;
 
 	// Reload plugins
-	bool should_reload_plugins = false;
 	for (int i = 0; i < num_plugins; ++i) {
 		bool plugin_updated = remodule_should_reload(plugin_monitors[i]);
 		should_reload_plugins = should_reload_plugins || plugin_updated;
@@ -338,6 +349,9 @@ frame(void* userdata) {
 		}
 	}
 	if (should_reload_plugins) {
+		// TODO: Add a synchronous stop
+		pipeline_runner_terminate(&pipeline_runner);
+
 		hgraph_registry_builder_init(registry_builder, registry_builder_size, &registry_config);
 		for (int i = 0; i < num_plugins; ++i) {
 			remodule_reload(plugins[i]);
@@ -391,6 +405,9 @@ frame(void* userdata) {
 				node_type_menu, menu_size, current_registry, &frame_arena
 			);
 		}
+
+		pipeline_runner_init(&pipeline_runner);
+		should_reload_plugins = false;
 	}
 
 	// GUI
@@ -428,6 +445,24 @@ frame(void* userdata) {
 
 			if (igMenuItem_Bool("Exit", NULL, false, true)) {
 				HED_CMD(HED_CMD_EXIT);
+			}
+
+			igEndMenu();
+		}
+
+		pipeline_runner_state_t runner_state = pipeline_runner_current_state(&pipeline_runner);
+		if (igBeginMenu("Run", true)) {
+			if (igMenuItem_Bool("Play", "F5", false, runner_state == PIPELINE_STOPPED)) {
+				HED_CMD(HED_CMD_EXECUTE);
+			}
+
+			if (igMenuItem_Bool("Pause", "F6", false, runner_state == PIPELINE_RUNNING)) {
+			}
+
+			if (igMenuItem_Bool("Resume", "F7", false, runner_state == PIPELINE_PAUSED)) {
+			}
+
+			if (igMenuItem_Bool("Stop", "Ctrl+C", false, runner_state != PIPELINE_STOPPED)) {
 			}
 
 			igEndMenu();
@@ -511,8 +546,11 @@ frame(void* userdata) {
 							nePushStyleColor(neStyleColor_PinRect, (ImVec4){ 1.f, 1.f, 1.f, 0.7f }); ++numStyleColors;
 							nePushStyleVarFloat(neStyleVar_NodeRounding, 4.f); ++numStyleVars;
 							nePushStyleVarVec4(neStyleVar_NodePadding, (ImVec4){ 8.f, 4.f, 8.f, 4.f }); ++numStyleVars;
+							bool editable = document->current_graph != pipeline_bound_graph
+								|| pipeline_runner_current_state(&pipeline_runner) == PIPELINE_STOPPED;
 							bool updated = draw_editor(
 								&frame_arena,
+								editable,
 								node_type_menu,
 								document->current_graph
 							);
@@ -746,6 +784,60 @@ frame(void* userdata) {
 			case HED_CMD_SAVE_AS:
 				hed_cmd_save_as(active_document, args->allocator);
 				break;
+			case HED_CMD_EXECUTE:
+				{
+					if (
+						pipeline_runner_current_state(&pipeline_runner) != PIPELINE_STOPPED
+					) {
+						continue;
+					}
+
+					// Rebind pipeline
+					if (active_document->current_graph != pipeline_bound_graph) {
+						if (current_pipeline != NULL) {
+							hgraph_pipeline_cleanup(current_pipeline);
+						}
+
+						hgraph_pipeline_config_t config = pipeline_config;
+						config.graph = active_document->current_graph;
+						size_t required_size = hgraph_pipeline_init(
+							current_pipeline, current_pipeline_size, &config
+						);
+						if (required_size > current_pipeline_size) {
+							current_pipeline = hed_realloc(
+								current_pipeline, required_size, args->allocator
+							);
+							current_pipeline_size = required_size;
+							hgraph_pipeline_init(
+								current_pipeline, current_pipeline_size, &config
+							);
+						}
+
+						pipeline_bound_graph = active_document->current_graph;
+					}
+
+					hgraph_pipeline_config_t config = pipeline_config;
+					config.graph = active_document->current_graph;
+					config.previous_pipeline = current_pipeline;
+					size_t required_size = hgraph_pipeline_init(
+						next_pipeline, next_pipeline_size, &config
+					);
+					if (required_size > next_pipeline_size) {
+						next_pipeline = hed_realloc(
+							next_pipeline, required_size, args->allocator
+						);
+						next_pipeline_size = required_size;
+						hgraph_pipeline_init(
+							next_pipeline, next_pipeline_size, &config
+						);
+					}
+					hgraph_pipeline_cleanup(current_pipeline);
+					SWAP(hgraph_pipeline_t*, current_pipeline, next_pipeline);
+					SWAP(size_t, current_pipeline_size, next_pipeline_size);
+
+					pipeline_runner_execute(&pipeline_runner, current_pipeline);
+				}
+				break;
 			case HED_CMD_CREATE_NODE:
 				{
 					hgraph_index_t node_id = hgraph_create_node(
@@ -799,6 +891,14 @@ static void
 cleanup(void* userdata) {
 	entry_args_t* args = userdata;
 
+	pipeline_runner_terminate(&pipeline_runner);
+	if (pipeline_bound_graph != NULL) {
+		hgraph_pipeline_cleanup(current_pipeline);
+	}
+
+	hed_free(current_pipeline, args->allocator);
+	hed_free(next_pipeline, args->allocator);
+
 	for (int i = 0; i < editor_config.max_documents; ++i) {
 		hed_free(documents[i].current_graph, args->allocator);
 		hed_free(documents[i].next_graph, args->allocator);
@@ -851,6 +951,7 @@ remodule_entry(remodule_op_t op, void* userdata) {
 				graph_config = config->graph_config;
 				project_root = hed_path_dup(args->allocator, config->project_root);
 				editor_config = config->editor_config;
+				pipeline_config = config->pipeline_config;
 
 				registry_builder_size = hgraph_registry_builder_init(
 					NULL, 0, &registry_config
@@ -940,5 +1041,12 @@ remodule_entry(remodule_op_t op, void* userdata) {
 			.logger = args->sokol_logger,
 			.allocator = args->sokol_allocator,
 		};
+	}
+
+	if (op == REMODULE_OP_BEFORE_RELOAD) {
+		pipeline_runner_terminate(&pipeline_runner);
+	}
+	if (op == REMODULE_OP_AFTER_RELOAD) {
+		pipeline_runner_init(&pipeline_runner);
 	}
 }

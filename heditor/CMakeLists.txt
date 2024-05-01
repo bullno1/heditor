@@ -69,6 +69,8 @@ set(HEDITOR_APP_SOURCES
 	./src/editor.c
 	./src/io.c
 	./src/plugin_api_impl.c
+	./src/pipeline_runner.c
+	./src/hthread.c
 	"${HEDITOR_RC}"
 )
 setup_library(heditor_app FALSE "${HEDITOR_APP_SOURCES}")

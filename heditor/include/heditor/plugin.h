@@ -76,6 +76,7 @@ typedef struct hed_enum_input_opts_s {
 typedef struct hed_label_opts_s {
 	bool line_break;
 	bool selectable;
+	float width;
 } hed_label_opts_t;
 
 struct hed_gui_s;

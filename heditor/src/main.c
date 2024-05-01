@@ -19,6 +19,7 @@ static remodule_t* app_module = NULL;
 static remodule_monitor_t* app_monitor = NULL;
 static entry_args_t entry = { 0 };
 static hed_allocator_t allocator = { 0 };
+static bool should_reload = false;
 
 #ifndef NDEBUG
 static hed_counting_allocator_t app_allocator = { 0 };
@@ -53,7 +54,11 @@ cleanup(void) {
 
 static void
 frame(void) {
-	if (remodule_check(app_monitor)) {
+	should_reload = remodule_should_reload(app_monitor) || should_reload;
+	if (should_reload && !entry.reload_blocked) {
+		remodule_reload(app_module);
+		should_reload = false;
+
 		log_info("Reloaded app");
 	}
 

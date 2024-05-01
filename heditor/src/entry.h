@@ -16,6 +16,9 @@ typedef struct entry_args_s {
 
 	// Output
 	sapp_desc app;
+
+	// Status
+	bool reload_blocked;
 } entry_args_t;
 
 #endif

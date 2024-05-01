@@ -108,7 +108,7 @@ struct hgraph_node_api_s {
 
 	void* (*data)(const hgraph_node_api_t* api);
 
-	void (*report_status)(const hgraph_node_api_t* api, const void* status);
+	bool (*report_status)(const hgraph_node_api_t* api, const void* status);
 
 	const void* (*input)(
 		const hgraph_node_api_t* api,
@@ -156,9 +156,9 @@ hgraph_node_output(
 	if (api->output != NULL) { api->output(api, pin, value); }
 }
 
-static inline void
+static inline bool
 hgraph_node_report_status(const hgraph_node_api_t* api, const void* status) {
-	api->report_status(api, status);
+	return api->report_status(api, status);
 }
 
 static inline void

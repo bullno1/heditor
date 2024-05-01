@@ -23,6 +23,7 @@ typedef struct {
 	const hgraph_attribute_description_t* popup_attribute;
 	hed_gui_popup_info_t popup_info;
 	bool updated;
+	bool editable;
 } draw_graph_ctx_t;
 
 typedef struct pin_ctx_s {
@@ -122,6 +123,7 @@ gui_draw_graph_node_impl(
 					{
 						hed_plugin_api_impl_t impl;
 						void* attr = hgraph_get_node_attribute(ctx->graph, node_id, *itr);
+						igBeginDisabled(!ctx->editable);
 						HED_WITH_ARENA(ctx->arena) {
 							render(
 								attr,
@@ -134,6 +136,7 @@ gui_draw_graph_node_impl(
 								)
 							);
 						}
+						igEndDisabled();
 						ctx->updated = ctx->updated || impl.updated;
 					}
 					igEndGroup();
@@ -432,6 +435,7 @@ show_create_node_menu(
 bool
 draw_editor(
 	hed_arena_t* arena,
+	bool editable,
 	node_type_menu_entry_t* node_type_menu,
 	hgraph_t* graph
 ) {
@@ -440,6 +444,7 @@ draw_editor(
 	draw_graph_ctx_t draw_ctx = {
 		.arena = arena,
 		.graph = graph,
+		.editable = editable,
 	};
 	hgraph_iterate_nodes(graph, gui_draw_graph_node, &draw_ctx);
 	updated = updated || draw_ctx.updated;
@@ -452,7 +457,7 @@ draw_editor(
 	if (neBeginCreate()) {
 		hgraph_index_t from_pin, to_pin;
 		if (neQueryNewLink(&from_pin, &to_pin)) {
-			if (hgraph_can_connect(graph, from_pin, to_pin)) {
+			if (editable && hgraph_can_connect(graph, from_pin, to_pin)) {
 				if (neAcceptNewItemEx(accept_color, 1.f)) {
 					HED_CMD(HED_CMD_CREATE_EDGE, .create_edge_args = {
 						.from_pin = from_pin,
@@ -470,17 +475,21 @@ draw_editor(
 	if (neBeginDelete()) {
 		hgraph_index_t node_id;
 		while (neQueryDeletedNode(&node_id)) {
-			if (neAcceptDeletedItem(true)) {
+			if (editable && neAcceptDeletedItem(true)) {
 				hgraph_destroy_node(graph, node_id);
 				updated = true;
+			} else {
+				neRejectDeletedItem();
 			}
 		}
 
 		hgraph_index_t edge_id;
 		while (neQueryDeletedLink(&edge_id)) {
-			if (neAcceptDeletedItem(true)) {
+			if (editable && neAcceptDeletedItem(true)) {
 				hgraph_disconnect(graph, edge_id);
 				updated = true;
+			} else {
+				neRejectDeletedItem();
 			}
 		}
 	}
@@ -492,12 +501,12 @@ draw_editor(
 	neSuspend();
 	{
 		static ImVec2 mouse_pos;
-		if (neShowBackgroundContextMenu()) {
+		if (editable && neShowBackgroundContextMenu()) {
 			igOpenPopup_Str("New node", ImGuiPopupFlags_None);
 			mouse_pos = tmp_pos;
 		}
 
-		if (igBeginPopup("New node", ImGuiWindowFlags_None)) {
+		if (editable && igBeginPopup("New node", ImGuiWindowFlags_None)) {
 			show_create_node_menu(
 				&(create_node_menu_ctx_t){
 					.first_entry = node_type_menu,
@@ -511,7 +520,7 @@ draw_editor(
 		static hgraph_index_t popup_node = HGRAPH_INVALID_INDEX;
 		static const hgraph_attribute_description_t* popup_attribute = NULL;
 		static hed_gui_popup_info_t popup_info = { 0 };
-		if (draw_ctx.popup_attribute) {
+		if (editable && draw_ctx.popup_attribute) {
 			igOpenPopup_Str("Edit attribute", ImGuiInputTextFlags_None);
 			popup_node = draw_ctx.popup_node;
 			popup_attribute = draw_ctx.popup_attribute;
@@ -540,6 +549,7 @@ draw_editor(
 
 		if (
 			popup_attribute != NULL
+			&& editable
 			&& igBeginPopup("Edit attribute", ImGuiWindowFlags_None)
 		) {
 			hgraph_data_render_callback_t render = NULL;
